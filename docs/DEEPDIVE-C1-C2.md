@@ -362,3 +362,105 @@ Q17 Outcomes: besides return-for-refinement, can intake be DECLINED
 Q18 Pipeline volume: typical new-RAU requests in flight (sizes the board
     and synthetic data); typical time-in-stage if known.
 
+====================================================================
+# REVISION 2 (2026-08-22) - owner answers resolve Q11-Q18
+====================================================================
+
+## R2.1 Hierarchy (Q11 resolved)
+Business structure: Enterprise > LOB > SubLOB (owner's shorthand:
+"WF > LOB > SubLOB"). RAUs are created AT the SubLOB (L3) level. The
+services catalog is a completely separate structure from the business
+hierarchy; services align to the RAU, not to the org tree.
+Data: orgNodes {id, level (enterprise|lob|sublob), parentId, name};
+raus.subLobId replaces earlier businessLineL1/L2 fields (L1/L2 derived by
+walking up). Synthetic data uses a NEUTRAL enterprise node name; the real
+environment's own labels arrive with real data.
+
+## R2.2 Services catalog (Q12 resolved)
+The catalog has branching levels of detail (a tree). A RAU selects
+MULTIPLE service nodes to describe what it does in a consistent,
+comparable way. The same service (e.g. "Underwriting Services") appears
+across many RAUs because different businesses perform it - that is the
+point: services are the cross-business comparability spine, and a heavy
+input to uniqueness scoring (same SubLOB + overlapping services = high
+overlap signal).
+Data: services {id SVC-####, parentId, name, description}; raus.serviceIds[]
+may reference any level (deepest available preferred). Default depth for
+synthetic catalog: 3 levels, ~120 nodes. (Owner to correct depth/size.)
+
+## R2.3 RAU category check (Q13 resolved - NEW requirement)
+Three major RAU categories: BUSINESS SERVICE RAU | SHARED SERVICES RAU |
+ENTERPRISE RAU. This is a major branch of the applicability tree, so the
+intake analysis gains a CATEGORY CHECK alongside uniqueness: the
+assistant evaluates whether the described RAU "sounds like" the category
+selected (or recommends one), with rationale, and the reviewer confirms.
+Working definitions for the mockup (owner to correct):
+- Business Service RAU: performs the business of an LOB/SubLOB.
+- Shared Services RAU: performs services consumed by multiple businesses.
+- Enterprise RAU: performs enterprise-level functions.
+Heuristic emulation: keyword/service-based classifier (e.g. services
+selected across many LOBs' RAUs + language like "on behalf of" ->
+shared-services lean) with a confidence and a one-paragraph rationale.
+Data: raus.category (business-service|shared-services|enterprise),
+uniquenessReview gains categoryCheck {suggested, confidence, rationale,
+confirmed}.
+
+## R2.4 Roles (Q14 resolved)
+Submitters of intake: the future RAU Owner, their delegate, or a Business
+Control Management (BCM) team. Front-end governance: the central RCSA RAU
+GOVERNANCE team (they run the uniqueness gate and the final approval in
+this phase). Every active RAU ultimately carries five assigned roles:
+  RAU Owner | RAU Owner Delegate | BCM Contact |
+  ORBO (Operational Risk) | BACO (Compliance Risk)
+Role assignment happens during Metadata creation (next section from
+owner). Data: raus.roles {owner, delegate, bcmContact, orbo, baco} - all
+masked-name or role-label strings in the demo. My Work queues key off
+these role names; the demo role-switcher lists exactly these plus "RCSA
+RAU Governance".
+
+## R2.5 Handoffs (Q15 resolved)
+Initial submission is TRUSTED; counterparty confirmation happens after
+approval, not as an intake gate. Mockup behavior: on activation, each
+declared handoff creates a "confirm handoff" item in the counterparty
+RAU's My Work; handoffs carry confirmationStatus
+(trusted-pending-confirmation|confirmed). No blocking anywhere. Handoffs
+remain untyped for now.
+
+## R2.6 Standards (Q16 resolved)
+Formal mapping standards exist but are explicitly OUT OF SCOPE for the
+mockup - the generic lint checklist from R1.4 stands as the stand-in, and
+the runbook notes it as a placeholder the real build replaces.
+
+## R2.7 Decline with redirect (Q17 resolved)
+Uniqueness review gains a third outcome: DECLINE WITH REDIRECT - the
+requester is pointed to the RAU Owner of the overlapping RAU to discuss:
+either refine the submission to demonstrate difference, or recognize the
+work is already claimed. Data: uniquenessReview.decision (advance|
+return-for-refinement|decline-redirect), redirectRauId. The declined
+intake stays in the pipeline history with its redirect target - the
+paper trail of prevented double-counting is itself demo material.
+
+## R2.8 The pipeline is CRUD, not just create (Q18 resolved)
+~10 requests in flight at a time ACROSS TYPES: new RAU, plus mergers,
+deletions (retire), and splits. Design response:
+- Entity rename in spirit: the pipeline holds RAU CHANGE REQUESTS:
+  {id RCR-###, type (new|merge|split|retire), stage, requester, dates,
+  payload}. "New" uses the full wizard (R1.2); merge/split/retire use a
+  short form: pick the RAU(s), rationale, effective date.
+- Every non-new request gets an IMPACT PREVIEW computed live from links:
+  "Merging RAU-0214 into RAU-0388 moves 14 risks, 9 controls, 3 handoffs,
+  2 open issues; 2 duplicate risks flagged for consolidation." Same
+  governance pattern: assistant assessment -> RCSA RAU Governance
+  decision. Successor linkage (successorRauId) records where retired
+  RAUs' work went.
+- Synthetic pipeline: 10 in-flight requests spread across types/stages,
+  plus a handful of completed ones for history.
+
+## R2.9 Remaining light confirmations (non-blocking)
+- Services tree: roughly how deep / how many nodes, and is selection
+  allowed at any level or leaf-only? (Defaulting: 3 levels, ~120 nodes,
+  any level.)
+- Category definitions in R2.3: correct as working definitions?
+Next from owner: the RAU METADATA CREATION step (the phase after
+governance approval), then C2 risk identification revisit.
+
