@@ -12,6 +12,10 @@ itself THROUGH these two. If C1/C2 are convincing, the rest inherits it.
 ====================================================================
 # C1 - RAU DEMOGRAPHICS & ATTRIBUTES  (modules/rau.js)
 ====================================================================
+NOTE: Revision 1 (end of this file) captures the owner's confirmed model -
+RAU = business x service, 3-layer hierarchy, ~850 RAUs, a common services
+catalog, and the full AI-assisted new-RAU intake workflow. Where this
+section conflicts with Revision 1, Revision 1 wins.
 
 ## 1.1 The mental model: demographics vs attributes
 Two different kinds of facts live on a RAU, and the mockup should visibly
@@ -224,3 +228,137 @@ coverage+intake). Dashboard (home.js) initially ships with C1/C2 tiles
 only and grows as later capabilities land. Everything else follows in
 capability order. Session cards for P4/P5 get written from THIS document
 once the questionnaire answers land.
+(Revision 1 adds rau-intake.js to P4 - see below.)
+
+====================================================================
+# REVISION 1 (2026-08-22) - C1 confirmed by owner: the new-RAU workflow
+====================================================================
+
+## R1.1 Confirmed facts (replace provisional assumptions)
+- A RAU is the INTERSECTION of a business (part of the company) and a
+  service (a thing the bank does).
+- RAUs align to a corporate hierarchy, generally 3 layers down, e.g.
+  "CIB > Corp Real Estate"-level. (Exact layer names/count: open Q.)
+- ~850 RAUs (not ~60): directory, synthetic volumes, and pagination all
+  size to this.
+- There is a COMMON SERVICES LIST (enterprise catalog). Selecting the
+  services a RAU performs is a primary driver for building out RAU
+  information. New entity `services`; raus gain serviceIds[].
+- Capability 1 has (at least) two phases: DEMOGRAPHICS CREATION (the
+  intake-to-approval workflow below) then RAU METADATA CREATION (owner to
+  describe next).
+- The real GRC embeds an AI agent (LLM) that works WITH a human team
+  throughout intake. The mockup emulates this offline (R1.4).
+- Prime directive of intake: never allow two RAUs to claim the same work.
+
+## R1.2 The new-RAU pipeline (stages become raus.stage)
+draft-intake -> uniqueness-review -> (returned-for-refinement ->
+draft-intake) -> process-mapping -> standards-check -> pending-governance
+-> metadata-creation -> active. Plus retired. Directory of "RAUs" filters
+stage=active by default; a PIPELINE view shows everything in flight.
+
+Stage detail:
+1. INTAKE (submitter + LLM): pick LOB and sub-LOB; pick services from the
+   catalog; proposed name + description; a bulleted list of the process's
+   high-level steps. The LLM asks clarifying questions inline when its
+   analysis needs more (chat-style panel on the form).
+2. UNIQUENESS REVIEW (LLM analyzes, human decides): LLM assesses whether
+   the described processes are truly unique WITHIN THE LINE OF BUSINESS
+   (goal: no two RAUs taking credit for the same process; other criteria
+   possible). Output: findings, rationale, similar-RAU candidates,
+   recommendation. The human reviewer reads the LLM logic and either
+   returns to the submitter for refinement (with comments) or advances.
+3. PROCESS MAPPING (submitter + LLM coach): each intake bullet expands
+   into 2-10 detailed steps drawn in the tool. HANDOFFS are first-class:
+   steps where this process RECEIVES something from another RAU or
+   PROVIDES something to another RAU, with the counterparty RAU named.
+   The LLM coaches conversationally ("what comes next?"), makes
+   contextual suggestions, and flags gaps - no mapping expert needed.
+4. STANDARDS CHECK (LLM): the map is validated against logic and
+   process-mapping standards; all standards must pass.
+5. GOVERNANCE APPROVAL (human): approves exit from demographics creation
+   into metadata creation.
+
+## R1.3 Data model additions/changes
+- services: { id SVC-###, name, description, category }  (catalog size: open Q)
+- raus adds: serviceIds[], stage (enum above), intakeBullets[] (strings),
+  processMap: [{bullet, steps:[{id, text, type (task|decision|
+  handoff-in|handoff-out), counterpartyRauId?, artifact?}]}],
+  uniquenessReview: {similar:[{rauId, score, reasons[]}], rationale,
+  recommendation, decision, decidedBy, comments},
+  assistantLog: [{who (user|assistant), text}]  (canned transcript for demo)
+- Handoffs are indexed by the kernel from processMap steps into a
+  queryable relation: rau PROVIDES-TO rau / RECEIVES-FROM rau (+ artifact).
+  They appear on profiles, in Explorer as a new edge type, and later feed
+  C6 (a change in RAU-X signals its handoff counterparties).
+
+## R1.4 Emulating the LLM offline (deterministic AI-in-a-costume)
+No model runs in the demo; the "AI" is heuristics presented in an
+assistant panel - which also makes it stage-proof (same output every run):
+- Clarifying questions (intake): rules table keyed on gaps - description
+  under N words, no volume mentioned, bullets < 3, service picked but not
+  reflected in bullets -> ask a templated, context-filled question.
+- Uniqueness analysis: real token-overlap scoring of the intake's name +
+  description + bullets + services against existing RAUs in the same LOB
+  (shared services weighted heavily). Output: top-5 similar RAUs with %
+  scores and assembled rationale sentences ("shares services SVC-012,
+  SVC-031; bullet 3 'collect monthly escrow' resembles step 'escrow
+  collection' in RAU-0412"). Recommendation thresholds: >70% return,
+  40-70% flag for reviewer judgment, <40% advance.
+- Mapping coach: after each step edit, rules fire - no decision step yet
+  ("what happens if step N fails?"), no handoffs declared ("does anything
+  arrive from another RAU?"), bullet with <2 steps, step without a verb.
+  Scripted deeper dialogue for the demo-story RAU.
+- Standards check: a visible lint checklist - every bullet expanded to
+  2-10 steps; handoffs identified or explicitly attested none; every
+  decision step has 2+ outgoing paths; steps start with verbs; single
+  start/end. Pass/fail per rule, all-green gates the stage.
+
+## R1.5 Screens (rau-intake.js, new module; rau.js keeps directory/
+profile/hierarchy/quality)
+1. INTAKE WIZARD - form + assistant panel (chat-style, canned).
+2. UNIQUENESS REVIEW - reviewer queue item: LLM findings, similarity
+   candidates w/ open-profile links, rationale, recommendation; actions:
+   Return with comments | Advance. (Surfaces in My Work.)
+3. MAP BUILDER - bullets as lanes, steps as cards (form-based add/edit/
+   reorder, NOT drag-drop - keeps the Copilot build reliable), handoff
+   marking with counterparty RAU picker, live standards checklist,
+   assistant coach panel.
+4. GOVERNANCE - summary of everything + Approve -> stage=metadata-creation.
+5. PIPELINE BOARD - all in-flight intakes by stage with aging.
+Profile additions (rau.js): a Process tab (read-only rendered map,
+handoff steps highlighted) and a Handoffs tab (provides-to / receives-from
+tables with counterparty links).
+
+## R1.6 Demo beat: "watch a RAU get born"
+Intake for "Escrow Disbursement Processing" -> AI flags 82% overlap with
+an existing servicing RAU -> reviewer returns with comments -> submitter
+narrows scope -> map drawn with coach (one handoff to "Payment Operations")
+-> standards go green -> governance approves. Then open the counterparty
+RAU's profile: the new handoff already shows. Tour scenes 2-4 material.
+
+## R1.7 Open questions for the owner (numbering continues the doc's Q1-10)
+Q11 Hierarchy: names of the 3 layers and where the RAU attaches (is
+    "CIB > Corp Real Estate" LOB > sub-LOB, with one more layer between
+    or below?). Same tree for services alignment, or independent catalog?
+Q12 Services: roughly how many in the common list, and are they grouped
+    (families/categories)? Same service performable by many RAUs across
+    businesses (implied by intersection definition - confirm)?
+Q13 Uniqueness scope: uniqueness is judged within the LOB - so similar
+    work in two DIFFERENT LOBs is legitimate? What are the "other
+    criteria" the LLM reviews, if known?
+Q14 Roles: who submits (anyone in the business?); who is the human
+    uniqueness-review team (central RAU governance? 2LOD?); who is the
+    final governance approver - same team or different? Names for the mock.
+Q15 Handoffs: when a map names counterparty RAU-X, is RAU-X notified /
+    must it CONFIRM the handoff (two-sided agreement)? Are handoffs typed
+    (data, funds, documents, approvals)?
+Q16 Standards: do written process-mapping standards exist that the lint
+    should mirror? Any rules beyond 2-10 steps per bullet + handoff
+    identification?
+Q17 Outcomes: besides return-for-refinement, can intake be DECLINED
+    outright ("this work belongs to existing RAU-0412 - raise a change
+    to that RAU instead")? Does that conversion exist?
+Q18 Pipeline volume: typical new-RAU requests in flight (sizes the board
+    and synthetic data); typical time-in-stage if known.
+
