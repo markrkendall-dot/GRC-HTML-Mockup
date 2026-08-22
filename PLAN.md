@@ -6,6 +6,14 @@ M365 Copilot chat, and no file may exceed what Copilot can reliably regenerate.
 
 **Status: plan only — nothing here is built yet.**
 
+> **Operationalized 2026-08-22:** the executable version of this plan is
+> `runbook/GRC-Mockup-Runbook.docx` (step-by-step, amnesia-proof) and the
+> `firewall-kit/` folder (the .md contract, schema, prompts, worksheets, and
+> 20 task cards that get attached to Copilot sessions). The runbook embeds
+> the kit verbatim as appendices; regenerate it with `runbook/build-runbook.js`
+> after any kit change. Where this document and the runbook differ, the
+> runbook wins.
+
 ---
 
 ## 1. Goal and hard constraints
