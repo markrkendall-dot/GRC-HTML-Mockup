@@ -464,3 +464,115 @@ deletions (retire), and splits. Design response:
 Next from owner: the RAU METADATA CREATION step (the phase after
 governance approval), then C2 risk identification revisit.
 
+====================================================================
+# REVISION 3 (2026-08-22) - RAU Metadata creation + the applicability
+# engine (RAU x MCR x Risk Event metadata)
+====================================================================
+
+## R3.1 Correction to the pipeline (owner)
+Role assignment does NOT happen in metadata creation. It happens in the
+PREVIOUS step: at governance approval, the RAU is FINALIZED with its
+completed process map AND its five roles assigned (Owner, Delegate, BCM
+Contact, ORBO, BACO). Metadata creation follows finalization as an
+enrichment phase. Pipeline stages update to:
+draft-intake -> uniqueness-review (uniqueness + category checks) ->
+process-mapping -> standards-check -> governance-approval (roles assigned,
+RAU finalized) -> metadata-creation -> active.
+
+## R3.2 RAU Metadata creation (confirmed design)
+The assistant (LLM in the real tool) takes the completed process map and
+all prior intake details and FILLS OUT a longer STANDARDIZED SURVEY about
+the RAU. Where it cannot answer conclusively from the inputs, it asks the
+user directly, question by question, until the survey is complete.
+Mockup treatment:
+- A `metadataQuestions` reference entity defines the standardized survey
+  (sections and questions; provisional domains below until the owner
+  supplies real ones).
+- `rauMetadata` holds per-RAU answers, each tagged with PROVENANCE:
+  derived-from-map (which step), derived-from-services, derived-from-
+  intake, or asked-user (with the Q&A shown). Unresolved questions sit in
+  an "assistant needs to know" queue rendered as chat.
+- The metadata screen shows the survey with fill-state: green =
+  AI-derived (click to see the source), blue = user-answered, amber =
+  open question. Completeness gates stage exit to active.
+- Provisional survey domains for the synthetic build: process types
+  performed; customer types served; products involved; data types handled
+  (PII, card, account); money movement (yes/type/volume); channels;
+  jurisdictions/geographies; systems; third parties involved; regulatory
+  touchpoints observed in the map; handoff exposure.
+Heuristic emulation: answers derived by keyword/service/map-step lookup
+tables; ~70% auto-filled, ~30% become scripted questions for the demo RAU.
+
+## R3.3 MCR Metadata Profiles (new corpus)
+There are THOUSANDS of MCR Metadata Profiles (working expansion: Material
+Compliance Requirement - owner to confirm). Each carries standardized
+information such as: OBLIGATIONS, PROHIBITIONS, and the TYPES OF
+PROCESSES where the regulations matter.
+Data: mcrProfiles {id MCR-####, name, regRef/citation, summary,
+obligations[] (short statements), prohibitions[] (short statements),
+processTypes[] (tags matching the RAU metadata vocabulary),
+productTags[], customerTags[], dataTags[], jurisdiction}.
+Synthetic default: ~2,000 lean profiles generated from regulation seed
+banks (BSA/AML, Reg E, Reg Z, UDAAP, GLBA, SCRA...) x process-type
+templates. Kept lean to respect the 3 MB data budget.
+
+## R3.4 Risk Event metadata (third corpus)
+Risk Events (operational risk side) carry metadata profiles too. Data:
+riskEventProfiles {id REV-####, name, catL1Id, catL2Id, description,
+processTypes[], driverTags[], productTags[]}. Synthetic default: ~250
+events across the operational taxonomy. (Owner: real inventory size and
+metadata fields to confirm.)
+
+## R3.5 THE APPLICABILITY ENGINE (this is capability 2's true mechanism)
+With metadata on RAU + MCR + Risk Event, the system COMPARES ATTRIBUTES
+to STACK-RANK APPLICABILITY LIKELIHOOD and ALIGNS SCORES TO RUBRICS to
+standardize the math. C2 is therefore not free-form risk entry and not
+simple library instantiation - it is:
+  1. Compute: for each RAU, score every MCR and Risk Event profile by
+     weighted attribute overlap with the RAU's metadata (process types
+     weigh heaviest, then products, data types, customer types,
+     jurisdiction).
+  2. Rubric: map scores to standardized bands (provisional: Highly
+     Likely >=70, Possible 40-69, Unlikely <40) - one formula, one
+     rubric, documented on-screen, identical for all 850 RAUs. That IS
+     the standardization story.
+  3. Stack rank: present candidates per RAU, highest first, each with a
+     transparent match breakdown ("matched on: payment processing,
+     consumer customers, card data").
+  4. Human confirmation: reviewers confirm or reject candidates
+     (rejection requires rationale - the defensibility trail). Confirmed
+     Risk Events become the RAU's operational risk register entries;
+     confirmed MCRs become its compliance obligations set (and its
+     compliance risks). Earlier "library-first" design maps onto this:
+     the profiles ARE the library; confirmation IS instantiation.
+Mockup screens (replaces parts of the earlier riskid.js plan):
+- APPLICABILITY WORKBENCH (per RAU): two stacked ranked lists (Risk
+  Events | MCRs), score + band + match-breakdown chips, confirm/reject
+  buttons, progress meter ("34 of 61 candidates dispositioned").
+- RUBRIC panel: the scoring formula and band definitions, visible -
+  auditors love math you can point at.
+- Registers: confirmed risks per RAU / across LOBs (the earlier
+  inventory screens survive, now fed by confirmations).
+- Profile browsers: MCR library and Risk Event library with their
+  metadata, each profile showing which RAUs it applies to (reverse view).
+Deterministic emulation: the overlap scoring is real math on tags -
+computed live in the kernel, reproducible, explainable. No AI needed to
+run it; the "AI" framing belongs to metadata CREATION, the math is just
+math - which is exactly the owner's standardization argument.
+
+## R3.6 Open questions from Revision 3
+Q19 MCR expansion: Material Compliance Requirement? Rough count
+    (2,000? 10,000?) and any additional profile fields worth mocking?
+Q20 The RAU metadata survey: roughly how many questions, organized into
+    what sections? Even 5 real example questions would anchor the mock.
+Q21 Risk Events: is there a standing inventory (how many events?), and
+    what metadata do their profiles carry today?
+Q22 Confirmation duty: who dispositions stack-ranked candidates - ORBO
+    for Risk Events and BACO for MCRs, with the RAU Owner consulted?
+Q23 Rubrics: does "align scores to rubrics" cover only applicability
+    likelihood, or does the same standardized-math philosophy extend into
+    inherent scoring (C3)?
+Q24 Does confirmed-MCR applicability live as "compliance risks" in the
+    same register as operational risks, or as a separate obligations
+    inventory linked to the RAU?
+
