@@ -1,6 +1,9 @@
 # CAPABILITIES.md - the 10-capability architecture (v2, PROVISIONAL)
 
 Status: DRAFT pending the owner's answers to the per-capability questionnaire.
+C1 and C2 are the build focus: see docs/DEEPDIVE-C1-C2.md, which supersedes
+their sections below and changes the build order (RAU and Risk ID become the
+first modules after the foundation phases).
 This document is the staging ground for the v2 rewrite of SCHEMA.md, the
 CONTRACT nav API, and the task cards. Where the owner supplies bank-specific
 detail, it replaces the "standard model" noted per capability; where they
