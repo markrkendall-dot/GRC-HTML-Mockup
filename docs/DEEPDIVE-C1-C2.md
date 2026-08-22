@@ -576,3 +576,97 @@ Q24 Does confirmed-MCR applicability live as "compliance risks" in the
     same register as operational risks, or as a separate obligations
     inventory linked to the RAU?
 
+====================================================================
+# REVISION 4 (2026-08-22) - owner answers resolve Q19-Q24
+====================================================================
+
+## R4.1 MCR = Major Compliance Requirement (Q19 resolved)
+Custom name for regulatory obligations - "the regulatory widget in RCSA."
+~8,000 total, of which ~2,000 account for ~80% of RCSA frequency. Design
+consequences:
+- mcrProfiles carries a plausible full regulatory profile (owner granted
+  latitude): id MCR-####, name, citation, regulator, jurisdiction,
+  summary, obligations[], prohibitions[], processTypes[], productTags[],
+  customerTags[], dataTags[], parentRiskEventId (R4.6), publishedDate,
+  source "RRCM".
+- Synthetic set: full 8,000 rows so the counts ring true, built 80/20 -
+  a "head" of ~2,000 richer profiles (obligation/prohibition text) and a
+  lean tail of ~6,000 (name, parent, tags only). DATA BUDGET NOTE: tail
+  rows kept ~150-200 bytes so the whole corpus stays ~1.5 MB; synthetic
+  applicability frequency follows the same 80/20 (head MCRs recur across
+  many RAUs).
+
+## R4.2 The survey is mostly EXCLUSION (Q20 resolved)
+Most metadata survey questions CONFIRM THE RAU DOES NOT DO THINGS (e.g.
+"confirm no trading activity") - because absence never shows on a process
+map. Design consequence, and it sharpens the whole engine:
+- Process map + services = INCLUSION evidence (what the RAU does).
+- Survey = largely EXCLUSION evidence (what it does not do), organized as
+  "Confirm this RAU does NOT..." batteries with Yes / No / Unsure.
+- A confirmed exclusion suppresses whole slices of the MCR/Risk Event
+  universe for that RAU (no trading -> trading MCRs drop out); "Unsure"
+  spawns follow-up questions. Every suppression is visible and reversible
+  ("hidden by exclusion: 412 MCRs - review").
+- Survey sections (provisional): trading & markets; lending & credit
+  decisions; deposit taking; payments & money movement; consumer contact;
+  cross-border activity; third-party reliance; model usage; data
+  categories handled.
+
+## R4.3 Risk Events: 90 total (Q21 resolved)
+~50 operational + ~40 compliance. Fields per event: name, description,
+QUALIFICATION (working read: the criteria describing what qualifies risk
+into this event - owner to confirm), keywords[]. Keywords are load-bearing:
+the real system matches on them, which the mockup's token-overlap engine
+mirrors exactly. riskEventProfiles shrinks to 90 rows; the operational
+taxonomy L1/L2 from earlier becomes the grouping ABOVE these events.
+
+## R4.4 Front line first; the system helps them pick (Q22 resolved)
+The RAU owner team (1LOD) must take the first shot at their RCSA - they
+cannot rely on ORBO/BACO to tell them what applies. They use the
+intelligence to STACK RANK, then PICK. For ambiguous applicability the
+system asks questions that push likelihood UP or DOWN and OUT OF THE
+MIDDLE. Workbench design update - three zones per RAU:
+  LIKELY (top band): one-click confirm.
+  AMBIGUOUS MIDDLE: each item gets a "Resolve" action -> 1-3 targeted
+    yes/no questions -> answers re-score it live out of the middle
+    (e.g. 55 -> 78 confirm-worthy, or 55 -> 22 unlikely). The re-score
+    math is visible (which rubric category moved and why).
+  UNLIKELY (bottom band): bulk-dismiss with sampling review.
+ORBO/BACO challenge comes later (C5 territory), not at first pass.
+
+## R4.5 The applicability rubric (Q23 resolved)
+Confirmed: a standardized applicability rubric will exist - shape "about
+8 thematic categories scored 1-5." NOT the same rubric as inherent risk
+(that is C3's own). Provisional 8 categories for the mock (owner may
+replace): 1 Process alignment, 2 Product/service alignment, 3 Customer
+type alignment, 4 Data sensitivity, 5 Money movement exposure,
+6 Jurisdiction/geography, 7 Channel/delivery, 8 Volume/scale exposure.
+Each 1-5, weighted sum -> 0-100 likelihood -> band. The workbench shows
+the 8-score breakdown per candidate (mini bar row), and the rubric panel
+documents categories, anchors, and weights - same math for all 850 RAUs.
+
+## R4.6 RRCM is upstream; MCRs arrive with a parent Risk Event (Q24 resolved)
+MCRs live in a system abbreviated RRCM and are passed to the GRC when
+PUBLISHED, each already aligned to a PARENT (compliance) Risk Event
+determined upstream. Design consequences:
+- The MCR library in the GRC is READ-ONLY, with provenance chips
+  ("Source: RRCM - published 2026-05-12"). The GRC consumes; it does not
+  author.
+- Hierarchy: 40 compliance Risk Events partition the 8,000 MCRs. The
+  workbench ranks compliance candidates at the RISK EVENT level; expanding
+  an event shows its candidate MCRs ranked within. Confirming = the event
+  applies to the RAU with a specific attached MCR set. Operational events
+  (50) rank directly, no children.
+- Future hook for C6: a newly published or revised MCR arriving from RRCM
+  is a SIGNAL (regulatory-change) that re-opens applicability for RAUs
+  matching its tags. Noted now, built in C6.
+
+## R4.7 Remaining questions (light)
+Q25 "Qualification" on a Risk Event - is the working read right
+    (criteria for what qualifies into the event)?
+Q26 The 8 rubric categories - do real ones exist to borrow, or is the
+    provisional set in R4.5 fine to mock?
+Q27 With a fixed 90-event inventory, is there ANY free-form risk
+    identification left in C2 (emerging/local risks outside the 90), or
+    is the register always RAU x applicable events (+ MCR sets)?
+
