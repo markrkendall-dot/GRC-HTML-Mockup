@@ -1,0 +1,21 @@
+RELEASE R<n> - <date> - <short label>
+=====================================
+You are looking at release R<n>. The number is shown at the top right of
+the screen; please mention it in any feedback.
+
+WHAT'S NEW
+- <plain-language change, grouped by screen/module>
+- ...
+
+YOUR FEEDBACK IN THIS RELEASE
+- FB-___ (<name>): <what they asked> -> <what changed>
+- ...
+
+KNOWN ITEMS STILL OPEN
+- FB-___: <accepted, planned for a later release>
+- ...
+
+HOW TO GIVE FEEDBACK
+Tell <coordinator name/contact> what you expected vs what you saw, and the
+release number from the banner. Everything goes into a numbered register;
+you will see your items called out by name in future release notes.

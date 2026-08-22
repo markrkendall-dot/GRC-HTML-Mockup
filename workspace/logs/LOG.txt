@@ -1,0 +1,4 @@
+SESSION LOG - one line per completed build session (runbook Part 4, step 12)
+Format: date | file | version | OK or note
+Example: 2026-09-04 | kernel/core.js | 1.0.0 | OK
+----------------------------------------------------------------------

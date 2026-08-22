@@ -13,6 +13,16 @@ M365 Copilot chat, and no file may exceed what Copilot can reliably regenerate.
 > the kit verbatim as appendices; regenerate it with `runbook/build-runbook.js`
 > after any kit change. Where this document and the runbook differ, the
 > runbook wins.
+>
+> **v2 in progress 2026-08-22:** the generic module set is being replaced by
+> the bank's 10 real capabilities (RCSA-centric: RAU, Risk ID, Inherent,
+> Controls, RCSA/residual, Signals, Control Testing, Audit Testing,
+> Monitoring, Policy Governance) with the bank chrome (red banner, top tabs,
+> gray contextual rail). See `docs/CAPABILITIES.md` (provisional architecture
+> + per-capability plans) and `docs/VERSIONING.md` (release/versioning and
+> feedback-loop process, future runbook Parts 9-10). `workspace/` is the
+> tree that will ship as the cross-firewall ZIP. Kit, schema, cards, and the
+> runbook regenerate once the capability questionnaire is answered.
 
 ---
 
