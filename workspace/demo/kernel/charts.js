@@ -1,4 +1,4 @@
-/* GRC kernel/charts.js v1.0.0 2026-08-23 */
+/* GRC kernel/charts.js v1.0.1 2026-08-23 */
 /* Minimal SVG charts. Colors: magnitude uses the single sequential accent;
    status colors appear only with a text label alongside (never color-alone).
    Thin marks, rounded ends, 2px gaps, muted axis text, <title> tooltips. */
@@ -39,7 +39,7 @@
       if (it.onclick) g.addEventListener("click", it.onclick);
       sv("title", {}, g).textContent = it.title || (it.label + ": " + it.value);
       var t = sv("text", { x: labelW - 8, y: y + rowH / 2 + 4, "text-anchor": "end", "font-size": "11.5", fill: T.muted }, g);
-      t.textContent = it.label.length > 34 ? it.label.slice(0, 33) + "…" : it.label;
+      t.textContent = it.label.length > 34 ? it.label.slice(0, 33) + "..." : it.label;
       var bw = Math.max(3, (W - labelW - 56) * (it.value / max));
       var color = it.kind ? T[it.kind] : T.accent;
       sv("rect", { x: labelW, y: y + 6, width: bw, height: rowH - 12, rx: 4, fill: color }, g);

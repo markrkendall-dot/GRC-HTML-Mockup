@@ -1,4 +1,4 @@
-/* GRC modules/mywork.js v1.0.0 2026-08-23 */
+/* GRC modules/mywork.js v1.0.1 2026-08-23 */
 /* My Work: role-aware queues. Switch "View as" in the banner to change hats. */
 (function () {
   "use strict";
@@ -8,7 +8,7 @@
     el.appendChild(ui.el("div", { class: "g-page-head" }, [
       ui.el("div", {}, [
         ui.el("div", { class: "g-h1" }, "My Work"),
-        ui.el("div", { class: "g-muted" }, "Queues for the role selected in the banner: " + role + ". (Demo shows a representative slice per role.)")]),
+        ui.el("div", { class: "g-muted" }, "Queues for the role selected in the banner: " + role + ". Showing a sample set for this role.")]),
       ui.el("div", { class: "sp" }),
       ui.el("button", { class: "g-btn", onclick: function () { if (confirm("Reset all in-session changes?")) GRC.resetData(); } }, "Reset demo data")]));
 
@@ -46,7 +46,7 @@
       /* representative slice: first RAUs with open risk-id work */
       var todo = data.all("raus").filter(function (r) { return r.riskIdStatus !== "complete"; }).slice(0, 8);
       el.appendChild(ui.card({
-        title: "Risk identification to complete (" + todo.length + " shown)",
+        title: "Risk identification to complete",
         body: todo.length ? ui.table({
           cols: [
             { key: "id", label: "RAU", render: function (r) { return ui.el("span", { class: "g-mono" }, r.id); } },
@@ -100,7 +100,7 @@
   }
 
   GRC.register({
-    id: "mywork", version: "1.0.0", tab: "RCSA",
+    id: "mywork", version: "1.0.1", tab: "RCSA",
     routes: { "mywork": mywork }
   });
 })();

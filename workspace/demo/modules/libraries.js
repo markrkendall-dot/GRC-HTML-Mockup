@@ -1,4 +1,4 @@
-/* GRC modules/libraries.js v1.0.0 2026-08-23 */
+/* GRC modules/libraries.js v1.1.0 2026-08-23 */
 /* Capability 2 reference corpora: the 90 Risk Events, the MCR library
    (published from RRCM, read-only), and the applicability rubric panel. */
 (function () {
@@ -12,9 +12,7 @@
     el.appendChild(ui.el("div", { class: "g-page-head" },
       ui.el("div", {}, [
         ui.el("div", { class: "g-h1" }, "Risk events"),
-        ui.el("div", { class: "g-muted" }, data.all("riskEvents").length + " standing events - " +
-          data.all("riskEvents").filter(function (e) { return e.side === "operational"; }).length + " operational, " +
-          data.all("riskEvents").filter(function (e) { return e.side === "compliance"; }).length + " compliance. Each carries a name, description, qualification, and matching keywords. Compliance events parent the MCR library.")])));
+        ui.el("div", { class: "g-muted" }, "The standing event inventory across operational and compliance risk. Each carries a name, description, qualification, and matching keywords. Compliance events parent the MCR library.")])));
     var body = ui.el("div"); el.appendChild(body);
     function draw() {
       body.innerHTML = "";
@@ -63,15 +61,60 @@
     if (e.side === "compliance") {
       var ms = data.mcrsOfEvent(e.id);
       var heads = ms.filter(function (m) { return m.head; });
+      var shown = heads.slice(0, 30);
+      var exp = {};
+      var holder = ui.el("div", { class: "g-tablewrap" });
+      function fitBadge(fit) {
+        if (fit.verdict === "realign") return ui.badge("Fits " + (fit.bestAlt ? fit.bestAlt.id : "another event") + " better", "warn");
+        if (fit.verdict === "weak") return ui.badge("Weak fit", "warn");
+        return ui.badge("Good fit", "ok");
+      }
+      function drawMcrs() {
+        holder.innerHTML = "";
+        var t = ui.el("table", { class: "g-table" });
+        t.appendChild(ui.el("tr", {}, [
+          ui.el("th", {}, "Requirement"),
+          ui.el("th", { style: "text-align:right" }, "Fit to this event"),
+          ui.el("th", {}, "Assessment")]));
+        shown.forEach(function (m) {
+          var fit = ctx.engine.mcrFit(m);
+          var open = !!exp[m.id];
+          var row = ui.el("tr", { class: "click" }, [
+            ui.el("td", {}, [ui.el("span", { class: "caret" + (open ? " open" : "") }),
+            ui.el("span", { class: "g-mono g-muted" }, m.id + "  "), m.name]),
+            ui.el("td", { class: "num" }, String(fit.parentPct)),
+            ui.el("td", {}, fitBadge(fit))]);
+          row.onclick = function () { exp[m.id] = !exp[m.id]; drawMcrs(); };
+          t.appendChild(row);
+          if (open) {
+            var det = ui.el("div", { style: "padding:4px 0 6px 24px" });
+            if (m.obligations && m.obligations.length) {
+              det.appendChild(ui.el("div", { class: "g-label" }, "Obligations"));
+              det.appendChild(ui.el("ul", { style: "margin:2px 0 8px;padding-left:18px" }, m.obligations.map(function (o) { return ui.el("li", {}, o); })));
+            }
+            if (m.prohibitions && m.prohibitions.length) {
+              det.appendChild(ui.el("div", { class: "g-label" }, "Prohibitions"));
+              det.appendChild(ui.el("ul", { style: "margin:2px 0 8px;padding-left:18px" }, m.prohibitions.map(function (o) { return ui.el("li", {}, o); })));
+            }
+            if (fit.bestAlt) {
+              det.appendChild(ui.el("div", { style: "font-size:12.5px" }, [
+                ui.el("span", { class: "g-label" }, "Best alternative event  "),
+                ui.el("a", { href: "#/events/" + fit.bestAlt.id }, fit.bestAlt.name),
+                ui.el("span", { class: "g-muted" }, "  scores " + fit.bestAltPct + " vs " + fit.parentPct + " here" +
+                  (fit.verdict === "realign" ? ". Likely rewrite or realignment candidate; the requirement may span two risk event ideas." : "."))]));
+            }
+            det.appendChild(ui.el("div", { style: "margin-top:6px" }, ui.el("a", { href: "#/mcrlib/" + m.id }, "Open full record")));
+            t.appendChild(ui.el("tr", {}, ui.el("td", { colspan: "3", style: "background:#fafbfc" }, det)));
+          }
+        });
+        holder.appendChild(t);
+      }
+      drawMcrs();
       left.appendChild(ui.card({
-        title: "MCRs under this event (" + ms.length + " - " + heads.length + " high-frequency head, " + (ms.length - heads.length) + " long tail)",
-        body: ui.table({
-          cols: [
-            { key: "id", label: "MCR", render: function (m) { return ui.el("span", { class: "g-mono" }, m.id); } },
-            { key: "name", label: "Requirement", render: function (m) { return ui.el("a", { href: "#/mcrlib/" + m.id }, m.name); } },
-            { key: "head", label: "", render: function (m) { return m.head ? ui.badge("Head", "info") : ui.el("span", { class: "g-muted", style: "font-size:11px" }, "tail"); } }
-          ], rows: heads.slice(0, 60).concat(ms.filter(function (m) { return !m.head; }).slice(0, 5)), page: 10
-        })
+        title: "MCRs under this event (" + ms.length + " total; top of the head set shown, expandable in place)",
+        body: ui.el("div", {}, [
+          ui.el("p", { class: "g-muted", style: "font-size:12.5px" }, "Fit measures how well each requirement sits inside this risk event on the same attribute rubric. A requirement that fits another event better is a rewrite or realignment candidate."),
+          holder])
       }));
     }
     var right = ui.el("div");
@@ -95,8 +138,7 @@
     el.appendChild(ui.el("div", { class: "g-page-head" },
       ui.el("div", {}, [
         ui.el("div", { class: "g-h1" }, "MCR library"),
-        ui.el("div", { class: "g-muted" }, ctx.fmt.num(all.length) + " Major Compliance Requirements, published from RRCM (read-only here). " +
-          ctx.fmt.num(all.filter(function (m) { return m.head; }).length) + " head MCRs carry ~80% of RCSA frequency. Each arrives aligned to a parent compliance risk event.")])));
+        ui.el("div", { class: "g-muted" }, "Major Compliance Requirements published from RRCM, read-only here. A head set carries most RCSA frequency; each requirement arrives aligned to a parent compliance risk event.")])));
     var fams = {};
     all.forEach(function (m) { fams[m.regFamily] = 1; });
     var body = ui.el("div"); el.appendChild(body);
@@ -107,12 +149,13 @@
         if (MF.fam && m.regFamily !== MF.fam) return false;
         if (MF.head === "head" && !m.head) return false;
         if (MF.head === "tail" && m.head) return false;
+        if (MF.head === "rewrite" && ctx.engine.mcrFit(m).verdict === "good") return false;
         return true;
       });
       body.appendChild(ui.toolbar([
         ui.searchBox({ value: MF.q, placeholder: "Search 8,000 MCRs...", oninput: function (v) { MF.q = v; draw(); } }),
         ui.select({ label: "Family", value: MF.fam, onchange: function (v) { MF.fam = v; draw(); }, options: [{ value: "", label: "All families" }].concat(Object.keys(fams).sort().map(function (f) { return { value: f, label: f }; })) }),
-        ui.select({ label: "Frequency", value: MF.head, onchange: function (v) { MF.head = v; draw(); }, options: [{ value: "", label: "All" }, { value: "head", label: "Head (top ~2,000)" }, { value: "tail", label: "Long tail" }] }),
+        ui.select({ label: "Focus", value: MF.head, onchange: function (v) { MF.head = v; draw(); }, options: [{ value: "", label: "All" }, { value: "head", label: "Head (high frequency)" }, { value: "tail", label: "Long tail" }, { value: "rewrite", label: "Rewrite candidates (weak or misaligned fit)" }] }),
         ui.el("span", { class: "g-muted", style: "font-size:12px" }, ctx.fmt.num(rows.length) + " match")]));
       body.appendChild(ui.table({
         cols: [
@@ -120,6 +163,7 @@
           { key: "name", label: "Requirement", sort: true },
           { key: "fam", label: "Family", render: function (m) { return m.regFamily; } },
           { key: "parent", label: "Parent risk event", render: function (m) { var e = data.byId("riskEvents", m.parentEventId); return e ? ui.el("a", { href: "#/events/" + e.id, onclick: function (ev) { ev.stopPropagation(); } }, e.name) : "-"; } },
+          { key: "fit", label: "Fit", num: true, sort: true, sortVal: function (m) { return ctx.engine.mcrFit(m).parentPct; }, render: function (m) { var f = ctx.engine.mcrFit(m); return ui.el("span", {}, [String(f.parentPct) + " ", f.verdict !== "good" ? ui.badge(f.verdict === "realign" ? "review" : "weak", "warn") : null]); } },
           { key: "head", label: "Freq", render: function (m) { return m.head ? ui.badge("Head", "info") : ui.el("span", { class: "g-muted", style: "font-size:11px" }, "tail"); } }
         ], rows: rows, page: 25,
         onRow: function (m) { ctx.go("mcrlib/" + m.id); }
@@ -140,7 +184,7 @@
     el.appendChild(ui.el("div", { class: "g-page-head" },
       ui.el("div", {}, [
         ui.el("div", { class: "g-row" }, [ui.el("span", { class: "g-h1", style: "font-size:17px" }, m.name), ui.el("span", { class: "g-mono g-muted" }, m.id)]),
-        ui.el("div", { class: "g-muted" }, "Source: RRCM - published " + (m.publishedDate ? ctx.fmt.date(m.publishedDate) : "-") + " - read-only in the GRC")])));
+        ui.el("div", { class: "g-muted" }, "Source: RRCM, published " + (m.publishedDate ? ctx.fmt.date(m.publishedDate) : "-") + ", read-only in the GRC")])));
     var left = ui.el("div");
     left.appendChild(ui.card({
       title: "Profile", body: ui.kv([
@@ -161,6 +205,21 @@
       }));
     }
     var right = ui.el("div");
+    var fit = ctx.engine.mcrFit(m);
+    right.appendChild(ui.card({
+      title: "Goodness of fit to its risk event",
+      body: ui.el("div", {}, [
+        ui.el("div", { class: "g-row", style: "margin-bottom:6px" }, [
+          ui.el("span", { class: "g-score" }, [String(fit.parentPct), ui.el("i", {}, ui.el("b", { style: "width:" + fit.parentPct + "%" }))]),
+          ui.el("span", {}, "fit to "), parent ? ui.el("a", { href: "#/events/" + parent.id }, parent.name) : null]),
+        fit.bestAlt ? ui.el("div", { class: "g-row", style: "margin-bottom:8px" }, [
+          ui.el("span", { class: "g-score" }, [String(fit.bestAltPct), ui.el("i", {}, ui.el("b", { style: "width:" + fit.bestAltPct + "%" }))]),
+          ui.el("span", {}, "best alternative: "), ui.el("a", { href: "#/events/" + fit.bestAlt.id }, fit.bestAlt.name)]) : null,
+        ui.el("p", { style: "margin:0", class: fit.verdict === "good" ? "g-muted" : "" },
+          fit.verdict === "good" ? "This requirement sits well within its parent risk event." :
+          fit.verdict === "realign" ? "This requirement scores higher against a different risk event. Rewrite or realignment candidate; it may span two risk event ideas." :
+          "Weak fit to its parent event. Candidate for a rewrite that sharpens which risk event idea it belongs to.")])
+    }));
     right.appendChild(ui.card({
       title: "Attached in RAU registers (" + attachedIn.length + ")",
       body: attachedIn.length ? ui.table({
@@ -180,7 +239,7 @@
     el.appendChild(ui.el("div", { class: "g-page-head" },
       ui.el("div", {}, [
         ui.el("div", { class: "g-h1" }, "Applicability rubric"),
-        ui.el("div", { class: "g-muted" }, "The standardized math: 8 thematic categories, each scored 1-5 from attribute overlap, weighted, normalized to 0-100. Identical for all " + data.all("raus").length + " RAUs. (Distinct from the inherent risk rubric - that belongs to Capability 3.)")])));
+        ui.el("div", { class: "g-muted" }, "The standardized math: eight thematic categories, each scored 1 to 5 from attribute overlap, weighted, normalized to 100. Identical for every RAU. Distinct from the inherent risk rubric, which belongs to Capability 3.")])));
     var left = ui.el("div");
     left.appendChild(ui.card({
       title: "Categories and weights", body: ui.table({
@@ -197,7 +256,7 @@
         ["4", "Two shared, or the candidate's single attribute matches"],
         ["3", "Partial overlap, or the candidate is silent on the theme"],
         ["1", "The candidate specifies attributes and none match"],
-        ["Bands", "Likely >= " + R.bands.likely + " - Possible " + R.bands.possible + "-" + (R.bands.likely - 1) + " - Unlikely < " + R.bands.possible],
+        ["Bands", "Likely at or above " + R.bands.likely + "; Possible " + R.bands.possible + " to " + (R.bands.likely - 1) + "; Unlikely below " + R.bands.possible],
         ["Exclusions", "A confirmed does-NOT-do answer suppresses matching candidates entirely (shown, reversible)"]])
     }));
     var right = ui.el("div");
@@ -226,7 +285,7 @@
   }
 
   GRC.register({
-    id: "libraries", version: "1.0.0", tab: "RCSA",
+    id: "libraries", version: "1.0.1", tab: "RCSA",
     rail: [
       { label: "Risk events", route: "events", order: 60 },
       { label: "MCR library", route: "mcrlib", order: 70 },

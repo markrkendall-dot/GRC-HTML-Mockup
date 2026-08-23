@@ -1,4 +1,4 @@
-/* GRC kernel/ui.js v1.0.0 2026-08-23 */
+/* GRC kernel/ui.js v1.0.1 2026-08-23 */
 /* Component builders. Everything returns a DOM node. Merged into ctx.ui. */
 (function () {
   "use strict";
@@ -100,7 +100,7 @@
       var hr = el("tr");
       cfg.cols.forEach(function (c) {
         var th = el("th", { class: c.sort ? "sort" : "" },
-          c.label + (sortKey === c.key ? (sortDir > 0 ? " ▴" : " ▾") : ""));
+          c.label + (sortKey === c.key ? (sortDir > 0 ? " (asc)" : " (desc)") : ""));
         if (c.sort) th.onclick = function () {
           if (sortKey === c.key) sortDir = -sortDir; else { sortKey = c.key; sortDir = 1; }
           page = 0; draw();

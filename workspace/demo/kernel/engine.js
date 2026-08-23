@@ -1,4 +1,4 @@
-/* GRC kernel/engine.js v1.0.0 2026-08-23 */
+/* GRC kernel/engine.js v1.1.0 2026-08-23 */
 /* The applicability engine: deterministic, rubric-standardized attribute
    comparison between a RAU's metadata and Risk Event / MCR profiles.
    Same math for all 850 RAUs. Mirrors tools-dev/generate-data.js exactly
@@ -111,9 +111,35 @@
     }
   }
 
+  /* ==SECTION:mcr-fit== */
+  /* Goodness of fit: how well an MCR sits inside its parent risk event,
+     and whether another event fits it better. A weak or beaten fit marks
+     the MCR as a rewrite or realignment candidate, often a sign the
+     requirement spans two risk event ideas. */
+  var fitCache = {};
+  function mcrFit(mcr) {
+    if (fitCache[mcr.id]) return fitCache[mcr.id];
+    var data = GRC.ctx.data;
+    var parent = data.byId("riskEvents", mcr.parentEventId);
+    var asRau = function (ev) { return { meta: { tags: ev.tags || [], excl: [] } }; };
+    var parentPct = parent ? score(asRau(parent), mcr).pct : 0;
+    var bestAlt = null, bestPct = -1;
+    data.all("riskEvents").forEach(function (ev) {
+      if (ev.side !== "compliance" || ev.id === mcr.parentEventId) return;
+      var p = score(asRau(ev), mcr).pct;
+      if (p > bestPct) { bestPct = p; bestAlt = ev; }
+    });
+    var verdict = "good";
+    if (bestPct >= parentPct + 8) verdict = "realign";
+    else if (parentPct < 55) verdict = "weak";
+    var out = { parentPct: parentPct, bestAlt: bestAlt, bestAltPct: bestPct, verdict: verdict };
+    fitCache[mcr.id] = out;
+    return out;
+  }
+
   GRC.engine = {
     rubric: rubric, score: score, suppressedBy: suppressedBy,
     candidates: candidates, zones: zones, mcrCandidates: mcrCandidates,
-    questionsFor: questionsFor, answer: answer
+    questionsFor: questionsFor, answer: answer, mcrFit: mcrFit
   };
 })();

@@ -1,4 +1,4 @@
-/* GRC modules/mapbuilder.js v1.0.0 2026-08-23 */
+/* GRC modules/mapbuilder.js v1.0.1 2026-08-23 */
 /* Capability 1: the guided process-map builder (with coach + standards
    lint) and the assistant-driven metadata survey completion. */
 (function () {
@@ -21,7 +21,7 @@
     if (steps >= 3 && !decisions) msgs.push("I do not see a decision point yet. What happens when an item fails validation or needs approval? Add it as a Decision step.");
     if (steps >= 4 && !handoffs && !q.noHandoffs) msgs.push("No handoffs identified. Does anything arrive from another RAU, or get delivered to one? If truly none, attest that below - it is an unusual pattern worth confirming.");
     if (steps >= 6 && decisions && (handoffs || q.noHandoffs)) msgs.push("This is shaping up well. Check the standards panel - once everything is green you can run the formal standards check.");
-    return msgs.length ? msgs : ["Keep going - add steps with the form under each phase."];
+    return msgs.length ? msgs : ["Keep going. Add steps with the form under each phase."];
   }
 
   /* ==SECTION:lint== */
@@ -57,7 +57,7 @@
 
     el.appendChild(ui.el("div", { class: "g-page-head" }, [
       ui.el("div", {}, [
-        ui.el("div", { class: "g-h1" }, "Process map builder - " + q.proposedName),
+        ui.el("div", { class: "g-h1" }, "Process map builder: " + q.proposedName),
         ui.el("div", { class: "g-muted" }, "Each intake bullet becomes a phase; expand each into 2-10 steps. Mark every handoff where this process receives from or provides to another RAU. The assistant coaches; the standards check gates.")]),
       ui.el("div", { class: "sp" }),
       ui.el("button", { class: "g-btn", onclick: function () { ctx.go("pipeline/" + q.id); } }, "Back to request")]));
@@ -89,7 +89,7 @@
         });
         /* add-step form */
         var txt = ui.el("input", { class: "g-input", style: "flex:1;min-width:180px", placeholder: "Describe the step (start with a verb)..." });
-        var typeSel = ui.select({ options: [{ value: "task", label: "Task" }, { value: "decision", label: "Decision" }, { value: "handoff-in", label: "Handoff - receives from RAU" }, { value: "handoff-out", label: "Handoff - provides to RAU" }] });
+        var typeSel = ui.select({ options: [{ value: "task", label: "Task" }, { value: "decision", label: "Decision" }, { value: "handoff-in", label: "Handoff: receives from RAU" }, { value: "handoff-out", label: "Handoff: provides to RAU" }] });
         var cpIn = ui.el("input", { class: "g-input", style: "width:110px", placeholder: "RAU-####" });
         box.appendChild(ui.el("div", { style: "display:flex;gap:8px;padding:9px 12px;background:#fafbfc;flex-wrap:wrap" }, [
           txt, typeSel, cpIn,
@@ -131,12 +131,12 @@
           class: "g-btn g-btn--primary", disabled: allPass ? null : "1",
           onclick: function () {
             q.stage = "pending-governance";
-            q.note = "Standards check passed " + ctx.fmt.today() + " (" + rules.length + "/" + rules.length + " green).";
-            ui.toast("Standards check green - routed to RCSA RAU Governance.");
+            q.note = "Standards check passed " + ctx.fmt.today() + ".";
+            ui.toast("Standards check green. Routed to RCSA RAU Governance.");
             ctx.go("pipeline/" + q.id);
           }
         }, allPass ? "Run standards check and route to governance" : "Standards not yet met")));
-      sideCol.appendChild(ui.card({ title: "Process mapping standards (demo lint - the real standards plug in here)", body: lintBody }));
+      sideCol.appendChild(ui.card({ title: "Process mapping standards (demo checklist; the real standards plug in here)", body: lintBody }));
     }
     draw();
   }
@@ -168,8 +168,8 @@
       var done = q.survey.length - open.length;
       wrap.appendChild(ui.el("div", { class: "g-page-head" }, [
         ui.el("div", {}, [
-          ui.el("div", { class: "g-h1" }, "RAU metadata survey - " + q.proposedName),
-          ui.el("div", { class: "g-muted" }, "The assistant filled " + done + " of " + q.survey.length + " answers from the process map, services, and intake. It asks only what it cannot conclude. Most questions confirm what the RAU does NOT do - absence never shows on a process map.")]),
+          ui.el("div", { class: "g-h1" }, "RAU metadata survey: " + q.proposedName),
+          ui.el("div", { class: "g-muted" }, "The assistant filled " + done + " of " + q.survey.length + " answers from the process map, services, and intake. It asks only what it cannot conclude. Most questions confirm what the RAU does NOT do; absence never shows on a process map.")]),
         ui.el("div", { class: "sp" }),
         ui.el("button", { class: "g-btn", onclick: function () { ctx.go("pipeline/" + q.id); } }, "Back to request")]));
       wrap.appendChild(ui.el("div", { style: "max-width:520px;margin-bottom:14px" }, [
@@ -189,7 +189,7 @@
         wrap.appendChild(ui.card({
           title: "Survey complete",
           body: ui.el("div", {}, [
-            ui.el("p", {}, "All " + q.survey.length + " questions answered. Completing metadata activates the RAU and opens Capability 2: the applicability engine will stack-rank the 90 risk events and 8,000 MCRs against this metadata."),
+            ui.el("p", {}, "All " + q.survey.length + " questions answered. Completing metadata activates the RAU and opens Capability 2, where the applicability engine stack-ranks the risk event and MCR libraries against this metadata."),
             ui.el("button", { class: "g-btn g-btn--primary", onclick: function () { activate(ctx, q); } }, "Complete metadata and activate RAU")])
         }));
       }
@@ -231,14 +231,14 @@
       data.all("raus").push(rau);
       q2.stage = "approved";
       q2.note = "RAU " + id + " activated " + ctx2.fmt.today() + ".";
-      ctx2.ui.toast(id + " activated. Opening the applicability workbench - Capability 2 takes it from here.");
+      ctx2.ui.toast(id + " activated. Opening the applicability workbench. Capability 2 takes it from here.");
       ctx2.go("riskid/" + id);
     }
     draw();
   }
 
   GRC.register({
-    id: "mapbuilder", version: "1.0.0", tab: "RCSA",
+    id: "mapbuilder", version: "1.0.1", tab: "RCSA",
     routes: { "pipeline/:id/map": builder, "pipeline/:id/survey": survey }
   });
 })();

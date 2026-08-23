@@ -1,4 +1,4 @@
-/* GRC kernel/core.js v1.0.0 2026-08-23 */
+/* GRC kernel/core.js v1.1.0 2026-08-23 */
 /* Kernel: module registry (tab/rail), hash router, data indexing, state,
    formatting, preflight, guided tour, reset. No dependencies, file:// safe. */
 (function () {
@@ -286,7 +286,7 @@
     var idx = Number(key.split("-")[1] || 0);
     var d = document.createElement("div");
     d.innerHTML = "<div class='g-page-head'><div><div class='g-h1'>" + (cfg.items[idx] || tab) + "</div>" +
-      "<div class='g-muted'>Capability " + cfg.n + " - arrives in a later build phase.</div></div></div>" +
+      "<div class='g-muted'>Capability " + cfg.n + ": arrives in a later build phase.</div></div></div>" +
       "<div class='g-empty'>This function is part of the full 10-capability plan. The current release (" +
       (D ? D.release.number : "R?") + ") implements Capability 1 (RAU Demographics &amp; Attributes) and " +
       "Capability 2 (Operational &amp; Compliance Risk Identification). Use the RCSA tab to explore them, " +
@@ -340,7 +340,7 @@
       eng = "self-test score " + t.pct + " (" + t.band + ") - OK";
     } catch (e) { eng = "ENGINE ERROR: " + e.message; }
     pf.innerHTML = "<div class='g-drawer-bg'></div><div class='g-drawer'><div class='hd'>" +
-      "<div class='g-h2' style='margin:0'>Preflight - " + D.release.number + " (" + D.release.date + ")</div>" +
+      "<div class='g-h2' style='margin:0'>Preflight " + D.release.number + " (" + D.release.date + ")</div>" +
       "<span class='sp' style='flex:1'></span><button class='g-btn sm' id='pf-reset'>Reset demo data</button>" +
       "<button class='g-btn sm' id='pf-close'>Close</button></div><div class='bd'>" +
       "<div class='g-label'>Release</div><p>" + D.release.number + " - " + D.release.label + "</p>" +
@@ -356,6 +356,106 @@
     pf.querySelector("#pf-reset").onclick = function () {
       if (confirm("Reset all in-session changes back to shipped data?")) { GRC.resetData(); togglePreflight(); }
     };
+  }
+
+  /* ==SECTION:feedback== */
+  /* On-page feedback capture. Every item records the page and the source
+     file so the change can be made later without archaeology. Stored in
+     localStorage when available so it survives refresh; exportable as
+     plain text ready to hand to the maintainer. */
+  var FB = { items: [], votes: {} };
+  function fbKey() { return "grc-feedback-" + (D ? D.release.number : "R"); }
+  function fbLoad() {
+    try { var raw = localStorage.getItem(fbKey()); if (raw) { FB = JSON.parse(raw); FB.items = FB.items || []; FB.votes = FB.votes || {}; } } catch (e) { }
+  }
+  function fbSave() { try { localStorage.setItem(fbKey(), JSON.stringify(FB)); } catch (e) { } }
+  function fbFile() {
+    if (!current.route) return "kernel/core.js";
+    if (current.route === "search" || current.route.indexOf("soon/") === 0) return "kernel/core.js";
+    return current.mod && current.mod.id ? "modules/" + current.mod.id + ".js" : "kernel/core.js";
+  }
+  function fbStamp() {
+    var d = new Date();
+    return d.toISOString().slice(0, 16).replace("T", " ");
+  }
+  GRC.vote = function (itemId, v) { if (FB.votes[itemId] === v) { delete FB.votes[itemId]; } else { FB.votes[itemId] = v; } fbSave(); };
+  GRC.getVote = function (itemId) { return FB.votes[itemId]; };
+  function fbExport() {
+    var out = ["GRC MOCKUP FEEDBACK EXPORT", "Release: " + D.release.number + " (" + D.release.date + ")",
+      "Each item names the page (hash route) and the source file to change.", ""];
+    FB.items.forEach(function (it) {
+      out.push(it.id + " | " + it.release + " | page: " + it.route + " | file: " + it.file + " | role: " + it.role + " | " + it.when);
+      out.push("  Type: " + it.type);
+      out.push("  Now: " + it.now);
+      out.push("  Should: " + it.should);
+      out.push("");
+    });
+    var vk = Object.keys(FB.votes);
+    if (vk.length) {
+      out.push("FEATURE GALLERY VOTES");
+      vk.forEach(function (k) { out.push("  " + k + ": " + FB.votes[k]); });
+    }
+    return out.join("\n");
+  }
+  function openFeedback() {
+    var ui = GRC.ctx.ui;
+    var route = "#/" + (current.route || "home");
+    var file = fbFile();
+    var body = ui.el("div");
+    body.appendChild(ui.el("div", { class: "fb-ctx" }, [
+      ui.el("div", {}, ["Captured with this item: page ", ui.el("span", { class: "g-mono" }, route),
+        ", file ", ui.el("span", { class: "g-mono" }, file), ", release " + D.release.number + ", viewing as " + STATE.role + "."])]));
+    var typeSel = ui.select({ options: ["Change request", "Defect", "Idea", "Question"] });
+    var nowTa = ui.el("textarea", { class: "g-input", rows: "3", style: "width:100%", placeholder: "What you see now. Example: the middle list shows every candidate at once." });
+    var shouldTa = ui.el("textarea", { class: "g-input", rows: "3", style: "width:100%", placeholder: "What it should be. Example: show the top ten with a link to the rest." });
+    function field(l, n) { return ui.el("div", { style: "margin-bottom:10px" }, [ui.el("div", { class: "g-label", style: "margin-bottom:4px" }, l), n]); }
+    body.appendChild(field("Type", typeSel));
+    body.appendChild(field("I don't like this...", nowTa));
+    body.appendChild(field("...change it to that", shouldTa));
+    var listWrap = ui.el("div");
+    function drawList() {
+      listWrap.innerHTML = "";
+      if (!FB.items.length) return;
+      listWrap.appendChild(ui.el("div", { class: "g-label", style: "margin:14px 0 4px" }, "Captured this release (" + FB.items.length + ")"));
+      FB.items.slice().reverse().forEach(function (it) {
+        listWrap.appendChild(ui.el("div", { class: "fb-item" }, [
+          ui.el("div", { class: "g-row" }, [
+            ui.el("b", {}, it.id), ui.el("span", { class: "g-mono g-muted" }, it.route),
+            ui.el("span", { style: "flex:1" }),
+            ui.el("button", { class: "g-btn sm", onclick: function () { FB.items = FB.items.filter(function (x) { return x.id !== it.id; }); fbSave(); drawList(); } }, "Remove")]),
+          ui.el("div", {}, [ui.el("b", {}, "Now: "), it.now]),
+          ui.el("div", {}, [ui.el("b", {}, "Should: "), it.should])]));
+      });
+      listWrap.appendChild(ui.el("div", { class: "g-row", style: "margin-top:10px" }, [
+        ui.el("button", { class: "g-btn", onclick: function () {
+          var t = fbExport();
+          try { navigator.clipboard.writeText(t); ui.toast("Feedback copied to the clipboard."); }
+          catch (e) { window.prompt("Copy the export text:", t); }
+        } }, "Copy all as text"),
+        ui.el("button", { class: "g-btn", onclick: function () {
+          var blob = new Blob([fbExport()], { type: "text/plain" });
+          var a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = "feedback-" + D.release.number + ".txt";
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        } }, "Download feedback file")]));
+    }
+    body.appendChild(ui.el("div", { class: "g-row", style: "margin-top:4px" },
+      ui.el("button", { class: "g-btn g-btn--primary", onclick: function () {
+        if (!nowTa.value.trim() && !shouldTa.value.trim()) { ui.toast("Describe the change first."); return; }
+        FB.items.push({
+          id: "FB-" + String(FB.items.length + 1).replace(/^(\d)$/, "00$1").replace(/^(\d\d)$/, "0$1"),
+          release: D.release.number, route: route, file: file, role: STATE.role,
+          when: fbStamp(), type: typeSel.value || "Change request",
+          now: nowTa.value.trim() || "(not stated)", should: shouldTa.value.trim() || "(not stated)"
+        });
+        fbSave(); nowTa.value = ""; shouldTa.value = "";
+        ui.toast("Captured. It references this page so it can be fixed later.");
+        drawList();
+      } }, "Capture feedback")));
+    body.appendChild(listWrap);
+    drawList();
+    ui.drawer({ title: "Feedback on this demo", body: body });
   }
 
   /* ==SECTION:tour== */
@@ -410,6 +510,12 @@
       if (e.key === "Enter") { state.set("search", sr.value); GRC.go("search"); }
     });
     document.getElementById("g-preflight-btn").onclick = togglePreflight;
+    fbLoad();
+    var pill = document.createElement("button");
+    pill.id = "g-fb-pill";
+    pill.textContent = "Provide Feedback for this Demo";
+    pill.onclick = openFeedback;
+    document.body.appendChild(pill);
     window.addEventListener("hashchange", render);
     render();
   };

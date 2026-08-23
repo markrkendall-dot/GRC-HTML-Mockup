@@ -1,4 +1,4 @@
-/* GRC modules/intake.js v1.0.0 2026-08-23 */
+/* GRC modules/intake.js v1.0.1 2026-08-23 */
 /* Capability 1 front end: the RAU change-request pipeline (new / merge /
    split / retire), the intake wizard with assistant, the uniqueness +
    category review gate, and governance approval. */
@@ -22,12 +22,6 @@
         ui.el("div", { class: "g-muted" }, "Every change to the RAU inventory - new, merge, split, retire - moves through the same governed pipeline. One workflow, no side doors.")]),
       ui.el("div", { class: "sp" }),
       ui.el("button", { class: "g-btn g-btn--primary", onclick: function () { ctx.go("pipeline/new"); } }, "+ New request")]));
-    var stages = ["draft-intake", "uniqueness-review", "returned-for-refinement", "process-mapping", "standards-check", "pending-governance", "metadata-creation"];
-    var counts = {};
-    reqs.forEach(function (q) { counts[q.stage] = (counts[q.stage] || 0) + 1; });
-    el.appendChild(ui.el("div", { class: "g-kpis" }, stages.map(function (s) {
-      return ui.kpi({ label: fmt.stage(s), value: counts[s] || 0, kind: s === "returned-for-refinement" ? (counts[s] ? "bad" : "") : s === "pending-governance" ? (counts[s] ? "warn" : "") : "" });
-    })));
     el.appendChild(ui.table({
       cols: [
         { key: "id", label: "Request", render: function (q) { return ui.el("span", { class: "g-mono" }, q.id); } },
@@ -98,7 +92,7 @@
     var model = { type: "new", lobId: "", subLobId: "", category: "business-service", proposedName: "", description: "", bulletsText: "", serviceIds: [] };
     var msgs = [{ who: "assistant", text: "I will help you describe this RAU. Pick the business placement and the services it performs from the common catalog, then list the high-level steps of the process - one per line. I will ask questions if I need more to analyze uniqueness." }];
     el.appendChild(ui.el("div", { class: "g-page-head" },
-      ui.el("div", {}, [ui.el("div", { class: "g-h1" }, "New RAU request - intake"),
+      ui.el("div", {}, [ui.el("div", { class: "g-h1" }, "New RAU request: intake"),
       ui.el("div", { class: "g-muted" }, "Step 1 of the pipeline. On submit, the assistant analyzes uniqueness within the Line of Business and checks the category; the RCSA RAU Governance team reviews its findings.")])));
     var form = ui.el("div");
     var chatWrap = ui.el("div");
@@ -171,7 +165,7 @@
             "No significant overlap found within the Line of Business (top match " + top + "%). The described process appears unique."
       };
       data.all("requests").unshift(req);
-      ui.toast("Submitted. The assistant's analysis is attached for the RCSA RAU Governance review.");
+      ui.toast("Submitted. The analysis is attached for RCSA RAU Governance review.");
       ctx.go("pipeline/" + req.id);
     }
   }
@@ -188,7 +182,7 @@
           ui.el("span", { class: "g-mono g-muted" }, q.id),
           ui.badge(q.type.toUpperCase(), q.type === "new" ? "info" : "warn"),
           ui.badge(fmt.stage(q.stage), fmt.stageKind(q.stage))]),
-        ui.el("div", { class: "g-muted" }, data.orgPath(q.subLobId).lob + " > " + data.orgPath(q.subLobId).sub + "  -  requested by " + q.requester + " on " + fmt.date(q.submitted))]),
+        ui.el("div", { class: "g-muted" }, data.orgPath(q.subLobId).lob + " > " + data.orgPath(q.subLobId).sub + ", requested by " + q.requester + " on " + fmt.date(q.submitted))]),
       ui.el("div", { class: "sp" }),
       q.stage === "process-mapping" || q.stage === "standards-check" ? ui.el("button", { class: "g-btn g-btn--primary", onclick: function () { ctx.go("pipeline/" + q.id + "/map"); } }, "Open map builder") : null,
       q.stage === "metadata-creation" ? ui.el("button", { class: "g-btn g-btn--primary", onclick: function () { ctx.go("pipeline/" + q.id + "/survey"); } }, "Open metadata survey") : null]));
@@ -264,7 +258,7 @@
       if (isGov(ctx)) {
         var redirTarget = u.similar.length ? u.similar[0].rauId : null;
         body.appendChild(ui.el("div", { class: "g-row", style: "margin-top:10px" }, [
-          ui.el("button", { class: "g-btn g-btn--primary", onclick: function () { q.stage = "process-mapping"; q.note = "Advanced by governance " + ctx.fmt.today(); ui.toast(q.id + " advanced to process mapping."); ctx.go("pipeline/" + q.id); } }, "Advance to mapping"),
+          ui.el("button", { class: "g-btn g-btn--primary", onclick: function () { q.stage = "process-mapping"; q.note = "Advanced by governance on " + ctx.fmt.today(); ui.toast(q.id + " advanced to process mapping."); ctx.go("pipeline/" + q.id); } }, "Advance to mapping"),
           ui.el("button", { class: "g-btn", onclick: function () { q.stage = "returned-for-refinement"; q.note = "Returned " + ctx.fmt.today() + ": establish differentiation from the similar RAU(s)."; ui.toast(q.id + " returned to the requester."); ctx.go("pipeline/" + q.id); } }, "Return with comments"),
           redirTarget ? ui.el("button", { class: "g-btn", onclick: function () {
             var r = ctx.data.byId("raus", redirTarget);
@@ -275,7 +269,7 @@
         body.appendChild(govHint(ctx, ui));
       }
     }
-    return ui.card({ title: "Uniqueness review - assistant analysis, human decision", body: body });
+    return ui.card({ title: "Uniqueness review: assistant analysis, human decision", body: body });
   }
 
   /* ==SECTION:governance== */
@@ -297,7 +291,7 @@
   }
 
   GRC.register({
-    id: "intake", version: "1.0.0", tab: "RCSA",
+    id: "intake", version: "1.0.1", tab: "RCSA",
     rail: [{ label: "RAU pipeline", route: "pipeline", order: 30 }],
     routes: { "pipeline": board, "pipeline/new": wizard, "pipeline/:id": detail }
   });

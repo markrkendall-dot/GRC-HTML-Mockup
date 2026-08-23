@@ -12,6 +12,42 @@ Kit: SCHEMA.md v___, CONTRACT.md v___ (changed/unchanged)
 Version matrix: (paste the Preflight versions table here)
 ---- END TEMPLATE ----
 
+== R2 - 2026-08-23 - Feedback round 1 ==
+Feedback closed: FB-001 through FB-009 (see FEEDBACK.md)
+Also in this release:
+  modules/rau.js 1.1.0: directory defaults to a caret-expandable hierarchy
+    (Enterprise > LOB > SubLOB > RAU) with a flat-list toggle; separate
+    Hierarchy page folded in (FB-007)
+  kernel/engine.js 1.1.0: mcrFit goodness-of-fit metric (parent fit, best
+    alternative event, verdict) (FB-008)
+  modules/libraries.js 1.1.0: event detail expands MCRs in place with fit
+    and rewrite-candidate assessment; MCR library gains a Fit column and a
+    rewrite-candidates filter; MCR detail gains a fit panel (FB-007, FB-008)
+  modules/skeletons.js NEW 1.0.0: capability 3, 4, 5 skeleton pages in the
+    RCSA rail; home flow links to them (FB-009)
+Module changes:
+  index.html 1.0.0 -> 1.1.0: Always-available rail section moved above the
+    contextual section; feedback pill and panel styles; gallery styles (FB-003, FB-004)
+  kernel/core.js 1.0.0 -> 1.1.0: feedback capture system (pill on every
+    page, right-side panel, now/should form, page and file reference on
+    each item, localStorage persistence, copy and download export,
+    gallery vote store) (FB-004)
+  kernel/ui.js 1.0.0 -> 1.0.1, kernel/charts.js 1.0.0 -> 1.0.1: unicode
+    glyphs replaced with ASCII (FB-002)
+  modules/home.js 1.0.0 -> 1.1.0: flow starts with capabilities 1 and 2,
+    Signals and Policy Governance at the bottom; count tiles removed;
+    gallery teaser replaces start-somewhere-interesting (FB-001, FB-005, FB-006)
+  modules/gallery.js NEW 1.0.0: curated feature gallery, grouped by theme
+    and complexity, Keep/Discuss/Cut votes included in the feedback
+    export; vignettes for assign-control (Capability 4 preview) and
+    regulatory change (Capability 6 preview) (FB-006)
+  modules/rau.js, rau-profile.js, intake.js, riskid.js, libraries.js,
+    mywork.js, mapbuilder.js, demo.js: count tile rows removed, key facts
+    folded into Demographics, copy pass (FB-001, FB-002)
+Data: regenerated same seed; release.js R2.
+Kit: unchanged.
+Version matrix: see Preflight in the app.
+
 == R1 - 2026-08-23 - Capabilities 1-2 reference build ==
 Feedback closed: none (first release)
 Module changes (all new, v1.0.0): index.html (bank chrome: red banner, top

@@ -1,4 +1,4 @@
-/* GRC modules/rau-profile.js v1.0.0 2026-08-23 */
+/* GRC modules/rau-profile.js v1.1.0 2026-08-23 */
 /* Capability 1: the RAU profile - demographics, attributes, metadata survey
    with provenance, process map, handoffs, and the risk summary. */
 (function () {
@@ -22,7 +22,7 @@
           extra = ui.el("div", { style: "font-size:12px;margin-top:2px" }, [
             ui.badge(st.type === "handoff-in" ? "Receives from" : "Provides to", "info"), " ",
             ui.el("a", { href: "#/raus/" + st.cp }, cp ? cp.id + " " + cp.name : st.cp),
-            st.art ? ui.el("span", { class: "g-muted" }, "  -  " + st.art) : null]);
+            st.art ? ui.el("span", { class: "g-muted" }, ", carries: " + st.art) : null]);
         } else if (st.type === "decision") {
           extra = ui.el("div", { style: "font-size:11.5px;margin-top:1px" }, ui.badge("Decision", "warn"));
         }
@@ -54,13 +54,6 @@
       ui.el("div", { class: "sp" }),
       ui.el("button", { class: "g-btn", onclick: function () { ctx.go("riskid/" + r.id); } }, "Open applicability workbench")]));
 
-    el.appendChild(ui.el("div", { class: "g-kpis" }, [
-      ui.kpi({ label: "Confirmed risks", value: confirmed.length, kind: "info", sub: r.riskIdStatus === "complete" ? "Risk ID complete" : "Risk ID " + r.riskIdStatus.replace("-", " ") }),
-      ui.kpi({ label: "FTE", value: fmt.num(r.fte) }),
-      ui.kpi({ label: "Annual volume", value: fmt.num(r.annualVolume) }),
-      ui.kpi({ label: "Prior losses (12 mo)", value: r.priorLosses12m ? fmt.money(r.priorLosses12m) : "None", kind: r.priorLosses12m ? "warn" : "ok" }),
-      ui.kpi({ label: "Handoffs", value: (r.handoffs || []).length, sub: "in + out" })]));
-
     el.appendChild(ui.tabs({
       items: [
         { id: "ov", label: "Overview", render: function (bd) { renderOverview(bd, ctx, r); } },
@@ -82,7 +75,11 @@
         ["RAU Owner", r.roles.owner], ["Owner Delegate", r.roles.delegate],
         ["BCM Contact", r.roles.bcmContact],
         ["ORBO (Operational Risk)", r.roles.orbo], ["BACO (Compliance Risk)", r.roles.baco],
-        ["Locations", String(r.locations)], ["Change level", r.changeLevel],
+        ["FTE", fmt.num(r.fte)], ["Locations", String(r.locations)],
+        ["Annual volume", fmt.num(r.annualVolume)],
+        ["Prior losses, 12 months", r.priorLosses12m ? fmt.money(r.priorLosses12m) : "None"],
+        ["Change level", r.changeLevel],
+        ["Risk identification", r.riskIdStatus.replace("-", " ")],
         ["Last RCSA", fmt.date(r.lastRcsaDate)], ["Profile updated", fmt.date(r.profileUpdated)]])
     }));
     left.appendChild(ui.card({
@@ -99,9 +96,9 @@
     right.appendChild(ui.card({
       title: "Attributes (drive applicability, signals, and scoping)",
       body: ui.el("div", {}, [
-        ui.el("div", { class: "g-label", style: "margin-bottom:4px" }, "Inclusion evidence - what this RAU does"),
+        ui.el("div", { class: "g-label", style: "margin-bottom:4px" }, "Inclusion evidence: what this RAU does"),
         tagWrap,
-        ui.el("div", { class: "g-label", style: "margin:10px 0 4px" }, "Exclusion evidence - confirmed does-not-do"),
+        ui.el("div", { class: "g-label", style: "margin:10px 0 4px" }, "Exclusion evidence: confirmed does-not-do"),
         exWrap,
         ui.el("p", { class: "g-muted", style: "font-size:12px;margin:10px 0 0" },
           "Inclusions come from the process map, services, and survey answers; exclusions come from the metadata survey. Together they drive the stack-ranked applicability of the 90 risk events and 8,000 MCRs to this RAU.")])
@@ -111,7 +108,7 @@
         title: "Process map summary", body: ui.kv([
           ["Phases", String(r.mapSummary.phases)], ["Steps", String(r.mapSummary.steps)],
           ["Handoffs identified", String(r.mapSummary.handoffs)],
-          ["Detail", "Full step detail not included in the demo dataset for this RAU - see the featured RAUs or the pipeline for full maps."]])
+          ["Detail", "Full step detail not included in the demo dataset for this RAU. See the featured RAUs or the pipeline for full maps."]])
       }));
     }
     bd.appendChild(ui.el("div", { class: "g-split" }, [left, right]));
@@ -134,7 +131,7 @@
     answers.forEach(function (a) { if (a.src === "user") user++; else derived++; });
     bd.appendChild(ui.el("p", { class: "g-muted" },
       "The standardized survey is filled by the assistant from the process map, services, and intake details; " +
-      "questions it cannot conclude are asked directly. Most questions confirm what the RAU does NOT do - " +
+      "questions it cannot conclude are asked directly. Most questions confirm what the RAU does NOT do; " +
       "absence never shows on a process map. Provenance: " + derived + " derived, " + user + " answered by the owner team."));
     var bySection = {};
     qs.forEach(function (q) { (bySection[q.section] = bySection[q.section] || []).push(q); });
@@ -169,7 +166,7 @@
         ], rows: rows, page: 12
       });
     }
-    bd.appendChild(ui.el("p", { class: "g-muted" }, "Handoffs are declared on the process map and trusted at submission; the counterparty confirms afterward through My Work. They form the inter-RAU dependency network - a change in this RAU signals its counterparties (Capability 6)."));
+    bd.appendChild(ui.el("p", { class: "g-muted" }, "Handoffs are declared on the process map and trusted at submission; the counterparty confirms afterward through My Work. They form the inter-RAU dependency network; a change in this RAU signals its counterparties (Capability 6)."));
     bd.appendChild(ui.el("div", { class: "g-split" }, [
       ui.card({ title: "Provides to (" + outs.length + ")", body: tbl(outs, "Counterparty RAU") }),
       ui.card({ title: "Receives from (" + ins.length + ")", body: tbl(ins, "Counterparty RAU") })]));
@@ -199,7 +196,7 @@
   }
 
   GRC.register({
-    id: "rau-profile", version: "1.0.0", tab: "RCSA",
+    id: "rau-profile", version: "1.1.0", tab: "RCSA",
     routes: { "raus/:id": profile }
   });
 })();

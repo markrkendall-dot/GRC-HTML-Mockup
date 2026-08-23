@@ -1,4 +1,4 @@
-/* GRC modules/riskid.js v1.0.0 2026-08-23 */
+/* GRC modules/riskid.js v1.0.1 2026-08-23 */
 /* Capability 2: Operational & Compliance Risk Identification - the
    applicability workbench. The engine stack-ranks all 90 risk events (and
    the MCRs beneath compliance events) against the RAU's metadata; the
@@ -11,16 +11,10 @@
   var LF = { q: "", status: "" };
   function landing(el, ctx) {
     var ui = ctx.ui, data = ctx.data;
-    var m = data.metrics();
     el.appendChild(ui.el("div", { class: "g-page-head" },
       ui.el("div", {}, [
         ui.el("div", { class: "g-h1" }, "Risk identification"),
-        ui.el("div", { class: "g-muted" }, "The front line takes the first pass: the engine stack-ranks applicability of " + m.events + " risk events and " + ctx.fmt.num(m.mcrTotal) + " MCRs to each RAU; the owner team picks. Same rubric, same math, all " + m.activeRaus + " RAUs.")])));
-    el.appendChild(ui.el("div", { class: "g-kpis" }, [
-      ui.kpi({ label: "Risk ID complete", value: m.riskIdComplete, kind: "ok" }),
-      ui.kpi({ label: "In progress", value: m.riskIdInProgress, kind: "warn" }),
-      ui.kpi({ label: "Not started", value: m.riskIdNotStarted, kind: m.riskIdNotStarted ? "bad" : "ok" }),
-      ui.kpi({ label: "Confirmed risks (all RAUs)", value: ctx.fmt.num(m.confirmedRisks), kind: "info" })]));
+        ui.el("div", { class: "g-muted" }, "The front line takes the first pass. The engine stack-ranks the applicability of the risk event and MCR libraries to each RAU; the owner team picks. Same rubric, same math, for every RAU.")])));
     var body = ui.el("div"); el.appendChild(body);
     function draw() {
       body.innerHTML = "";
@@ -87,8 +81,8 @@
           ui.el("div", { class: "g-row" }, [
             ui.el("span", { class: "g-h1" }, "Applicability workbench"),
             ui.el("a", { href: "#/raus/" + r.id, class: "g-mono" }, r.id), ui.el("span", {}, r.name)]),
-          ui.el("div", { class: "g-muted" }, done.length + " of " + totalCand + " candidates dispositioned - " +
-            cand.suppressed.length + " suppressed by exclusions. Rubric v" + (eng.rubric().version || "1.0") + " - same math for every RAU (see Applicability Rubric in the rail).")]),
+          ui.el("div", { class: "g-muted" }, done.length + " of " + totalCand + " candidates dispositioned; " +
+            cand.suppressed.length + " suppressed by exclusions. Rubric v" + (eng.rubric().version || "1.0") + ". Same math for every RAU; the Applicability Rubric page documents it.")]),
         ui.el("div", { class: "sp" }),
         ui.el("div", { style: "min-width:220px" }, [ui.progress(prog), ui.el("div", { class: "g-muted", style: "font-size:12px;margin-top:3px;text-align:right" }, Math.round(prog) + "% dispositioned")])]));
 
@@ -107,7 +101,7 @@
             ui.el("span", { class: "g-muted", style: "font-size:12px" }, "hidden by the metadata survey's exclusion evidence")]));
         });
         var supCard = ui.card({
-          title: "Suppressed by exclusions (" + cand.suppressed.length + ") - the survey working",
+          title: "Suppressed by exclusions (" + cand.suppressed.length + "): the survey at work",
           body: supBody
         });
         supCard.style.borderLeft = "4px solid var(--g-line)";
@@ -143,7 +137,7 @@
         detail.appendChild(ui.el("div", { class: "g-muted", style: "font-size:12px;margin-top:4px" }, "Keywords: " + (ev.keywords || []).join(", ")));
         if (ev.side === "compliance") {
           var mc = eng.mcrCandidates(r, ev.id);
-          detail.appendChild(ui.el("div", { class: "g-label", style: "margin:10px 0 4px" }, "MCRs under this event (" + mc.total + " total - top-ranked shown; " + mc.tailCount + " long-tail)"));
+          detail.appendChild(ui.el("div", { class: "g-label", style: "margin:10px 0 4px" }, "MCRs under this event (" + mc.total + " total; top-ranked shown, " + mc.tailCount + " long-tail)"));
           mc.head.slice(0, 6).forEach(function (h) {
             detail.appendChild(ui.el("div", { class: "g-row", style: "padding:2px 0;font-size:12.5px" }, [
               ui.el("span", { class: "g-score" }, [String(h.pct), ui.el("i", {}, ui.el("b", { style: "width:" + h.pct + "%" }))]),
@@ -171,7 +165,7 @@
       }
 
       wrap.appendChild(zoneBlock("Likely applicable", "likely", z.likely,
-        "score >= " + eng.rubric().bands.likely + " - confirm, or reject with rationale",
+        "score >= " + eng.rubric().bands.likely + ": confirm, or reject with rationale",
         function (s) {
           return ui.el("span", { class: "g-row" }, [
             ui.el("button", { class: "g-btn sm g-btn--primary", onclick: function (e) { e.stopPropagation(); act(s, "confirmed"); } }, "Confirm"),
@@ -183,15 +177,15 @@
         }));
 
       wrap.appendChild(zoneBlock("Ambiguous middle", "middle", z.middle,
-        "score " + eng.rubric().bands.possible + "-" + (eng.rubric().bands.likely - 1) + " - resolve with targeted questions to push it out of the middle",
+        "score " + eng.rubric().bands.possible + "-" + (eng.rubric().bands.likely - 1) + ": resolve with targeted questions to push it out of the middle",
         function (s) {
           return ui.el("span", { class: "g-row" }, [
             ui.el("button", { class: "g-btn sm g-btn--primary", onclick: function (e) { e.stopPropagation(); resolveDrawer(s); } }, "Resolve"),
-            ui.el("button", { class: "g-btn sm", onclick: function (e) { e.stopPropagation(); act(s, "confirmed", { rationale: "Owner judgment - confirmed from the middle band." }); } }, "Confirm anyway")]);
+            ui.el("button", { class: "g-btn sm", onclick: function (e) { e.stopPropagation(); act(s, "confirmed", { rationale: "Owner judgment: confirmed from the middle band." }); } }, "Confirm anyway")]);
         }));
 
       wrap.appendChild(zoneBlock("Unlikely", "unlikely", z.unlikely.slice(0, 12),
-        "score < " + eng.rubric().bands.possible + " - bulk dismiss with sampling review (" + z.unlikely.length + " total, first 12 shown)",
+        "score < " + eng.rubric().bands.possible + ": bulk dismiss with sampling review (" + z.unlikely.length + " total, first 12 shown)",
         function (s) {
           return ui.el("button", { class: "g-btn sm", onclick: function (e) { e.stopPropagation(); act(s, "rejected", { rationale: "Below applicability floor." }); } }, "Dismiss");
         }));
@@ -235,7 +229,7 @@
       var qs = ctx.engine.questionsFor(r, s.ev);
       var before = s.pct;
       var body = ui.el("div");
-      body.appendChild(ui.el("p", {}, "These questions target the rubric categories where \"" + s.ev.name + "\" sits in the uncertain middle. Answers update this RAU's metadata - every candidate on the workbench rescores consistently, not just this one."));
+      body.appendChild(ui.el("p", {}, "These questions target the rubric categories where \"" + s.ev.name + "\" sits in the uncertain middle. Answers update this RAU's metadata, so every candidate on the workbench rescores consistently, not just this one."));
       if (!qs.length) {
         body.appendChild(ui.empty("No unanswered questions apply. Use owner judgment: confirm or reject with rationale."));
       }
@@ -263,7 +257,7 @@
             ui.badge(ctx.fmt.band(after.band), ctx.fmt.bandKind(after.band)),
             ui.el("span", { class: "g-muted", style: "font-size:12px" }, "recorded as survey answer with provenance \"you answered\"")]),
           after.band !== "possible" ? ui.el("div", { style: "margin-top:8px" },
-            ui.el("button", { class: "g-btn sm g-btn--primary", onclick: function () { dr.close(); draw(); } }, "Out of the middle - return to workbench")) : null]));
+            ui.el("button", { class: "g-btn sm g-btn--primary", onclick: function () { dr.close(); draw(); } }, "Out of the middle. Return to workbench")) : null]));
       }
       dr = ui.drawer({ title: "Resolve: " + s.ev.name + " (currently " + before + ")", body: body, onclose: function () { draw(); } });
     }
@@ -271,7 +265,7 @@
   }
 
   GRC.register({
-    id: "riskid", version: "1.0.0", tab: "RCSA",
+    id: "riskid", version: "1.0.1", tab: "RCSA",
     rail: [{ label: "2. Risk identification", route: "riskid", order: 20 }],
     routes: { "riskid": landing, "riskid/:rauId": workbench }
   });

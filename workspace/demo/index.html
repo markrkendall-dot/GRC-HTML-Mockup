@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- GRC index.html v1.0.0 2026-08-23 -->
+<!-- GRC index.html v1.1.0 2026-08-23 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -58,7 +58,7 @@ a{color:var(--g-accent)}
 #g-rail .itm:hover{background:var(--g-rail-dk)}
 #g-rail .itm.on{background:#fff;border-left-color:var(--g-banner);font-weight:600}
 #g-rail .sep{flex:1}
-#g-rail .persist{border-top:1px solid #c9c9c9;padding-top:8px;margin-top:8px}
+#g-rail .persist{border-bottom:1px solid #c9c9c9;padding-bottom:8px;margin-bottom:10px}
 #outlet{flex:1;min-width:0;padding:18px 22px 60px;max-width:1500px}
 /* ==SECTION:components== */
 .g-h1{font-size:20px;font-weight:650;margin:0 0 4px}
@@ -171,8 +171,35 @@ table.g-table{border-collapse:collapse;width:100%;font-size:13px}
 .capbox .cn{font-size:11px;font-weight:700;color:var(--g-muted)}
 .capbox .ct{font-weight:650;font-size:13px;line-height:1.3}
 .capbox .cs{font-size:11px;margin-top:4px}
+.g-badge--brand{background:#f6e4e5;color:var(--g-banner)}
+/* ==SECTION:feedback== */
+#g-fb-pill{position:fixed;left:14px;bottom:14px;z-index:55;background:#fff;
+  border:1.5px solid var(--g-banner);color:var(--g-banner);border-radius:999px;
+  padding:8px 16px;font-size:12.5px;font-weight:700;cursor:pointer;box-shadow:var(--g-shadow)}
+#g-fb-pill:hover{background:var(--g-banner);color:#fff}
+.fb-ctx{background:#f2f4f6;border:1px solid var(--g-line);border-radius:6px;
+  padding:8px 12px;font-size:12.5px;margin-bottom:12px}
+.fb-ctx .g-mono{font-size:12px}
+.fb-item{border:1px solid var(--g-line);border-radius:6px;padding:8px 12px;margin:8px 0;background:#fff;font-size:12.5px}
+.flowarrow{align-self:center;justify-self:center;width:0;height:0;
+  border-top:6px solid transparent;border-bottom:6px solid transparent;border-left:8px solid #b9bfc7}
+.caret{display:inline-block;width:0;height:0;border-top:5px solid transparent;
+  border-bottom:5px solid transparent;border-left:7px solid #6a7280;margin-right:8px;
+  cursor:pointer;transition:transform .12s;vertical-align:middle}
+.caret.open{transform:rotate(90deg)}
+.tree-ind1 td:first-child{padding-left:34px}
+.tree-ind2 td:first-child{padding-left:58px}
+tr.tree-parent{background:#f7f8fa}
+tr.tree-parent td{font-weight:600}
+.skel-strip{display:flex;gap:10px;margin-top:10px}
+.skel-strip i{display:block;height:64px;flex:1;background:#f0f2f5;border:1px dashed var(--g-line);border-radius:6px}
+.gal-item{border:1px solid var(--g-line);border-radius:8px;background:#fff;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.gal-item .t{font-weight:650}
+.gal-item .w{font-size:12.5px;color:var(--g-muted);flex:1}
+.vote button{border:1px solid #b9bfc7;background:#fff;border-radius:4px;padding:2px 9px;font-size:11.5px;cursor:pointer}
+.vote button.on{background:var(--g-ink);color:#fff;border-color:var(--g-ink)}
 :focus-visible{outline:2px solid var(--g-accent);outline-offset:1px}
-@media print{#g-banner,#g-tabs,#g-rail{display:none}#outlet{padding:0}}
+@media print{#g-banner,#g-tabs,#g-rail,#g-fb-pill{display:none}#outlet{padding:0}}
 </style>
 </head>
 <body>
@@ -190,10 +217,10 @@ table.g-table{border-collapse:collapse;width:100%;font-size:13px}
 <nav id="g-tabs" aria-label="Functions"></nav>
 <div id="g-layout">
   <aside id="g-rail" aria-label="Section navigation">
+    <div class="persist" id="g-rail-persist"><h4>Always available</h4></div>
     <h4 id="g-rail-title"></h4>
     <div id="g-rail-context"></div>
     <div class="sep"></div>
-    <div class="persist" id="g-rail-persist"><h4>Always available</h4></div>
   </aside>
   <main id="outlet"></main>
 </div>
@@ -216,11 +243,13 @@ table.g-table{border-collapse:collapse;width:100%;font-size:13px}
 <script src="data/metaquestions.js"></script>
 <script src="data/rubric.js"></script>
 <script src="modules/home.js"></script>
+<script src="modules/gallery.js"></script>
 <script src="modules/rau.js"></script>
 <script src="modules/rau-profile.js"></script>
 <script src="modules/intake.js"></script>
 <script src="modules/mapbuilder.js"></script>
 <script src="modules/riskid.js"></script>
+<script src="modules/skeletons.js"></script>
 <script src="modules/libraries.js"></script>
 <script src="modules/mywork.js"></script>
 <script src="modules/demo.js"></script>

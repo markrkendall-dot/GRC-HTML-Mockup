@@ -590,7 +590,7 @@ sizes.metaquestions = writeData("metaQuestions", META_QS);
 sizes.rubric = writeData("rubric", [], { def: rubric });
 fs.writeFileSync(path.join(OUT, "release.js"),
   "window.GRC_DATA = window.GRC_DATA || {};\n" +
-  "window.GRC_DATA.release = {number:\"R1\", date:\"" + TODAY + "\", label:\"Capabilities 1-2 reference build (synthetic data)\"};\n");
+  "window.GRC_DATA.release = {number:\"R2\", date:\"" + TODAY + "\", label:\"Feedback round 1: feature gallery, feedback capture, layout and copy changes\"};\n");
 
 /* ==SECTION:csv-templates== */
 function csv(name, headers, rows) {
