@@ -1,265 +1,364 @@
-# DEEPDIVE-C3-C5.md - Capabilities 3, 4, 5: build plan and open questions
+# DEEPDIVE-C3-C5.md - Capabilities 3, 4, 5: specification and round plan
 
-Status: Revision 0 (plan + questionnaire). The owner's answers become
-Revision 1+ and are then authoritative, same as DEEPDIVE-C1-C2.md.
-Supersedes the C3/C4/C5 "standard model" sections of docs/CAPABILITIES.md
-where they conflict with the shipped C1/C2 build.
+Status: Revision 1 (owner's questionnaire answers integrated 2026-08-23).
+This revision is authoritative, same standing as DEEPDIVE-C1-C2.md.
+Supersedes the C3/C4/C5 sections of docs/CAPABILITIES.md.
 
-Anchor to the shipped model, not the old provisional one:
+Anchors from the shipped C1/C2 build:
 - A "risk instance" is a confirmed register row: RAU x risk event, with
-  score, decider, date, rationale, and attached MCR ids on the compliance
-  side. (The owner's own term, from the gallery ask.) C3 rates these, C4
-  attaches controls to these, C5 assesses and challenges these.
-- Hierarchy is WF > LOB > SubLOB; ~850 RAUs; 90 events (50 op, 40
-  compliance); ~8,000 MCRs with a ~2,000 head.
-- The five RAU roles exist from governance approval: Owner, Delegate,
-  BCM Contact, ORBO, BACO.
+  score, decider, date, rationale, attached MCR ids on the compliance
+  side. C3 rates instances, C4 attaches controls to instances, C5 keeps
+  the whole assessment alive and affirmed.
+- WF > LOB > SubLOB; ~850 RAUs; 90 events (50 op / 40 compliance);
+  ~8,000 MCRs with a ~2,000 head; five RAU roles from governance
+  approval (Owner, Delegate, BCM, ORBO, BACO).
 
-## 1. Commitments already on screen (must be honored or consciously changed)
+## 1. Decisions log (owner answers, condensed)
 
-From the skeleton pages, the gallery vignette, module copy, and the R4
-role demos, stakeholders have already been shown:
+C3
+1. Ratings attach to risk instances only: impact and likelihood per
+   instance. MCRs carry no direct rating; risk events carry no rating.
+   Compliance aggregates outside RCSA (CARA - Compliance Aggregated
+   Risk Assessment) for its own purposes. Out of scope here.
+2. Rubric: owner asked for an industry-leading model. Firm constraint:
+   no customer / regulatory / reputational impact scores "based on
+   subjective stuff". Design in section 2 (evidence-anchored rubric).
+3. RAU Owner rates using all available information; display is our
+   choice. Assistant may draw on any data in the platform.
+4. Rationale required ONLY on overrides. Accepting the evidence-based
+   suggestion needs no text.
+5. RAU-level rollup: owner open to ideas, must be simple to explain and
+   calculate. Proposal in section 2.4.
+6. One central control inventory. Controls may be marked shared and used
+   by RAUs other than the owning RAU. The GRC is the system of record
+   for controls (no upstream feed).
+7. Scale: ~6,000 controls bank-wide, 8-20 linked per RAU, 1-4 per risk
+   instance.
+8. Key flag exists but "it's stupid" as a self-declared checkbox. The
+   demo must show key status DERIVED from facts, better than asking.
+   Other attributes standard: preventive/detective/corrective,
+   manual/automated/IT-dependent, frequency, owner.
+9. Controls align to risk instances. "Expected controls": when a
+   defined situation is true, the RAU is expected to select a specific
+   control (some FCRM risks have expected controls). Control-to-MCR
+   connection happens in offline CARA - off the table.
+10. Creation is lighter touch (no governance gate), but the system
+    recommends: (a) shareable inventory controls for direct mitigation
+    where they fit, (b) the expected control for the risk/MCR type,
+    (c) a drafted example control as a directional skeleton the
+    business then documents. MCR metadata may carry recommended
+    control types.
+11. No staged cycle pipeline and no formal 2LOD tollgate. Annual review
+    and affirmation required; everything else happens through triggers
+    and adoption/adaptation to change. Second line uses the system to
+    find the non-standard and unfamiliar; settled problems are not
+    relitigated.
+12. Control design and control performance ratings roll into an overall
+    control effectiveness. Simple matrix of control environment
+    strength x inherent level -> residual (High / Moderate / Low).
+13. Risk (2LOD) can challenge ANY record at ANY time: "I think this
+    thing in the system is wrong." Simulate with a mechanism like the
+    demo feedback drawer, but in-universe.
+14. Owner signs the annual affirmation. No one above, no 2LOD
+    concurrence step.
+15. Plan several rounds in writing; walk through them one at a time.
 
-C3 - Inherent Risk Rating Documentation & Calculation
-- Rates each confirmed risk on a RAU: likelihood, impact across standard
-  dimensions, written rationale, on the program's OWN inherent rubric
-  (explicitly not the applicability rubric).
-- Screens promised: rating worksheet with anchored definitions; a
-  documentation completeness view (missing rationale, stale ratings);
-  rating distribution by RAU / SubLOB / LOB, expandable in place.
+## 2. Capability 3 design - evidence-anchored inherent rating
 
-C4 - Control Identification
-- Controls mapped to confirmed risks; attributes shown so far: type
-  (Preventive/Detective), automation (Manual/Automated), owner, key flag.
-- Screens promised: control inventory (per RAU + enterprise) with caret
-  expansion risk -> controls; coverage gaps (confirmed risks with no key
-  control); control detail with linked risks and a test-history slot for
-  C7/C8.
-- The gallery vignette "Assign a control to a risk instance" is the
-  promised basic move and graduates into the real module.
+### 2.1 The rubric (the answer to "no subjective scores")
 
-C5 - RCSA Administration (incl. residual)
-- Front line submits, ORBO and BACO challenge (promised repeatedly in the
-  R4 role demos and on the workbench: "challenge happens in Capability
-  5"), residual computed from inherent ratings and control effectiveness,
-  sign-off recorded.
-- Screens promised: cycle dashboard (every RAU x status, expandable);
-  assessment workspace per RAU (line items per risk, control environment
-  judgment, residual out, challenge log); prior-cycle comparison with
-  direction of change.
-- My Work's 2LOD read-only feed becomes real queues here.
+Model: likelihood x impact on 5 levels each; inherent band from a 5x5
+grid -> Low / Moderate / High / Critical. The differentiator is that
+every level is anchored to something countable, and the assistant
+computes a suggested level FROM PLATFORM DATA with provenance chips,
+exactly like the metadata survey. Subjectivity is allowed only in the
+override, where rationale is mandatory (decision 4). The override rate
+itself becomes a program metric (C9 later).
 
-## 2. Provisional data model additions (final shape depends on answers)
+LIKELIHOOD (frequency-anchored, 5 levels):
+  L5 Expected      >= 12 times a year
+  L4 Likely        1 - 12 times a year
+  L3 Possible      once in 1 - 3 years
+  L2 Unlikely      once in 3 - 10 years
+  L1 Rare          less than once in 10 years
+Suggested from: RAU annual volume x the event's industry error-rate
+class (new generator field), the RAU's 12-month loss count, and the
+count of peer RAUs (same event) reporting occurrences.
 
-New entity files under demo/data/ (script-tag .js like the rest):
+IMPACT = worst credible outcome, scored on four fact-anchored lenses;
+the lens score is the level whose anchor the credible outcome reaches.
+Overall impact = MAX across lenses (worst credible outcome doctrine).
 
-- controls.js: { id CTL-nnnn, name, description, scope (enterprise |
-  lob | rau), rauIds[] or lobId for shared ones, ownerRole/ownerName,
-  key (bool), type (preventive|detective|corrective), automation
-  (manual|automated|it-dependent), frequency (per-event|daily|weekly|
-  monthly|quarterly|annual), status, createdDate, sourceSystem? }
-- controlLinks.js (or inline riskInstance ids on the control): links
-  control -> risk instance (rauId+eventId), many-to-many; optional
-  mcrIds[] per link on the compliance side.
-- ratings.js: inherent rating per risk instance: { rauId, eventId,
-  likelihood 1-5, impact {dim: 1-5 per dimension}, score, band,
-  rationale, ratedBy, ratedDate, status (current|stale|missing),
-  suggested {likelihood, impact, basisText} }
-- cycles.js: { id CYC-nnnn, rauId, period, status (scoped|in-assessment|
-  submitted|in-challenge|approved), lineItems [{eventId, inherentBand,
-  controlEnv, residualBand, override?, rationale}], challenge
-  [{eventId, by (ORBO|BACO), type, comment, response, resolved}],
-  submittedBy/Date, challengedBy/Date, approvedBy/Date, direction }
-- rubric additions: inherent rubric (anchors per likelihood level and
-  per impact dimension) and the residual matrix, either in rubric.js or
-  a second rubrics entity.
+  Financial (direct loss + remediation, absolute enterprise bands):
+    I1 < $50k | I2 $50k-500k | I3 $500k-5M | I4 $5M-25M | I5 > $25M
+  Customer (countable harm):
+    I1 < 10 customers | I2 10-100 | I3 100-10k | I4 10k-100k
+    | I5 > 100k customers or any systemic restitution program
+  Regulatory (anchored to the obligation profile, not opinion):
+    I1 no obligation nexus | I2 obligation nexus, informal criticism
+    plausible | I3 MRA-class finding plausible | I4 civil money penalty
+    / formal action plausible | I5 consent-order or license-threatening
+    Suggested from data: count and head-status of attached MCRs, the
+    parent event's enforcement flag (new generator field).
+  Operational disruption (countable):
+    I1 < 1 hour degradation | I2 < 1 day | I3 1-3 days or backlog week
+    | I4 3-10 days | I5 > 10 days or market-facing outage
+    Suggested from: handoff count (dependency blast radius from the
+    process map) and service criticality class.
 
-Kernel data API additions: controlsOfRau, controlsOfInstance,
-instancesOfControl, ratingOf(rauId,eventId), cycleOf(rauId, period),
-cyclesOfRau, plus add/remove mutators mirroring addRegister/
-removeRegister so demos stay reversible.
+Reputational is NOT a scored dimension. It is a derived flag (customer
+lens >= I4, or regulatory lens >= I4, or external-visibility class on
+the event) shown as a chip. This is deliberate and stated on the rubric
+page: reputational damage is an outcome of the others; scoring it
+separately is where the subjectivity complaint comes from.
 
-## 3. Engine additions - the honest-math assistants (one per capability)
+GRID (5x5 -> band): standard severity-dominant skew.
+  Impact 5: M H C C C     (columns = likelihood 1..5)
+  Impact 4: M H H C C
+  Impact 3: L M H H C
+  Impact 2: L M M H H
+  Impact 1: L L M M H
+Bands: L=Low, M=Moderate, H=High, C=Critical.
 
-Same doctrine as C1/C2: no fake AI; deterministic computation over real
-fields, presented as the standardization story.
+### 2.2 The worksheet flow
 
-- C3 suggested rating: computed from RAU demographics that already exist
-  (annual volume, FTE, prior losses, change level, customer-facing) plus
-  a per-event severity profile (new generator field). Produces a
-  suggested likelihood/impact with a written basis ("volume in the top
-  quartile of the LOB; two loss events in 12 months"), which the owner
-  accepts or overrides with rationale. Peer-consistency check: same event
-  rated far from the LOB median flags an outlier chip.
-- C4 control intelligence: (a) suggestion - controls commonly linked to
-  this event across the bank, ranked by attach rate; (b) duplicate check
-  on new-control creation, reusing the C1 token-similarity pattern;
-  (c) coverage math - key-control gaps per RAU and per event; (d)
-  description lint against a control-writing standard (mirrors map lint).
-- C5 challenge triage: ranks line items for ORBO/BACO attention by
-  computable signals: peer outlier rating, applicability score vs
-  inherent band mismatch, thin rationale (length/quality), rating stale
-  vs profile change, control coverage weak. Residual = matrix lookup
-  (inherent band x control environment) with judgmental override + logged
-  rationale. Direction vs prior cycle computed, not stored.
+Per confirmed risk instance on a RAU:
+- Assistant panel: suggested likelihood + per-lens impact, each with
+  evidence chips ("1.2M items/yr from the profile", "3 head MCRs
+  attached", "6 outbound handoffs"). One click accepts all.
+- Override any level: picker with the anchor text visible; rationale
+  becomes required; the record stores both suggested and final.
+- Computed: impact = max lens, band from the grid, displayed with the
+  chip trail so the number is defensible in a room.
+- Peer consistency: same event across the LOB - if this rating sits
+  2+ levels from the LOB median, an outlier chip appears (informative,
+  not blocking; it feeds the C5 attention view).
 
-## 4. Module build plan
+### 2.3 Screens (module inherent.js)
 
-modules/inherent.js (~40KB target)
-- Rail "3. Inherent ratings" replaces the skeleton route (cap3 redirects).
 - Landing: RAU list with rating progress (rated / confirmed instances),
-  filters shared-style with the directory.
-- Worksheet per RAU: line per confirmed risk instance; opening one shows
-  the anchored likelihood picker, per-dimension impact, computed score +
-  band, the assistant's suggested rating with basis, required rationale;
-  accept-suggestion is one click, override demands text.
-- Distribution view: band matrix by LOB/SubLOB with caret expansion.
-- Completeness view: missing rationale, stale ratings (feeds C9 later).
-- Inherent rubric page beside the applicability rubric.
+  shared-filter pattern from the directory.
+- Worksheet per RAU (the core screen, per 2.2).
+- Inherent rubric page: anchors, grid, and the reputational stance,
+  next to the applicability rubric.
+- Distribution: band matrix by LOB / SubLOB, caret expansion in place.
+- Completeness: unrated instances, stale ratings (>12mo), overrides
+  (all carry rationale by construction; the list shows density).
 
-modules/controls.js (~45KB)
-- Rail "4. Controls" replaces the skeleton route.
-- Inventory: enterprise + per-RAU views, caret expansion RAU -> risk
-  instance -> controls; filters (key, type, automation, owner).
-- Control detail: attributes, linked risk instances across RAUs (shared
-  controls shown honestly), description-lint result, test-history slot
-  labeled for C7/C8.
-- Assign flow: from a risk instance, pick from suggestions or search the
-  library; create-new runs the duplicate check first (assistant analyzes,
-  human decides, same as RAU intake).
-- Coverage: confirmed risks with no key control; single-control
-  dependencies; enterprise controls with the widest blast radius.
+### 2.4 RAU rollup (proposal, owner to react in R5 review)
 
-modules/rcsa.js (~50KB)
-- Rail "5. RCSA cycles" replaces the skeleton route.
-- Cycle dashboard: all RAUs x current period, status pipeline, expandable
-  by LOB/SubLOB in place.
-- Assessment workspace per RAU-cycle: line items per confirmed risk
-  instance (inherent carried from C3, control environment judgment
-  informed by C4 coverage, residual out); submit gate requires every line
-  complete.
-- Challenge: ORBO sees operational lines, BACO sees compliance lines,
-  triage-ranked; concur or challenge with comment; owner responds;
-  resolution logged; the mywork 2LOD queues point here and become real.
-- Sign-off panel and approved snapshot; prior-cycle comparison with
-  direction arrows; residual heatmap.
+Headline: RAU inherent band = the highest band among its instances,
+labeled with its drivers ("High - driven by Payment execution errors,
+Sanctions screening failure"). One max(), one sentence.
+Detail: a count strip "1C 4H 12M 30L" wherever the headline shows
+(profile chip, directory column, distribution view). No weighted math.
 
-Cross-cutting updates in the same round(s):
-- kernel/core.js: BUILT set grows (3,4 then 5); caps closure/build-order
-  already handle it; new data indexes and mutators; preflight counts.
-- kernel/engine.js: sections above; rubric() split into applicability +
-  inherent + residual accessors.
-- skeletons.js: cap3/cap4/cap5 routes retire as each module lands (keep
-  file for nothing? remove registrations and rail entries; page routes
-  redirect to the real modules so old links survive).
-- home.js: flow boxes 3/4/5 light up as BUILT; lens build-order readout
-  updates automatically.
-- mywork.js: ORBO/BACO queues become real challenge queues; owner queue
-  gains "ratings to document" and "RCSA lines to complete".
-- riskid.js: confirmed rows deep-link "rate this" (C3) and "controls"
-  (C4) chips once built - the trace strip already declares feeds 3,5.
-- gallery.js: assign-control vignette graduates (links into the real
-  module; keeps the vote card); new vignettes optional for residual
-  override and challenge resolution.
-- demo.js: role demos gain the now-real scenes (ORBO/BACO challenge,
-  owner rating + assessment); one new story demo "One risk, front to
-  back": confirm on the workbench -> rate -> attach controls -> assess ->
-  challenge -> residual (the money path for 1-5).
-- rau-profile.js: profile tabs gain Ratings and Controls summaries.
+## 3. Capability 4 design - controls with derived key
 
-## 5. Generator additions (tools-dev/generate-data.js, same seed style)
+### 3.1 Inventory model
 
-- Event severity profiles (drives C3 suggestions): typical impact
-  magnitude class per event.
-- Controls: bank-wide library sized per answers (default ~6,000 total;
-  8-20 linked per RAU; 1-4 per risk instance; ~15% enterprise-shared,
-  rest LOB/RAU-local); attach-rate realism so C4 suggestions rank
-  sensibly; deliberate coverage gaps (~8% of confirmed instances lack a
-  key control) so the gap screen has a story.
-- Ratings: full coverage for complete-risk-ID RAUs minus a deliberate
-  documentation debt (~10% missing rationale, ~5% stale); story RAU gets
-  hand-crafted ratings with readable rationale.
-- Cycles: one current period in flight at mixed stages across RAUs
-  (dashboard looks alive), one prior approved period for every RAU (so
-  direction arrows work), hand-crafted challenge thread on the story RAU
-  (one ORBO challenge resolved, one BACO challenge open).
-- CSV templates for each new entity in data-staging.
+Central inventory, GRC as system of record. Control: id CTL-nnnn, name,
+description, owningRauId, shared (bool), type (preventive | detective |
+corrective), automation (manual | automated | it-dependent), frequency,
+ownerName, designRating, performanceRating, status, createdDate,
+declaredKey (bool, kept ONLY to contrast with derived key).
+Links: control <-> risk instance (rauId+eventId), many-to-many; a
+shared control links to instances on RAUs other than its owner.
 
-## 6. Sequencing proposal
+### 3.2 Expected controls
 
-Two rounds, because 5 consumes 3 and 4 and each round should be
-browser-verified and feedback-able:
-- R5: C3 + C4 (inherent.js, controls.js, engine + data + generator,
-  skeleton retirement for 3/4, demo/mywork/home updates for 3/4).
-- R6: C5 (rcsa.js, cycles data, challenge queues, "One risk, front to
-  back" demo, skeleton retirement for 5, kit/runbook refresh decision).
-Single-round alternative is possible but pushes ~10 files and ~150KB of
-new module code in one review bite; feedback quality usually drops.
+Rule records: { when: {eventId | mcrId | eventCategory}, controlId or
+controlType, note }. Seeded heavily on FCRM-flavored events (sanctions
+screening, AML monitoring) and on head MCRs whose metadata carries
+recommended control types (new generator field, per decision 10).
+Coverage treats a missing expected control as the loudest gap class.
 
-Risks / watchpoints:
-- File ceilings: rcsa.js is the fattest; keep under ~55KB or split a
-  challenge.js helper module.
-- Register mutation: rating/cycle records must survive workbench Reopen
-  (a reopened instance should mark its rating and cycle line orphaned,
-  not crash) - add a data-integrity pass to the harness.
-- Terminology: "risk instance", "control environment", band names -
-  confirm before they get baked into 30 screens.
+### 3.3 Derived key (the demo moment, decision 8)
 
-## 7. Questionnaire (answers become Revision 1)
+A control DERIVES key when any rule holds, each shown as a chip:
+  K1 Sole mitigant: only control on an instance rated High/Critical.
+  K2 Expected: it is the expected control for a live situation.
+  K3 Concentration: linked to 5+ instances, or shared by 3+ RAUs.
+  K4 Severity: linked to any Critical instance.
+The inventory shows derived vs declared side by side with a
+disagreement filter ("declared key, derives non-key" and the reverse).
+The pitch on screen: key status is a fact about the risk landscape,
+recomputed as the landscape moves; a checkbox goes stale the day after
+it is ticked.
 
-Defaults ship if the answer is "standard is fine".
+### 3.4 Recommendation assistant (decision 10)
 
-C3 - Inherent rating
-1. Unit of rating: per risk instance (RAU x event), compliance rated at
-   event level with MCRs inheriting? Or are MCRs rated individually?
-   Default: per instance, event level, MCRs inherit.
-2. The rubric: likelihood x impact on 5x5? Impact dimensions (default:
-   financial, regulatory, customer, reputational, operational) combined
-   by max or weighted? Band names (default Low / Moderate / High /
-   Critical)? Anchored definitions per level?
-3. Who rates and what may inform the suggestion: front line first pass
-   with ORBO/BACO challenge deferred to C5 (mirroring C2)? Is it
-   legitimate for the assistant to draw on volumes, FTE, prior losses,
-   change level, and peer-RAU ratings for its suggested rating?
-4. Documentation standard: is rationale required on every rating or only
-   overrides/high bands? Any evidence attachments concept worth faking?
-5. Rollup: does a RAU carry an overall inherent rating, and how derived
-   (default: max band across its instances)?
+When attaching mitigation to a risk instance, three tiers in one panel:
+  1. EXPECTED - rule matches (must-address; dismissing needs a note).
+  2. SHAREABLE MATCHES - inventory controls linked to this event on
+     peer RAUs, ranked by attach rate and tag overlap, marked shared.
+  3. DRAFT SKELETON - a generated directional example (name pattern,
+     type, automation suggestion, description skeleton from the event
+     or MCR profile) that pre-fills the create form for the business
+     to finish. Clearly labeled a starting point, not a control.
+Creation is light: save creates the control owned by this RAU; the
+duplicate check runs advisory-only (similar controls listed, no gate).
 
-C4 - Controls
-6. Library shape: central control inventory with enterprise/shared
-   controls mapped across RAUs, plus RAU-local controls? Is there a
-   control system of record (a name like RRCM) or are controls authored
-   in the GRC?
-7. Scale: roughly how many controls bank-wide, per RAU, per risk
-   instance? Default: ~6,000 / 8-20 / 1-4.
-8. Attributes: which matter (key flag + criteria, preventive/detective/
-   corrective, manual/automated/IT-dependent, frequency, owner)? Any
-   bank-specific ones (SOX flag, control taxonomy, evidence links)?
-9. Linking: controls attach at the risk-instance level? On the
-   compliance side, do controls also map to specific MCRs/obligations?
-   Default: instance level, optional MCR tags.
-10. Creation governance: does a new control get the RAU treatment
-    (assistant duplicate check, then a human gate - whose?) or lighter
-    (owner creates, 2LOD reviews in cycle)?
+### 3.5 Screens (module controls.js)
 
-C5 - RCSA administration
-11. Cycle shape: frequency (annual per RAU? rolling by quarter?
-    risk-based tiers?) and the real stage names of one cycle. Default:
-    annual + triggered, scoped -> in-assessment -> submitted ->
-    in-challenge -> approved.
-12. Residual: matrix lookup of inherent band x control environment
-    rating (Strong/Satisfactory/Weak), override allowed with rationale?
-    At this maturity does control effectiveness come from owner judgment
-    (C7 test results wired in later)?
-13. Challenge mechanics: what exactly can ORBO/BACO do to a line item
-    (concur / challenge with comment / direct a change / escalate)? Does
-    the C5 challenge also cover C2 applicability decisions (rejections
-    included) or only ratings? Who resolves a standoff?
-14. Sign-off: who signs a completed RCSA (RAU Owner? Delegate allowed?)
-    and is there a 2LOD concurrence or exec attestation above it?
+- Inventory: enterprise + per-RAU, caret expansion RAU -> instance ->
+  controls; filters (derived key, type, automation, shared, owner).
+- Control detail: attributes, design/performance ratings, derived-key
+  chips, linked instances across RAUs, description lint, C7/C8
+  test-history slot (labeled future).
+- Attach flow from a risk instance (per 3.4), also reachable from the
+  workbench dispositioned rows and the RAU profile.
+- Coverage: expected-control-missing (loudest), High/Critical
+  instances with no effective control, single-point-of-mitigation
+  list, derived-vs-declared disagreements.
 
-Logistics
-15. One round or two (R5 = 3+4, R6 = 5)? And which of the three
-    capabilities carries the most stakeholder weight, so depth and demo
-    time go there first?
+## 4. Capability 5 design - living RCSA, annual affirmation, challenge
+
+### 4.1 The model (decision 11 reframe)
+
+There is no staged cycle and no challenge tollgate. The RCSA is a
+living record: C1-C4 changes flow in as they happen (triggers, later
+fed by C6). What C5 adds:
+- ANNUAL AFFIRMATION: once a year the RAU Owner reviews the whole
+  assessment and signs. Affirmation states per RAU: Current /
+  Change pending review / Due (window open, 60 days) / Overdue.
+- CHANGE ADOPTION: material changes since last affirmation (new or
+  reopened instances, rating moves, control changes, resolved
+  challenges) queue on the RAU as "what changed"; the owner adopts
+  them as they land or at latest during affirmation.
+- CHALLENGE ANYTIME (decision 13): every substantive record carries a
+  quiet "Challenge" affordance. It opens a right-side drawer, sibling
+  of the demo feedback bar but in-universe and visually distinct:
+  "What looks wrong" / "What should it be", auto-capturing record
+  reference, challenger role, date. Challenges land in the owner's My
+  Work; owner responds (agree -> change made, or explain); challenger
+  resolves (upheld / withdrawn). Open challenges block affirmation of
+  the affected line only.
+- 2LOD ATTENTION VIEW: the system points ORBO/BACO at the non-standard
+  and unfamiliar, ranked with reasons: peer-outlier ratings, score vs
+  band mismatches, expected-control gaps, override-dense RAUs, aging
+  unadopted changes, aging open challenges. Settled items do not
+  resurface. This is the entire 2LOD workflow - investigate, then
+  challenge or move on.
+
+### 4.2 Effectiveness and residual (decision 12)
+
+Per control: designRating and performanceRating (Effective / Partially
+effective / Ineffective; performance is owner judgment now, C7 test
+results wire in later - the seam is labeled on screen).
+  Control effectiveness = the weaker of design and performance.
+Per instance: control environment strength =
+  Strong      an effective expected-or-derived-key control is linked
+              and no expected control is missing
+  Adequate    at least one effective control, but gaps (expected
+              missing, or best control only partially effective)
+  Weak        no effective control linked
+Residual via knockdown rule (renders as the matrix, explains in one
+line): Strong takes inherent down two bands, Adequate one, Weak none;
+floor at Low; then map Critical/High -> High, Moderate -> Moderate,
+Low -> Low for the three-band residual (High / Moderate / Low).
+
+### 4.3 Screens (module rcsa.js)
+
+- Affirmation dashboard: all RAUs x affirmation state, expandable by
+  LOB/SubLOB; residual heatmap strip; overdue aging.
+- RAU assessment workspace: line per instance (inherent band carried
+  from C3, control environment computed from C4, residual out), delta
+  markers on everything that changed since last affirmation, challenge
+  affordance per line, open-challenge blocks visible.
+- Affirm flow: owner reviews the "what changed" digest, resolves
+  blockers, signs; the affirmation snapshot (date, signer, counts,
+  residual profile) is stored; direction vs prior affirmation computed.
+- Challenge log: per RAU and global; filterable by state and role.
+- 2LOD attention view (per 4.1), the landing screen for ORBO/BACO.
+
+## 5. Data and engine additions
+
+New data files (script-tag .js, CSV templates in data-staging):
+- controls.js (~6,000), controlLinks.js (instance links),
+  expectedControls.js (rules), ratings.js (per instance: suggested +
+  final levels, lens scores, band, overridden, rationale, ratedBy/Date),
+  affirmations.js (per RAU: last affirmation snapshot, state, changes
+  since), challenges.js (seeded open + resolved examples).
+- Generator field additions: event errorRateClass, enforcementFlag,
+  visibilityClass, severity profile; MCR recommendedControlTypes on the
+  head set; deliberate stories - expected-control gaps (~6% of FCRM
+  instances), declared-vs-derived key disagreements (~60 controls),
+  outlier ratings (a handful per LOB), story RAU gets hand-written
+  ratings, one open BACO challenge, one resolved ORBO challenge, an
+  affirmation due in 30 days.
+
+Engine (kernel/engine.js) additions:
+- inherentSuggest(rau, instance) -> levels + evidence chips;
+  inherentBand(likelihood, impact); peerOutlier(rau, eventId).
+- controlRecs(instance) -> {expected, shared, skeleton};
+  derivedKey(control) -> {key, rules[]}; coverage(rau).
+- effectiveness(control); envStrength(instance); residual(band, env);
+  attention(role) -> ranked non-standard items with reasons.
+- Data API: controlsOfInstance, instancesOfControl, controlsOfRau,
+  ratingOf, affirmationOf, challengesOf, plus add/remove mutators
+  mirroring addRegister/removeRegister so demo actions stay
+  reversible. Workbench Reopen marks dependent rating and lines
+  orphaned instead of deleting them (integrity rule).
+
+## 6. The round plan (decision 15 - walk one at a time)
+
+Rounds ship the standard way: build -> node --check + Playwright pass
+-> zip + screenshots -> FEEDBACK.md / CHANGELOG.md -> push. Each round
+is a release number and a feedback window.
+
+R5 - Capability 3 (inherent rating)
+  Build: engine inherent section; ratings data + generator fields
+  (event classes); modules/inherent.js (landing, worksheet, rubric
+  page, distribution, completeness); RAU rollup chips on profile and
+  directory; workbench confirmed rows link "rate this"; My Work owner
+  queue gains ratings-to-document; skeleton cap3 retires (route
+  redirects); home BUILT += 3; demo: owner role demo gains a rating
+  scene, walkthrough gains one scene.
+  Exit: rate an instance end to end (accept and override paths), see
+  it in distribution and on the profile, zero console errors.
+  Watch: worksheet is the fattest screen; keep inherent.js under 50KB.
+
+R6 - Capability 4 (controls)
+  Build: controls + links + expected rules data; MCR recommended
+  control types; engine control section (recs, derived key, coverage);
+  modules/controls.js (inventory, detail, attach flow, coverage);
+  gallery assign-control vignette graduates to the real flow; profile
+  Controls tab; skeleton cap4 retires; home BUILT += 4; demo: BCM and
+  BACO role demos gain control scenes.
+  Exit: attach an expected control, create from skeleton draft, watch
+  derived key flip when a rating changes upstream, coverage gaps read
+  true, zero console errors.
+  Watch: controls.js size; recommendation panel must stay honest math
+  (attach rates and rules, no fake AI).
+
+R7 - Capability 5 (living RCSA + affirmation + challenge)
+  Build: effectiveness/residual engine; affirmations + challenges
+  data; modules/rcsa.js (dashboard, workspace, affirm flow, challenge
+  log, 2LOD attention); challenge drawer wired onto instances,
+  ratings, controls across modules; My Work 2LOD queues become real;
+  residual chips on profile/directory; skeleton cap5 retires; home
+  BUILT += 5; demo: new story demo "One risk, front to back"
+  (workbench confirm -> rate -> controls -> residual -> challenge ->
+  affirm), ORBO/BACO role demos rebuilt around attention + challenge.
+  Exit: full money path in one sitting; challenge a record as BACO,
+  answer it as Owner, affirm; residual math visibly recomputes when a
+  control rating changes; zero console errors.
+  Watch: rcsa.js is the fattest module; split challenge.js if the
+  ceiling nears; Reopen integrity rule tested in the harness.
+
+R8 - Integration and polish (flex round)
+  Cross-link sweep (every entity reachable from every mention);
+  monitoring teaser stats fed by C3-C5 (override rate, coverage,
+  affirmation aging) as a C9 preview card; feedback sweep from R5-R7;
+  kit v2 + runbook regeneration decision with the owner.
+
+## 7. Out-of-scope boundaries (say them on screen where relevant)
+
+- MCR-level and event-level ratings: none. Compliance aggregation is
+  CARA, outside RCSA. A note on the rubric and worksheet pages.
+- Control-to-MCR mapping: CARA territory, off the table (decision 9).
+- C7 test results feeding performance ratings: labeled seam, lands
+  with Capability 7.
+- Trigger inflow automation: the adoption queue is real, its upstream
+  feed is Capability 6; seeded change events simulate it until then.
