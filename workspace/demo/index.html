@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- GRC index.html v1.1.0 2026-08-23 -->
+<!-- GRC index.html v1.2.0 2026-08-23 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -47,6 +47,31 @@ a{color:var(--g-accent)}
   cursor:pointer;font-size:13.5px;font-weight:600;border-radius:6px 6px 0 0;letter-spacing:.2px}
 #g-tabs button:hover{background:rgba(255,255,255,.14)}
 #g-tabs button.on{background:var(--g-page);color:var(--g-ink)}
+/* ==SECTION:trace== */
+#g-trace{display:flex;align-items:center;gap:7px;flex-wrap:wrap;
+  background:#fdf9f0;border-bottom:1px solid #ecdfc3;padding:5px 18px;font-size:12px}
+#g-trace .tr-lbl{color:#8a7a55;font-size:11px;letter-spacing:.4px;text-transform:uppercase;font-weight:700}
+#g-trace .tr-name{font-weight:650;color:var(--g-ink)}
+.tr-chip{border:1.5px solid var(--g-banner);background:var(--g-banner);color:#fff;
+  border-radius:5px;padding:1px 7px;font-size:11px;font-weight:700;cursor:pointer}
+.tr-chip.uses{background:#fff;color:var(--g-ink);border-color:#8b93a0}
+.tr-chip.feeds{background:#fff;color:var(--g-muted);border-color:#c3c9d1;border-style:dashed}
+.tr-chip.future{border-style:dashed}
+.tr-chip.primary.future{background:#fff;color:var(--g-banner)}
+.tr-chip:hover{filter:brightness(.92)}
+.tr-chip.pulse{animation:trpulse .9s ease}
+@keyframes trpulse{0%{box-shadow:0 0 0 0 rgba(176,30,36,.55)}100%{box-shadow:0 0 0 12px rgba(176,30,36,0)}}
+.tr-act{margin-left:auto;color:#8a5a10;font-weight:600;opacity:0;font-size:12px}
+.tr-act.show{opacity:1;transition:opacity .2s}
+/* ==SECTION:lens== */
+.capbox.dim{opacity:.32;filter:grayscale(.9)}
+.capbox.sel{border-color:var(--g-banner);border-width:2px;box-shadow:var(--g-shadow)}
+.capbox.req{border-color:var(--g-warn);border-style:dashed;border-width:2px}
+.capbox .selmark{position:absolute;top:6px;right:8px;font-size:11px;font-weight:800;color:var(--g-banner)}
+.capbox .reqmark{position:absolute;top:6px;right:8px;font-size:10px;font-weight:800;color:var(--g-warn);letter-spacing:.4px}
+/* ==SECTION:flowmap== */
+.flowwrap{overflow-x:auto;border:1px solid var(--g-line);border-radius:8px;background:#fff;padding:6px}
+.flowwrap svg text{font-family:"Segoe UI",system-ui,sans-serif}
 /* ==SECTION:layout== */
 #g-layout{display:flex;min-height:calc(100vh - 84px)}
 #g-rail{width:236px;flex:none;background:var(--g-rail);border-right:1px solid #cfcfcf;
@@ -168,7 +193,7 @@ table.g-table{border-collapse:collapse;width:100%;font-size:13px}
 .capbox{border:1.5px solid var(--g-line);border-radius:8px;padding:10px 12px;background:#fff;cursor:pointer;position:relative}
 .capbox:hover{border-color:var(--g-accent)}
 .capbox.live{border-color:var(--g-banner);box-shadow:var(--g-shadow)}
-.capbox .cn{font-size:11px;font-weight:700;color:var(--g-muted)}
+.capbox .cn{font-size:11px;font-weight:700;color:var(--g-muted);padding-right:66px}
 .capbox .ct{font-weight:650;font-size:13px;line-height:1.3}
 .capbox .cs{font-size:11px;margin-top:4px}
 .g-badge--brand{background:#f6e4e5;color:var(--g-banner)}
@@ -215,6 +240,7 @@ tr.tree-parent td{font-weight:600}
   <button id="g-preflight-btn" title="Diagnostics">Preflight</button>
 </header>
 <nav id="g-tabs" aria-label="Functions"></nav>
+<div id="g-trace" hidden></div>
 <div id="g-layout">
   <aside id="g-rail" aria-label="Section navigation">
     <div class="persist" id="g-rail-persist"><h4>Always available</h4></div>

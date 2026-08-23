@@ -1,4 +1,4 @@
-/* GRC modules/intake.js v1.0.1 2026-08-23 */
+/* GRC modules/intake.js v1.1.0 2026-08-23 */
 /* Capability 1 front end: the RAU change-request pipeline (new / merge /
    split / retire), the intake wizard with assistant, the uniqueness +
    category review gate, and governance approval. */
@@ -99,16 +99,40 @@
     el.appendChild(ui.el("div", { class: "g-split", style: "grid-template-columns:3fr 2fr" }, [form, chatWrap]));
 
     function svcPicker() {
-      var box = ui.el("div", { style: "max-height:220px;overflow:auto;border:1px solid var(--g-line);border-radius:6px;padding:8px 10px;background:#fff" });
-      data.all("services").filter(function (s) { return s.level === 3; }).forEach(function (s) {
-        var cb = ui.el("input", { type: "checkbox", onchange: function () {
-          var i = model.serviceIds.indexOf(s.id);
-          if (cb.checked && i < 0) model.serviceIds.push(s.id);
-          if (!cb.checked && i >= 0) model.serviceIds.splice(i, 1);
-        } });
-        box.appendChild(ui.el("label", { style: "display:flex;gap:8px;align-items:center;padding:2px 0;font-size:13px", title: data.svcPath(s.id) }, [cb, s.name, ui.el("span", { class: "g-muted", style: "font-size:11px" }, data.svcPath(s.id).split(" > ")[0])]));
-      });
-      return box;
+      var outer = ui.el("div");
+      var count = ui.el("span", { class: "g-pill" }, "0 selected");
+      var filter = "";
+      var box = ui.el("div", { style: "max-height:240px;overflow:auto;border:1px solid var(--g-line);border-radius:6px;padding:6px 10px;background:#fff" });
+      function drawList() {
+        box.innerHTML = "";
+        var byFam = {};
+        data.all("services").filter(function (s) { return s.level === 3; }).forEach(function (s) {
+          if (filter && s.name.toLowerCase().indexOf(filter) < 0 && data.svcPath(s.id).toLowerCase().indexOf(filter) < 0) return;
+          var fam = data.svcPath(s.id).split(" > ")[0];
+          (byFam[fam] = byFam[fam] || []).push(s);
+        });
+        var fams = Object.keys(byFam).sort();
+        if (!fams.length) { box.appendChild(ui.el("div", { class: "g-muted", style: "padding:8px;font-size:12.5px" }, "No services match that filter.")); return; }
+        fams.forEach(function (fam) {
+          box.appendChild(ui.el("div", { class: "g-label", style: "margin:6px 0 2px" }, fam));
+          byFam[fam].forEach(function (s) {
+            var cb = ui.el("input", { type: "checkbox", onchange: function () {
+              var i = model.serviceIds.indexOf(s.id);
+              if (cb.checked && i < 0) model.serviceIds.push(s.id);
+              if (!cb.checked && i >= 0) model.serviceIds.splice(i, 1);
+              count.textContent = model.serviceIds.length + " selected";
+            } });
+            if (model.serviceIds.indexOf(s.id) >= 0) cb.checked = true;
+            box.appendChild(ui.el("label", { style: "display:flex;gap:8px;align-items:center;padding:2px 0 2px 8px;font-size:13px", title: data.svcPath(s.id) }, [cb, s.name]));
+          });
+        });
+      }
+      drawList();
+      outer.appendChild(ui.el("div", { class: "g-row", style: "margin-bottom:6px" }, [
+        ui.searchBox({ placeholder: "Filter the catalog...", oninput: function (v) { filter = v.toLowerCase(); drawList(); } }),
+        count]));
+      outer.appendChild(box);
+      return outer;
     }
     function field(label, node) { return ui.el("div", { style: "margin-bottom:12px" }, [ui.el("div", { class: "g-label", style: "margin-bottom:4px" }, label), node]); }
     var lobSel = ui.select({ options: [{ value: "", label: "Select..." }].concat(data.lobs().map(function (l) { return { value: l.id, label: l.name }; })), onchange: function (v) { model.lobId = v; model.subLobId = ""; drawSub(); } });
@@ -165,6 +189,7 @@
             "No significant overlap found within the Line of Business (top match " + top + "%). The described process appears unique."
       };
       data.all("requests").unshift(req);
+      GRC.traceAction(1, "Submitting a RAU request");
       ui.toast("Submitted. The analysis is attached for RCSA RAU Governance review.");
       ctx.go("pipeline/" + req.id);
     }
@@ -291,7 +316,8 @@
   }
 
   GRC.register({
-    id: "intake", version: "1.0.1", tab: "RCSA",
+    id: "intake", version: "1.1.0", tab: "RCSA",
+    caps: { "*": { primary: [1] } },
     rail: [{ label: "RAU pipeline", route: "pipeline", order: 30 }],
     routes: { "pipeline": board, "pipeline/new": wizard, "pipeline/:id": detail }
   });

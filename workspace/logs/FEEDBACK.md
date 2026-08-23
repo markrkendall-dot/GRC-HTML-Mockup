@@ -72,3 +72,39 @@ FB-009 | R1 | 2026-08-23 | Owner | modules/skeletons.js
   Status: ACCEPTED 2026-08-23
   Built: 2026-08-23 skeletons.js 1.0.0; home flow links to them
   Released: R2
+
+FB-010 | R2 | 2026-08-23 | Owner | modules/rau-profile.js
+  Ask: Draw the process map as a Visio-style artifact in the capability 1 section
+  Status: ACCEPTED 2026-08-23
+  Built: 2026-08-23 mapDiagram flowchart renderer; profile Process tab and live builder preview
+  Released: R3
+
+FB-011 | R2 | 2026-08-23 | Owner | modules/home.js
+  Ask: Home capability boxes act as a what-am-I-looking-at lens: select capabilities, supporting set stays lit, rest grays out, to isolate and order development
+  Status: ACCEPTED 2026-08-23
+  Built: 2026-08-23 home.js 1.2.0 lens with dependency closure and build-order readout
+  Released: R3
+
+FB-012 | R2 | 2026-08-23 | Owner | kernel/core.js
+  Ask: Capability trace: show which capabilities each screen and action relates to, so expectations about what ships are clear
+  Status: ACCEPTED 2026-08-23
+  Built: 2026-08-23 core.js 1.2.0 trace strip plus action pulses wired through all modules
+  Released: R3
+
+FB-013 | R2 | 2026-08-23 | Walkthrough | general
+  Ask: UX pass: cap the ambiguous middle at ten with show-all; services picker search and grouping; breadcrumbs on detail pages; stacked toasts; diagram label collisions
+  Status: ACCEPTED 2026-08-23
+  Built: 2026-08-23 across riskid, intake, libraries, rau-profile, ui
+  Released: R3
+
+FB-014 | R3 | 2026-08-23 | Walkthrough | modules/rau.js
+  Ask: Hierarchy tree ignores the flat-list filters; a search that auto-expands matching branches would help
+  Status: NEW
+
+FB-015 | R3 | 2026-08-23 | Walkthrough | modules/intake.js
+  Ask: The wizard has no draft save; navigating away loses the form
+  Status: NEW
+
+FB-016 | R3 | 2026-08-23 | Walkthrough | modules/riskid.js
+  Ask: No undo for a mistaken confirm or dismiss on the workbench; consider a re-open action on dispositioned rows
+  Status: NEW

@@ -1,4 +1,4 @@
-/* GRC modules/libraries.js v1.1.0 2026-08-23 */
+/* GRC modules/libraries.js v1.2.0 2026-08-23 */
 /* Capability 2 reference corpora: the 90 Risk Events, the MCR library
    (published from RRCM, read-only), and the applicability rubric panel. */
 (function () {
@@ -47,6 +47,7 @@
     var confirmed = data.regOfEvent(e.id).filter(function (g) { return g.status === "confirmed"; });
     el.appendChild(ui.el("div", { class: "g-page-head" },
       ui.el("div", {}, [
+        ui.el("div", { class: "g-muted", style: "font-size:12px;margin-bottom:2px" }, [ui.el("a", { href: "#/events" }, "Risk events"), " / " + e.id]),
         ui.el("div", { class: "g-row" }, [ui.el("span", { class: "g-h1" }, e.name), ui.el("span", { class: "g-mono g-muted" }, e.id),
         e.side === "compliance" ? ui.badge("Compliance", "info") : ui.badge("Operational", "")]),
         ui.el("div", { class: "g-muted" }, "Confirmed applicable in " + confirmed.length + " RAUs")])));
@@ -183,6 +184,7 @@
     });
     el.appendChild(ui.el("div", { class: "g-page-head" },
       ui.el("div", {}, [
+        ui.el("div", { class: "g-muted", style: "font-size:12px;margin-bottom:2px" }, [ui.el("a", { href: "#/mcrlib" }, "MCR library"), " / " + m.id]),
         ui.el("div", { class: "g-row" }, [ui.el("span", { class: "g-h1", style: "font-size:17px" }, m.name), ui.el("span", { class: "g-mono g-muted" }, m.id)]),
         ui.el("div", { class: "g-muted" }, "Source: RRCM, published " + (m.publishedDate ? ctx.fmt.date(m.publishedDate) : "-") + ", read-only in the GRC")])));
     var left = ui.el("div");
@@ -285,7 +287,8 @@
   }
 
   GRC.register({
-    id: "libraries", version: "1.0.1", tab: "RCSA",
+    id: "libraries", version: "1.2.0", tab: "RCSA",
+    caps: { "*": { primary: [2] } },
     rail: [
       { label: "Risk events", route: "events", order: 60 },
       { label: "MCR library", route: "mcrlib", order: 70 },

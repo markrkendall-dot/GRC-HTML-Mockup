@@ -1,4 +1,4 @@
-/* GRC modules/demo.js v1.0.1 2026-08-23 */
+/* GRC modules/demo.js v1.1.0 2026-08-23 */
 /* Present: the guided walkthrough of capabilities 1 and 2. */
 (function () {
   "use strict";
@@ -10,6 +10,7 @@
     var meta = data.all("requests").filter(function (q) { return q.stage === "metadata-creation"; })[0];
     var s = [
       { route: "home", title: "One platform, ten capabilities", text: "This is a clickable design proposal for the future GRC. The map shows all ten capabilities and how they feed each other; this release builds capabilities 1 and 2 end to end. Everything you are about to see runs on data shaped like the real inventory." },
+      { route: "home", title: "The lens and the trace", text: "Click capability boxes on this map to isolate a scope: pick 1 and 2 and everything not supporting them grays out; add 3 and the picture grows. As you move through the tool, the strip under the tabs names the capability behind every screen, and key actions call out which capability they belong to. What is grayed will not work until its box is built." },
       { route: "raus", title: "Capability 1: the RAU inventory", text: "A RAU is the intersection of a business and a service, created at the SubLOB level. Filter the inventory by line of business, category, or risk identification status. Every column here is a real attribute the platform maintains." },
       { route: "raus/" + story.id, title: "One RAU's whole story", text: "Demographics describe the unit; attributes OBLIGATE it: they drive applicability, signal matching, and scoping. Check the Metadata survey tab: every answer shows where it came from: a map step, from services, or asked directly. The Process map tab shows the handoffs that wire this RAU to its counterparties." },
       { route: "pipeline", title: "The inventory changes through one pipeline", text: "New RAU, merge, split, retire: every change request moves through the same governed stages. About ten are in flight at any time. Merges and retirements show a live impact preview: how many risks and handoffs move." }
@@ -74,7 +75,8 @@
   }
 
   GRC.register({
-    id: "demo", version: "1.0.1", tab: "Home",
+    id: "demo", version: "1.1.0", tab: "Home",
+    caps: { "present": null },
     routes: { "present": present }
   });
 })();

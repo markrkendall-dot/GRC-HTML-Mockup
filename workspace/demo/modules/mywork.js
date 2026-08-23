@@ -1,4 +1,4 @@
-/* GRC modules/mywork.js v1.0.1 2026-08-23 */
+/* GRC modules/mywork.js v1.0.2 2026-08-23 */
 /* My Work: role-aware queues. Switch "View as" in the banner to change hats. */
 (function () {
   "use strict";
@@ -74,6 +74,7 @@
             ui.el("span", { class: "g-muted" }, " to "), ui.el("a", { href: "#/raus/" + x.r.id }, x.r.id)]),
           ui.el("button", { class: "g-btn sm g-btn--primary", onclick: function (e) {
             x.h.conf = true;
+            GRC.traceAction(1, "Confirming a handoff");
             ui.toast("Handoff confirmed. The dependency network updates for both RAUs.");
             e.target.disabled = true; e.target.textContent = "Confirmed";
           } }, "Confirm handoff")]));
@@ -100,7 +101,8 @@
   }
 
   GRC.register({
-    id: "mywork", version: "1.0.1", tab: "RCSA",
+    id: "mywork", version: "1.0.2", tab: "RCSA",
+    caps: { "mywork": { primary: [1, 2] } },
     routes: { "mywork": mywork }
   });
 })();

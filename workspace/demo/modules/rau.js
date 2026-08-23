@@ -1,4 +1,4 @@
-/* GRC modules/rau.js v1.1.0 2026-08-23 */
+/* GRC modules/rau.js v1.1.1 2026-08-23 */
 /* Capability 1: RAU directory (hierarchy tree with carets, flat list as a
    toggle) and profile quality. Expanding levels never leaves the page. */
 (function () {
@@ -160,7 +160,8 @@
   }
 
   GRC.register({
-    id: "rau", version: "1.1.0", tab: "RCSA",
+    id: "rau", version: "1.1.1", tab: "RCSA",
+    caps: { "*": { primary: [1] } },
     rail: [
       { label: "1. RAUs", route: "raus", order: 10 },
       { label: "Profile quality", route: "raus-quality", order: 50 }

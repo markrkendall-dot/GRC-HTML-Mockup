@@ -1,4 +1,4 @@
-/* GRC modules/riskid.js v1.0.1 2026-08-23 */
+/* GRC modules/riskid.js v1.2.0 2026-08-23 */
 /* Capability 2: Operational & Compliance Risk Identification - the
    applicability workbench. The engine stack-ranks all 90 risk events (and
    the MCRs beneath compliance events) against the RAU's metadata; the
@@ -50,6 +50,7 @@
     var r = data.byId("raus", params.rauId);
     if (!r) { el.appendChild(ui.empty("Unknown RAU " + params.rauId)); return; }
     var wrap = ui.el("div"); el.appendChild(wrap);
+    var showAllMiddle = false;
 
     function dispositionOf(evId) {
       var rows = data.regOfRau(r.id);
@@ -78,6 +79,8 @@
 
       wrap.appendChild(ui.el("div", { class: "g-page-head" }, [
         ui.el("div", {}, [
+          ui.el("div", { class: "g-muted", style: "font-size:12px;margin-bottom:2px" }, [
+            ui.el("a", { href: "#/riskid" }, "Risk identification"), " / " + r.id]),
           ui.el("div", { class: "g-row" }, [
             ui.el("span", { class: "g-h1" }, "Applicability workbench"),
             ui.el("a", { href: "#/raus/" + r.id, class: "g-mono" }, r.id), ui.el("span", {}, r.name)]),
@@ -159,6 +162,7 @@
           row.mcrIds = mc.head.filter(function (h) { return h.pct >= eng.rubric().bands.likely; }).slice(0, 8).map(function (h) { return h.mcr.id; });
         }
         data.addRegister(row);
+        GRC.traceAction(2, status === "confirmed" ? "Confirming a risk" : "Rejecting a candidate");
         if (r.riskIdStatus === "not-started") r.riskIdStatus = "in-progress";
         ui.toast(s.ev.name + " " + status + (row.mcrIds ? " with " + row.mcrIds.length + " suggested MCRs attached" : "") + ".");
         draw();
@@ -176,14 +180,20 @@
             } }, "Reject")]);
         }));
 
-      wrap.appendChild(zoneBlock("Ambiguous middle", "middle", z.middle,
-        "score " + eng.rubric().bands.possible + "-" + (eng.rubric().bands.likely - 1) + ": resolve with targeted questions to push it out of the middle",
+      var middleShown = showAllMiddle ? z.middle : z.middle.slice(0, 10);
+      wrap.appendChild(zoneBlock("Ambiguous middle", "middle", middleShown,
+        "score " + eng.rubric().bands.possible + "-" + (eng.rubric().bands.likely - 1) + ": resolve with targeted questions to push it out of the middle" + (z.middle.length > 10 && !showAllMiddle ? " (top 10 of " + z.middle.length + " shown)" : ""),
         function (s) {
           return ui.el("span", { class: "g-row" }, [
             ui.el("button", { class: "g-btn sm g-btn--primary", onclick: function (e) { e.stopPropagation(); resolveDrawer(s); } }, "Resolve"),
             ui.el("button", { class: "g-btn sm", onclick: function (e) { e.stopPropagation(); act(s, "confirmed", { rationale: "Owner judgment: confirmed from the middle band." }); } }, "Confirm anyway")]);
         }));
 
+      if (z.middle.length > 10) {
+        wrap.appendChild(ui.el("div", { style: "margin:-8px 0 14px 16px" },
+          ui.el("button", { class: "g-btn sm", onclick: function () { showAllMiddle = !showAllMiddle; draw(); } },
+            showAllMiddle ? "Show top 10 only" : "Show all " + z.middle.length + " in the middle")));
+      }
       wrap.appendChild(zoneBlock("Unlikely", "unlikely", z.unlikely.slice(0, 12),
         "score < " + eng.rubric().bands.possible + ": bulk dismiss with sampling review (" + z.unlikely.length + " total, first 12 shown)",
         function (s) {
@@ -246,6 +256,7 @@
       body.appendChild(outcome);
       function answer(q, yes, line) {
         ctx.engine.answer(r, q, yes);
+        GRC.traceAction(2, "Resolving applicability");
         line.style.opacity = "0.55";
         line.querySelectorAll("button").forEach(function (b) { b.disabled = true; });
         var after = ctx.engine.score(r, s.ev);
@@ -265,7 +276,11 @@
   }
 
   GRC.register({
-    id: "riskid", version: "1.0.1", tab: "RCSA",
+    id: "riskid", version: "1.2.0", tab: "RCSA",
+    caps: {
+      "riskid": { primary: [2], uses: [1] },
+      "riskid/:rauId": { primary: [2], uses: [1], feeds: [3, 5] }
+    },
     rail: [{ label: "2. Risk identification", route: "riskid", order: 20 }],
     routes: { "riskid": landing, "riskid/:rauId": workbench }
   });

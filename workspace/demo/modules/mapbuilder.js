@@ -1,4 +1,4 @@
-/* GRC modules/mapbuilder.js v1.0.1 2026-08-23 */
+/* GRC modules/mapbuilder.js v1.1.0 2026-08-23 */
 /* Capability 1: the guided process-map builder (with coach + standards
    lint) and the assistant-driven metadata survey completion. */
 (function () {
@@ -73,6 +73,7 @@
     function draw() {
       renumber();
       mapCol.innerHTML = ""; sideCol.innerHTML = "";
+      mapCol.appendChild(ui.card({ title: "Live diagram (draws itself as you add steps)", body: window.GRC.mapDiagram(ctx, q.map) }));
       q.map.phases.forEach(function (p) {
         var box = ui.el("div", { class: "map-phase" });
         box.appendChild(ui.el("div", { class: "ph" }, p.name + "  (" + p.steps.length + " steps)"));
@@ -101,7 +102,9 @@
               var cp = cpIn.value.trim().toUpperCase();
               if (data.byId("raus", cp)) st.cp = cp;
             }
-            p.steps.push(st); draw();
+            p.steps.push(st);
+            GRC.traceAction(1, "Mapping a process step");
+            draw();
           } }, "Add step")]));
         mapCol.appendChild(box);
       });
@@ -182,8 +185,8 @@
           body: ui.el("div", {}, [
             ui.chat({ messages: [{ who: "assistant", text: ask.text + (ask.excl ? " (I could not rule this in or out from the map.)" : " (The map does not make this explicit.)") }] }),
             ui.el("div", { class: "g-row", style: "margin-top:10px" }, [
-              ui.el("button", { class: "g-btn g-btn--primary", onclick: function () { open[0].v = "yes"; open[0].src = "user"; draw(); } }, "Yes"),
-              ui.el("button", { class: "g-btn", onclick: function () { open[0].v = "no"; open[0].src = "user"; draw(); } }, "No")])])
+              ui.el("button", { class: "g-btn g-btn--primary", onclick: function () { open[0].v = "yes"; open[0].src = "user"; GRC.traceAction(1, "Answering the metadata survey"); draw(); } }, "Yes"),
+              ui.el("button", { class: "g-btn", onclick: function () { open[0].v = "no"; open[0].src = "user"; GRC.traceAction(1, "Answering the metadata survey"); draw(); } }, "No")])])
         }));
       } else {
         wrap.appendChild(ui.card({
@@ -238,7 +241,11 @@
   }
 
   GRC.register({
-    id: "mapbuilder", version: "1.0.1", tab: "RCSA",
+    id: "mapbuilder", version: "1.1.0", tab: "RCSA",
+    caps: {
+      "pipeline/:id/map": { primary: [1] },
+      "pipeline/:id/survey": { primary: [1], feeds: [2] }
+    },
     routes: { "pipeline/:id/map": builder, "pipeline/:id/survey": survey }
   });
 })();

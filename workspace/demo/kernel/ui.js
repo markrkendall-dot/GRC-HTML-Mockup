@@ -1,4 +1,4 @@
-/* GRC kernel/ui.js v1.0.1 2026-08-23 */
+/* GRC kernel/ui.js v1.1.0 2026-08-23 */
 /* Component builders. Everything returns a DOM node. Merged into ctx.ui. */
 (function () {
   "use strict";
@@ -167,10 +167,16 @@
     document.body.appendChild(bg); document.body.appendChild(d);
     return { close: close, el: d };
   }
+  var toastCount = 0;
   function toast(msg) {
     var t = el("div", { class: "g-toast" }, msg);
+    t.style.bottom = (18 + toastCount * 50) + "px";
+    toastCount++;
     document.body.appendChild(t);
-    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 2800);
+    setTimeout(function () {
+      if (t.parentNode) t.parentNode.removeChild(t);
+      toastCount = Math.max(0, toastCount - 1);
+    }, 2800);
   }
 
   /* ==SECTION:chat== */

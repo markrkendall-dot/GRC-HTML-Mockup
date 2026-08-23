@@ -1,4 +1,4 @@
-/* GRC modules/gallery.js v1.0.0 2026-08-23 */
+/* GRC modules/gallery.js v1.1.0 2026-08-23 */
 /* Feature gallery: curated, concrete examples of features to ship, grouped
    by theme and complexity. Each opens a live example. Keep / Discuss / Cut
    votes are stored with feedback and included in the export, so a room can
@@ -152,6 +152,7 @@
           var c = CONTROL_CATALOG.filter(function (x) { return x.id === sel.value; })[0];
           if (!c) return;
           assigned.push(c);
+          GRC.traceAction(4, "Assigning a control");
           ui.toast(c.id + " linked to this risk instance. In the full build this writes the risk-to-control mapping.");
           draw();
         } }, "Assign control")]));
@@ -205,7 +206,12 @@
   }
 
   GRC.register({
-    id: "gallery", version: "1.0.0", tab: "Home",
+    id: "gallery", version: "1.1.0", tab: "Home",
+    caps: {
+      "gallery": { primary: [1, 2] },
+      "gallery/assign-control": { primary: [4], uses: [2], preview: true },
+      "gallery/reg-change": { primary: [6], uses: [1, 2], preview: true }
+    },
     rail: [{ label: "Feature gallery", route: "gallery", order: 20 }],
     routes: { "gallery": gallery, "gallery/assign-control": assignControl, "gallery/reg-change": regChange }
   });

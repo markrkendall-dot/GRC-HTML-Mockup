@@ -12,6 +12,36 @@ Kit: SCHEMA.md v___, CONTRACT.md v___ (changed/unchanged)
 Version matrix: (paste the Preflight versions table here)
 ---- END TEMPLATE ----
 
+== R3 - 2026-08-23 - Walkthrough round ==
+Feedback closed: FB-010 through FB-013 (see FEEDBACK.md); walkthrough
+observations FB-014 through FB-016 logged as open.
+Module changes:
+  kernel/core.js 1.1.0 -> 1.2.0: capability model (names, needs, closure,
+    build order); trace strip under the tabs naming every screen's
+    capabilities (primary / built on / will feed, dashed when later-phase);
+    GRC.traceAction pulses on key actions (FB-012)
+  modules/home.js 1.1.0 -> 1.2.0: capability boxes are now a scope lens -
+    click to select, support set stays lit, rest grays out, REQUIRED marks
+    on pulled-in dependencies, scope readout with suggested build order
+    (FB-011)
+  modules/rau-profile.js 1.1.0 -> 1.2.0: Visio-style cross-functional
+    process diagram (lanes, terminators, decision diamonds with Yes/No and
+    exception stubs, tabbed handoff shapes linking counterparties); step
+    list collapsed beneath; breadcrumb (FB-010)
+  modules/mapbuilder.js 1.0.1 -> 1.1.0: live diagram redraws as steps are
+    added; trace pulses on mapping and survey actions
+  modules/riskid.js 1.0.1 -> 1.2.0: ambiguous middle capped at top 10 with
+    a show-all toggle; breadcrumb; trace pulses on confirm/reject/resolve
+    (FB-013)
+  modules/intake.js 1.0.1 -> 1.1.0: services picker gains catalog search,
+    family grouping, and a selected count (FB-013)
+  modules/libraries.js -> 1.2.0: breadcrumbs on event and MCR detail
+  modules/gallery.js -> 1.1.0, skeletons.js -> 1.0.1, mywork.js -> 1.0.2,
+    demo.js -> 1.1.0: capability declarations, action pulses, a tour scene
+    for the lens and trace
+  kernel/ui.js -> 1.1.0: toasts stack instead of overlapping (FB-013)
+Data: release.js R3; entities unchanged.
+
 == R2 - 2026-08-23 - Feedback round 1 ==
 Feedback closed: FB-001 through FB-009 (see FEEDBACK.md)
 Also in this release:

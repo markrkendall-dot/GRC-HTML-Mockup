@@ -1,4 +1,4 @@
-/* GRC modules/skeletons.js v1.0.0 2026-08-23 */
+/* GRC modules/skeletons.js v1.0.1 2026-08-23 */
 /* Skeleton pages for capabilities 3, 4, and 5 so all ten capabilities are
    recognized in the tool, with their place in the flow, even before they
    are built. Each page states purpose, inputs, outputs, and the planned
@@ -76,7 +76,12 @@
   }
 
   GRC.register({
-    id: "skeletons", version: "1.0.0", tab: "RCSA",
+    id: "skeletons", version: "1.0.1", tab: "RCSA",
+    caps: {
+      "cap3": { primary: [3], uses: [2], preview: true },
+      "cap4": { primary: [4], uses: [2], preview: true },
+      "cap5": { primary: [5], uses: [3, 4], preview: true }
+    },
     rail: [
       { label: "3. Inherent ratings", route: "cap3", order: 22 },
       { label: "4. Controls", route: "cap4", order: 24 },

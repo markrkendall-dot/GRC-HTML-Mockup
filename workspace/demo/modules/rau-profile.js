@@ -1,4 +1,4 @@
-/* GRC modules/rau-profile.js v1.1.0 2026-08-23 */
+/* GRC modules/rau-profile.js v1.2.0 2026-08-23 */
 /* Capability 1: the RAU profile - demographics, attributes, metadata survey
    with provenance, process map, handoffs, and the risk summary. */
 (function () {
@@ -35,6 +35,133 @@
     return wrap;
   };
 
+  /* ==SECTION:map-diagram== */
+  /* Visio-style cross-functional flowchart: phases as horizontal lanes,
+     tasks as rectangles, decisions as diamonds, handoffs as tabbed shapes
+     linking their counterparty RAU. Pure SVG, scrolls in its own frame. */
+  window.GRC.mapDiagram = function (ctx, map) {
+    var NS = "http://www.w3.org/2000/svg";
+    function sv(tag, attrs, parent) {
+      var n = document.createElementNS(NS, tag);
+      Object.keys(attrs || {}).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+      if (parent) parent.appendChild(n);
+      return n;
+    }
+    function wrap(txt, width) {
+      var words = String(txt).split(" "), lines = [], cur = "";
+      var maxc = Math.floor(width / 5.6);
+      words.forEach(function (w) {
+        if ((cur + " " + w).trim().length > maxc) { if (cur) lines.push(cur); cur = w; }
+        else cur = (cur + " " + w).trim();
+      });
+      if (cur) lines.push(cur);
+      if (lines.length > 3) { lines = lines.slice(0, 3); lines[2] = lines[2].slice(0, maxc - 3) + "..."; }
+      return lines;
+    }
+    var holder = document.createElement("div");
+    holder.className = "flowwrap";
+    if (!map || !map.phases || !map.phases.length) {
+      holder.innerHTML = "<div class='g-empty'>No detailed process map on file for this record in the demo dataset.</div>";
+      return holder;
+    }
+    var W = 152, H = 58, GX = 44, LANEH = 138, LABW = 148, PAD = 14;
+    var maxSlots = 0;
+    map.phases.forEach(function (p, i) {
+      var slots = p.steps.length + (i === 0 ? 1 : 0) + (i === map.phases.length - 1 ? 1 : 0);
+      if (slots > maxSlots) maxSlots = slots;
+    });
+    var width = LABW + PAD + maxSlots * (W + GX) + 30;
+    var height = map.phases.length * LANEH + 20;
+    var svg = sv("svg", { width: width, height: height, viewBox: "0 0 " + width + " " + height, role: "img" });
+    var defs = sv("defs", {}, svg);
+    var mk = sv("marker", { id: "arr", viewBox: "0 0 10 10", refX: "9", refY: "5", markerWidth: "7", markerHeight: "7", orient: "auto-start-reverse" }, defs);
+    sv("path", { d: "M0 0 L10 5 L0 10 z", fill: "#5f6773" }, mk);
+    function arrowLine(pts, label) {
+      var d = "M" + pts.map(function (p) { return p[0] + " " + p[1]; }).join(" L");
+      sv("path", { d: d, fill: "none", stroke: "#5f6773", "stroke-width": "1.4", "marker-end": "url(#arr)" }, svg);
+      if (label) {
+        var t = sv("text", { x: pts[0][0] + 6, y: pts[0][1] - 5, "font-size": "9.5", fill: "#5f6773", "font-weight": "600" }, svg);
+        t.textContent = label;
+      }
+    }
+    function shapeText(cx, cy, lines, size, color, weight) {
+      var t = sv("text", { x: cx, y: cy - (lines.length - 1) * 6, "text-anchor": "middle", "font-size": size || "10.5", fill: color || "#1f2430", "font-weight": weight || "400" }, svg);
+      lines.forEach(function (ln, i) {
+        var ts = sv("tspan", { x: cx, dy: i === 0 ? 0 : 12 }, t);
+        ts.textContent = ln;
+      });
+      return t;
+    }
+    /* lanes */
+    map.phases.forEach(function (p, li) {
+      var y = li * LANEH + 10;
+      sv("rect", { x: 4, y: y, width: width - 10, height: LANEH - 8, fill: li % 2 ? "#fbfcfd" : "#ffffff", stroke: "#e4e8ec" }, svg);
+      sv("rect", { x: 4, y: y, width: LABW, height: LANEH - 8, fill: "#f2f4f6", stroke: "#e4e8ec" }, svg);
+      shapeText(4 + LABW / 2, y + LANEH / 2 - 4, wrap("Phase " + (li + 1) + ": " + p.name, LABW - 16), "10.5", "#4c5560", "600");
+    });
+    /* shapes */
+    var prev = null; /* {x,y} exit point of previous shape */
+    map.phases.forEach(function (p, li) {
+      var laneY = li * LANEH + 10 + (LANEH - 8) / 2;
+      var slot = 0;
+      var startX = LABW + PAD + 12;
+      function slotX(s) { return startX + s * (W + GX); }
+      if (li === 0) {
+        var sx = slotX(slot++), sy = laneY;
+        sv("rect", { x: sx, y: sy - 16, width: 84, height: 32, rx: 16, fill: "#eef0f3", stroke: "#8b93a0" }, svg);
+        shapeText(sx + 42, sy + 4, ["Start"], "11", "#3d4451", "700");
+        prev = { x: sx + 84, y: sy };
+      }
+      p.steps.forEach(function (st) {
+        var x = slotX(slot++), cy = laneY;
+        var g = sv("g", { style: "cursor:" + ((st.type === "handoff-in" || st.type === "handoff-out") && st.cp ? "pointer" : "default") }, svg);
+        sv("title", {}, g).textContent = st.n + ". " + st.text + (st.cp ? " (" + (st.type === "handoff-in" ? "from " : "to ") + st.cp + (st.art ? ", " + st.art : "") + ")" : "");
+        if (st.type === "decision") {
+          var dcx = x + W / 2, dcy = cy;
+          sv("polygon", { points: (dcx) + "," + (dcy - 34) + " " + (x + W + 6) + "," + dcy + " " + dcx + "," + (dcy + 34) + " " + (x - 6) + "," + dcy, fill: "#fbf0df", stroke: "#d97706", "stroke-width": "1.4" }, g);
+          shapeText(dcx, dcy + 3, wrap(st.text, W - 34), "10", "#6b4a08", "600");
+          sv("circle", { cx: dcx, cy: dcy + 52, r: 3, fill: "none", stroke: "#b9bfc7" }, g);
+          arrowLine([[dcx, dcy + 34], [dcx, dcy + 47]], "No");
+          shapeText(dcx + 58, dcy + 55, ["exception path"], "8.5", "#8b93a0");
+          if (prev) arrowLine([[prev.x, prev.y], [x - 8, cy]]);
+          prev = { x: x + W + 6, y: cy, yesFrom: true };
+        } else if (st.type === "handoff-in" || st.type === "handoff-out") {
+          var out = st.type === "handoff-out";
+          sv("rect", { x: x, y: cy - H / 2, width: W, height: H, rx: 5, fill: "#e8eff7", stroke: "#2e6ea6", "stroke-width": "1.4" }, g);
+          var tabX = out ? x + W : x - 12;
+          sv("polygon", { points: tabX + "," + (cy - 10) + " " + (tabX + 12) + "," + cy + " " + tabX + "," + (cy + 10), fill: "#2e6ea6" }, g);
+          shapeText(x + W / 2, cy - 2, wrap(st.text, W - 18), "10", "#1c4569");
+          var cpr = st.cp ? ctx.data.byId("raus", st.cp) : null;
+          shapeText(x + W / 2, cy + H / 2 + 12, [(out ? "to " : "from ") + (st.cp || "another RAU")], "9", "#2e6ea6", "700");
+          if (st.cp) g.addEventListener("click", function () { ctx.go("raus/" + st.cp); });
+          if (cpr) sv("title", {}, g).textContent += " " + cpr.name;
+          if (prev) arrowLine([[prev.x, prev.y], [x - (out ? 8 : 20), cy]], prev.yesFrom ? "Yes" : null);
+          prev = { x: x + W + (out ? 14 : 2), y: cy };
+        } else {
+          sv("rect", { x: x, y: cy - H / 2, width: W, height: H, rx: 6, fill: "#ffffff", stroke: "#8b93a0", "stroke-width": "1.3" }, g);
+          shapeText(x + W / 2, cy + 2, wrap(st.text, W - 16));
+          sv("text", { x: x + 7, y: cy - H / 2 + 12, "font-size": "8.5", fill: "#9aa2ae", "font-weight": "700" }, g).textContent = String(st.n);
+          if (prev) arrowLine([[prev.x, prev.y], [x - 8, cy]], prev.yesFrom ? "Yes" : null);
+          prev = { x: x + W, y: cy };
+        }
+      });
+      /* connector down to next lane */
+      if (li < map.phases.length - 1 && prev) {
+        var nextY = (li + 1) * LANEH + 10 + (LANEH - 8) / 2;
+        arrowLine([[prev.x, prev.y], [prev.x + 18, prev.y], [prev.x + 18, prev.y + (LANEH / 2) - 10], [LABW + PAD + 2, prev.y + (LANEH / 2) - 10], [LABW + PAD + 2, nextY], [LABW + PAD + 10, nextY]]);
+        prev = { x: LABW + PAD + 10, y: nextY };
+      }
+      if (li === map.phases.length - 1) {
+        var ex = slotX(slot), ey = laneY;
+        sv("rect", { x: ex, y: ey - 16, width: 84, height: 32, rx: 16, fill: "#e8f4ec", stroke: "#15803d" }, svg);
+        shapeText(ex + 42, ey + 4, ["End"], "11", "#15803d", "700");
+        if (prev) arrowLine([[prev.x, prev.y], [ex - 8, ey]]);
+      }
+    });
+    holder.appendChild(svg);
+    return holder;
+  };
+
   /* ==SECTION:profile== */
   function profile(el, ctx, params) {
     var ui = ctx.ui, data = ctx.data, fmt = ctx.fmt;
@@ -45,6 +172,8 @@
 
     el.appendChild(ui.el("div", { class: "g-page-head" }, [
       ui.el("div", {}, [
+        ui.el("div", { class: "g-muted", style: "font-size:12px;margin-bottom:2px" }, [
+          ui.el("a", { href: "#/raus" }, "RAUs"), " / " + r.id]),
         ui.el("div", { class: "g-row" }, [
           ui.el("span", { class: "g-h1" }, r.name),
           ui.el("span", { class: "g-mono g-muted" }, r.id),
@@ -58,7 +187,17 @@
       items: [
         { id: "ov", label: "Overview", render: function (bd) { renderOverview(bd, ctx, r); } },
         { id: "meta", label: "Metadata survey", render: function (bd) { renderSurvey(bd, ctx, r); } },
-        { id: "map", label: "Process map", render: function (bd) { bd.appendChild(window.GRC.renderMap(ctx, r.map)); } },
+        { id: "map", label: "Process map", render: function (bd) {
+          bd.appendChild(window.GRC.mapDiagram(ctx, r.map));
+          if (r.map) {
+            var open = false;
+            var listWrap = ui.el("div", { style: "display:none;margin-top:12px" });
+            listWrap.appendChild(window.GRC.renderMap(ctx, r.map));
+            bd.appendChild(ui.el("div", { style: "margin-top:10px" },
+              ui.el("button", { class: "g-btn sm", onclick: function (e) { open = !open; listWrap.style.display = open ? "block" : "none"; e.target.textContent = open ? "Hide step list" : "Show step list"; } }, "Show step list")));
+            bd.appendChild(listWrap);
+          }
+        } },
         { id: "hand", label: "Handoffs (" + (r.handoffs || []).length + ")", render: function (bd) { renderHandoffs(bd, ctx, r); } },
         { id: "risks", label: "Risks (" + confirmed.length + ")", render: function (bd) { renderRisks(bd, ctx, r); } }
       ]
@@ -196,7 +335,8 @@
   }
 
   GRC.register({
-    id: "rau-profile", version: "1.1.0", tab: "RCSA",
+    id: "rau-profile", version: "1.2.0", tab: "RCSA",
+    caps: { "raus/:id": { primary: [1], uses: [2] } },
     routes: { "raus/:id": profile }
   });
 })();

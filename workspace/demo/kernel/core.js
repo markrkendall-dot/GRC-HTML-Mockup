@@ -1,4 +1,4 @@
-/* GRC kernel/core.js v1.1.0 2026-08-23 */
+/* GRC kernel/core.js v1.2.0 2026-08-23 */
 /* Kernel: module registry (tab/rail), hash router, data indexing, state,
    formatting, preflight, guided tour, reset. No dependencies, file:// safe. */
 (function () {
@@ -20,6 +20,118 @@
     Policy: { n: 10, items: ["Policy Library", "Governance Map"] }
   };
   var ROLES = ["RAU Owner", "RAU Owner Delegate", "BCM Contact", "ORBO (Operational Risk)", "BACO (Compliance Risk)", "RCSA RAU Governance"];
+
+  /* ==SECTION:capability-model== */
+  /* The ten capabilities, their short names, and what each one NEEDS to
+     function. needs drives the home-page lens (select capabilities, see
+     the transitive support set) and the trace bar under the tabs. */
+  var CAPS = {
+    1: { name: "RAU Demographics & Attributes", needs: [] },
+    2: { name: "Risk Identification", needs: [1] },
+    3: { name: "Inherent Risk Rating", needs: [2] },
+    4: { name: "Control Identification", needs: [2] },
+    5: { name: "RCSA Administration", needs: [3, 4] },
+    6: { name: "Signals & Impact Assessment", needs: [1, 2] },
+    7: { name: "Control Testing", needs: [4] },
+    8: { name: "Audit Testing", needs: [4] },
+    9: { name: "Monitoring", needs: [1, 2, 3, 4, 5, 6] },
+    10: { name: "Policy Governance", needs: [] }
+  };
+  var BUILT = { 1: true, 2: true };
+  GRC.caps = {
+    all: CAPS,
+    name: function (n) { return CAPS[n] ? CAPS[n].name : "Capability " + n; },
+    built: function (n) { return !!BUILT[n]; },
+    closure: function (sel) {
+      /* selected set plus everything transitively needed */
+      var seen = {};
+      function add(n) {
+        if (seen[n]) return;
+        seen[n] = true;
+        (CAPS[n].needs || []).forEach(add);
+      }
+      sel.forEach(add);
+      return Object.keys(seen).map(Number).sort(function (a, b) { return a - b; });
+    },
+    order: function (set) {
+      /* topological build order: needs before dependents */
+      var out = [], placed = {};
+      var pool = set.slice();
+      var guard = 0;
+      while (pool.length && guard++ < 50) {
+        for (var i = 0; i < pool.length; i++) {
+          var n = pool[i];
+          var ready = (CAPS[n].needs || []).every(function (d) { return placed[d] || set.indexOf(d) < 0; });
+          if (ready) { out.push(n); placed[n] = true; pool.splice(i, 1); break; }
+        }
+      }
+      return out.concat(pool);
+    }
+  };
+
+  /* ==SECTION:trace== */
+  /* Capability trace: every route declares which capabilities it belongs
+     to; a strip under the tabs shows it, and actions pulse their chip.
+     This keeps a walkthrough honest about what ships with what. */
+  function traceFor(routePattern, mod) {
+    if (mod && mod.caps && mod.caps[routePattern]) return mod.caps[routePattern];
+    if (mod && mod.caps && mod.caps["*"]) return mod.caps["*"];
+    return null;
+  }
+  function capChip(n, kind) {
+    var b = GRC.caps.built(n);
+    var cls = "tr-chip " + kind + (b ? "" : " future");
+    var el = document.createElement("button");
+    el.className = cls;
+    el.textContent = "C" + n;
+    el.title = GRC.caps.name(n) + (b ? " (built)" : " (later phase)") + ". Click to focus it on the program map.";
+    el.setAttribute("data-cap", String(n));
+    el.onclick = function () {
+      STATE.capLens = [n];
+      GRC.go("home");
+    };
+    return el;
+  }
+  function renderTrace(tr) {
+    var bar = document.getElementById("g-trace");
+    if (!tr) { bar.hidden = true; bar.innerHTML = ""; return; }
+    bar.hidden = false;
+    bar.innerHTML = "";
+    var lbl = document.createElement("span");
+    lbl.className = "tr-lbl";
+    lbl.textContent = "You are looking at";
+    bar.appendChild(lbl);
+    (tr.primary || []).forEach(function (n) { bar.appendChild(capChip(n, "primary")); });
+    var pn = (tr.primary || []).map(function (n) { return GRC.caps.name(n); }).join(", ");
+    var name = document.createElement("span");
+    name.className = "tr-name";
+    name.textContent = pn + (tr.preview ? " (preview)" : "");
+    bar.appendChild(name);
+    if (tr.uses && tr.uses.length) {
+      var u = document.createElement("span"); u.className = "tr-lbl"; u.textContent = "built on"; bar.appendChild(u);
+      tr.uses.forEach(function (n) { bar.appendChild(capChip(n, "uses")); });
+    }
+    if (tr.feeds && tr.feeds.length) {
+      var f = document.createElement("span"); f.className = "tr-lbl"; f.textContent = "will feed"; bar.appendChild(f);
+      tr.feeds.forEach(function (n) { bar.appendChild(capChip(n, "feeds")); });
+    }
+  }
+  GRC.traceAction = function (n, label) {
+    var bar = document.getElementById("g-trace");
+    if (!bar || bar.hidden) return;
+    var chip = bar.querySelector('[data-cap="' + n + '"]');
+    if (chip) {
+      chip.classList.remove("pulse");
+      void chip.offsetWidth;
+      chip.classList.add("pulse");
+    }
+    var tag = bar.querySelector(".tr-act");
+    if (!tag) { tag = document.createElement("span"); tag.className = "tr-act"; bar.appendChild(tag); }
+    tag.textContent = (label || "That action") + " belongs to Capability " + n;
+    tag.classList.remove("show");
+    void tag.offsetWidth;
+    tag.classList.add("show");
+  };
 
   /* ==SECTION:register== */
   GRC.register = function (def) {
@@ -206,11 +318,23 @@
     if (!segs.length) { segs = ["home"]; }
     var m = matchRoute(segs);
     outlet.innerHTML = "";
-    if (segs[0] === "soon") { renderSoon(outlet, segs[1]); current = { route: "soon/" + segs[1], mod: { tab: segs[1] } }; paint(); return; }
-    if (segs[0] === "search") { renderSearch(outlet); current = { route: "search", mod: { tab: current.mod ? current.mod.tab : "Home" } }; paint(); return; }
+    if (segs[0] === "soon") {
+      renderSoon(outlet, segs[1]);
+      current = { route: "soon/" + segs[1], mod: { tab: segs[1] } };
+      var soonCfg = SOON[segs[1].split("-")[0]];
+      renderTrace(soonCfg ? { primary: [soonCfg.n] } : null);
+      paint(); return;
+    }
+    if (segs[0] === "search") {
+      renderSearch(outlet);
+      current = { route: "search", mod: { tab: current.mod ? current.mod.tab : "Home" } };
+      renderTrace({ primary: [1, 2] });
+      paint(); return;
+    }
     if (!m) { GRC.go("home"); return; }
     current = { route: segs.join("/"), mod: m.r.mod };
     outlet.setAttribute("data-mod", m.r.mod.id);
+    renderTrace(traceFor(m.r.pattern, m.r.mod));
     try {
       m.r.fn(outlet, GRC.ctx, m.params);
     } catch (e) {
