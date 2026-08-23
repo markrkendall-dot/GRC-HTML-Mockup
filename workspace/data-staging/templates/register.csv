@@ -1,0 +1,4 @@
+rauId,eventId,status,score,mcrIds,by,date,rationale
+RAU-0002,REV-012,confirmed,43,,Reese Tran,2025-12-07,Resolved via applicability questions.
+RAU-0002,REV-014,rejected,40,,Reese Tran,2025-12-13,Reviewed with ORBO; determined out of scope for this process.
+RAU-0002,REV-015,confirmed,45,,Reese Tran,2026-07-09,Reviewed with ORBO; determined out of scope for this process.

@@ -1,0 +1,6 @@
+id,parentId,level,name
+SVC-0001,,1,Payments Services
+SVC-0002,SVC-0001,2,Wire Services
+SVC-0003,SVC-0002,3,Outbound Wire Execution
+SVC-0004,SVC-0002,3,Inbound Wire Processing
+SVC-0005,SVC-0002,3,Wire Investigations

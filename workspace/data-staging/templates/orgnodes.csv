@@ -1,0 +1,5 @@
+id,level,parentId,name
+ORG-0001,enterprise,,Enterprise
+ORG-0002,lob,ORG-0001,Consumer & Small Business Banking
+ORG-0003,sublob,ORG-0002,Branch Banking
+ORG-0004,sublob,ORG-0002,Consumer Deposits

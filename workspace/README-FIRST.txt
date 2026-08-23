@@ -3,11 +3,17 @@ GRC MOCKUP WORKSPACE
 This folder IS the working structure. Unpack it as C:\GRC (or your
 Documents folder if C:\ is locked down) and keep the layout exactly:
 
-  demo\            THE APP - the working copy. Open demo\index.html to run.
-    kernel\        core.js, ui.js, charts.js        (built via Copilot)
-    modules\       one .js per capability            (built via Copilot)
-    data\          one .js per entity - YOUR DATA GOES HERE (via DataForge)
-    tools\         dataforge.html                    (built via Copilot)
+  demo\            THE APP - open demo\index.html in Edge. It ships
+                   PRE-BUILT: reference build R1 = capabilities 1 and 2
+                   (RAU Demographics & Attributes; Risk Identification)
+                   running on synthetic data at true scale (850 RAUs,
+                   90 risk events, 8,000 MCRs). Click Present in the left
+                   rail for the guided walkthrough.
+    kernel\        core.js, engine.js, ui.js, charts.js (edit via Copilot)
+    modules\       one .js per capability               (edit via Copilot)
+    data\          one .js per entity - YOUR REAL DATA REPLACES THESE
+                   (same filenames; see data-staging\README.txt)
+    tools\         (dataforge.html arrives in a later phase)
   kit\             the .md files you attach to Copilot sessions
     cards\         one TASK card per session + TASK-FB template
   data-staging\    raw CSV exports land here before conversion
