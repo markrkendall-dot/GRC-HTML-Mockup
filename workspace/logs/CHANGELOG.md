@@ -12,6 +12,34 @@ Kit: SCHEMA.md v___, CONTRACT.md v___ (changed/unchanged)
 Version matrix: (paste the Preflight versions table here)
 ---- END TEMPLATE ----
 
+== R4 - 2026-08-23 - Demo round ==
+Feedback closed: FB-014 through FB-018 (see FEEDBACK.md)
+Module changes:
+  modules/demo.js 1.1.0 -> 2.0.0: Present is now a demo picker. Two story
+    demos (the full walkthrough; "Birth of a RAU", the order of operations
+    one gate per scene: intake, uniqueness, mapping, standards, governance
+    with the five roles, metadata, active, risk identification) plus one
+    demo per role in the View-as picker (Owner, Delegate, BCM, ORBO, BACO,
+    RCSA RAU Governance), each following that role's real workflow; scene
+    lists expand in place; starting a role demo switches the banner role
+    (FB-017, FB-018)
+  kernel/core.js 1.2.0 -> 1.3.0: tour scenes that set a role now sync the
+    banner View-as picker; data API gains removeRegister for reopening
+    dispositions (FB-016, FB-017)
+  modules/rau.js 1.1.1 -> 1.2.0: one filter bar (search, LOB, category,
+    risk ID) serves both directory views; the hierarchy tree honors it,
+    auto-expands branches containing matches, hides empty branches, and
+    carets still collapse while filtering (FB-014)
+  modules/intake.js 1.1.0 -> 1.2.0: the wizard autosaves a draft to local
+    storage on every input; returning restores it with a discard option;
+    submit clears it (FB-015)
+  modules/riskid.js 1.2.0 -> 1.3.0: Reopen on every dispositioned row
+    returns the event to its scored zone and flips a complete RAU back to
+    in progress; trace pulse and updated completion copy (FB-016)
+Data: regenerated same seed; release.js R4; entities unchanged.
+Kit: unchanged (v2 regenerates after feedback rounds stabilize).
+Version matrix: see Preflight in the app.
+
 == R3 - 2026-08-23 - Walkthrough round ==
 Feedback closed: FB-010 through FB-013 (see FEEDBACK.md); walkthrough
 observations FB-014 through FB-016 logged as open.

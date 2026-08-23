@@ -1,11 +1,14 @@
-/* GRC modules/rau.js v1.1.1 2026-08-23 */
+/* GRC modules/rau.js v1.2.0 2026-08-23 */
 /* Capability 1: RAU directory (hierarchy tree with carets, flat list as a
-   toggle) and profile quality. Expanding levels never leaves the page. */
+   toggle) and profile quality. Expanding levels never leaves the page.
+   The tree and the flat list share one set of filters; while a filter is
+   active the tree auto-expands the branches that contain matches (FB-014). */
 (function () {
   "use strict";
   var F = { q: "", lob: "", cat: "", status: "", change: "" };
   var VIEW = "tree";
-  var OPEN = {}; /* expanded nodes, kept for the session */
+  var OPEN = {};   /* expanded nodes, kept for the session */
+  var CLOSED = {}; /* manual collapses while a filter is auto-expanding */
 
   /* ==SECTION:directory== */
   function directory(el, ctx) {
@@ -21,20 +24,61 @@
     draw(body, ctx);
   }
 
+  function matches(ctx, r) {
+    var data = ctx.data;
+    if (F.q && (r.id + " " + r.name).toLowerCase().indexOf(F.q.toLowerCase()) < 0) return false;
+    if (F.lob && data.orgPath(r.subLobId).lobId !== F.lob) return false;
+    if (F.cat && r.category !== F.cat) return false;
+    if (F.status && r.riskIdStatus !== F.status) return false;
+    if (F.change && r.changeLevel !== F.change) return false;
+    return true;
+  }
+  function filterActive() { return !!(F.q || F.lob || F.cat || F.status || F.change); }
+
   function draw(body, ctx) {
-    var ui = ctx.ui;
+    var ui = ctx.ui, data = ctx.data;
     body.innerHTML = "";
+    function setF(k, v) { F[k] = v; CLOSED = {}; draw(body, ctx); }
+    var matched = data.all("raus").filter(function (r) { return matches(ctx, r); });
     var bar = ui.toolbar([
       ui.el("span", { class: "g-row", style: "gap:0" }, [
         ui.el("button", { class: "g-btn sm" + (VIEW === "tree" ? " g-btn--primary" : ""), style: "border-radius:4px 0 0 4px", onclick: function () { VIEW = "tree"; draw(body, ctx); } }, "Hierarchy"),
-        ui.el("button", { class: "g-btn sm" + (VIEW === "flat" ? " g-btn--primary" : ""), style: "border-radius:0 4px 4px 0", onclick: function () { VIEW = "flat"; draw(body, ctx); } }, "Flat list")])]);
+        ui.el("button", { class: "g-btn sm" + (VIEW === "flat" ? " g-btn--primary" : ""), style: "border-radius:0 4px 4px 0", onclick: function () { VIEW = "flat"; draw(body, ctx); } }, "Flat list")]),
+      ui.searchBox({ value: F.q, placeholder: "Filter by id or name...", oninput: function (v) { setF("q", v); } }),
+      ui.select({
+        label: "LOB", value: F.lob, onchange: function (v) { setF("lob", v); },
+        options: [{ value: "", label: "All lines of business" }].concat(data.lobs().map(function (l) { return { value: l.id, label: l.name }; }))
+      }),
+      ui.select({
+        label: "Category", value: F.cat, onchange: function (v) { setF("cat", v); },
+        options: [{ value: "", label: "All" }, { value: "business-service", label: "Business Service" },
+        { value: "shared-services", label: "Shared Services" }, { value: "enterprise", label: "Enterprise" }]
+      }),
+      ui.select({
+        label: "Risk ID", value: F.status, onchange: function (v) { setF("status", v); },
+        options: [{ value: "", label: "All" }, { value: "complete", label: "Complete" },
+        { value: "in-progress", label: "In progress" }, { value: "not-started", label: "Not started" }]
+      }),
+      ui.el("span", { class: "g-muted", style: "font-size:12px" }, ctx.fmt.num(matched.length) + " match")]);
     body.appendChild(bar);
-    if (VIEW === "tree") drawTree(body, bar, ctx); else drawFlat(body, bar, ctx);
+    if (VIEW === "tree") drawTree(body, ctx); else drawFlat(body, ctx, matched);
   }
 
   /* ==SECTION:tree== */
-  function drawTree(body, bar, ctx) {
+  function drawTree(body, ctx) {
     var ui = ctx.ui, data = ctx.data, fmt = ctx.fmt;
+    var active = filterActive();
+    /* While filtering: branches with matches auto-expand and empty branches
+       hide; a caret click still collapses (tracked in CLOSED until the
+       filter changes). Without a filter the manual OPEN state applies. */
+    function isOpen(id, hasMatches) {
+      if (active) return hasMatches && !CLOSED[id];
+      return !!OPEN[id];
+    }
+    function toggle(id) {
+      if (active) CLOSED[id] = !CLOSED[id]; else OPEN[id] = !OPEN[id];
+      draw(body, ctx);
+    }
     var wrap = ui.el("div", { class: "g-tablewrap" });
     var t = ui.el("table", { class: "g-table" });
     t.appendChild(ui.el("tr", {}, [
@@ -43,34 +87,37 @@
       ui.el("th", {}, "Risk ID"), ui.el("th", { style: "text-align:right" }, "Confirmed risks")]));
     function caret(open) { return ui.el("span", { class: "caret" + (open ? " open" : "") }); }
     function confirmedOf(r) { return data.regOfRau(r.id).filter(function (g) { return g.status === "confirmed"; }).length; }
+    var shown = 0;
     data.lobs().forEach(function (lob) {
       var subs = data.subLobs().filter(function (s) { return s.parentId === lob.id; });
-      var lobRaus = 0, lobConf = 0;
+      var subRows = [], lobRaus = 0, lobConf = 0;
       subs.forEach(function (s) {
-        var rr = data.rausOfSub(s.id);
-        lobRaus += rr.length;
-        rr.forEach(function (r) { lobConf += confirmedOf(r); });
+        var rr = data.rausOfSub(s.id).filter(function (r) { return matches(ctx, r); });
+        var sconf = 0; rr.forEach(function (r) { sconf += confirmedOf(r); });
+        subRows.push({ s: s, rr: rr, conf: sconf });
+        lobRaus += rr.length; lobConf += sconf;
       });
-      var lopen = !!OPEN[lob.id];
+      if (active && !lobRaus) return;
+      shown += lobRaus;
+      var lopen = isOpen(lob.id, lobRaus > 0);
       var lr = ui.el("tr", { class: "tree-parent click" }, [
-        ui.el("td", {}, [caret(lopen), lob.name + "  (" + lobRaus + " RAUs)"]),
+        ui.el("td", {}, [caret(lopen), lob.name + "  (" + lobRaus + (active ? " matching" : "") + " RAUs)"]),
         ui.el("td", {}, ""), ui.el("td", {}, ""), ui.el("td", {}, ""),
         ui.el("td", { class: "num" }, String(lobConf))]);
-      lr.onclick = function () { OPEN[lob.id] = !OPEN[lob.id]; draw(body, ctx); };
+      lr.onclick = function () { toggle(lob.id); };
       t.appendChild(lr);
       if (!lopen) return;
-      subs.forEach(function (s) {
-        var rr = data.rausOfSub(s.id);
-        var sconf = 0; rr.forEach(function (r) { sconf += confirmedOf(r); });
-        var sopen = !!OPEN[s.id];
+      subRows.forEach(function (x) {
+        if (active && !x.rr.length) return;
+        var sopen = isOpen(x.s.id, x.rr.length > 0);
         var sr = ui.el("tr", { class: "tree-parent tree-ind1 click" }, [
-          ui.el("td", {}, [caret(sopen), s.name + "  (" + rr.length + ")"]),
+          ui.el("td", {}, [caret(sopen), x.s.name + "  (" + x.rr.length + ")"]),
           ui.el("td", {}, ""), ui.el("td", {}, ""), ui.el("td", {}, ""),
-          ui.el("td", { class: "num" }, String(sconf))]);
-        sr.onclick = function () { OPEN[s.id] = !OPEN[s.id]; draw(body, ctx); };
+          ui.el("td", { class: "num" }, String(x.conf))]);
+        sr.onclick = function () { toggle(x.s.id); };
         t.appendChild(sr);
         if (!sopen) return;
-        rr.forEach(function (r) {
+        x.rr.forEach(function (r) {
           var rrow = ui.el("tr", { class: "tree-ind2 click" }, [
             ui.el("td", {}, [ui.el("span", { class: "g-mono g-muted" }, r.id + "  "), r.name]),
             ui.el("td", {}, fmt.cat(r.category)),
@@ -82,40 +129,16 @@
         });
       });
     });
+    if (active && !shown) {
+      t.appendChild(ui.el("tr", {}, ui.el("td", { colspan: "5", class: "g-muted", style: "padding:14px" }, "No RAUs match the current filters.")));
+    }
     wrap.appendChild(t);
     body.appendChild(wrap);
   }
 
   /* ==SECTION:flat== */
-  function drawFlat(body, bar, ctx) {
+  function drawFlat(body, ctx, rs) {
     var ui = ctx.ui, data = ctx.data, fmt = ctx.fmt;
-    function rows() {
-      return data.all("raus").filter(function (r) {
-        if (F.q && (r.id + " " + r.name).toLowerCase().indexOf(F.q.toLowerCase()) < 0) return false;
-        if (F.lob && data.orgPath(r.subLobId).lobId !== F.lob) return false;
-        if (F.cat && r.category !== F.cat) return false;
-        if (F.status && r.riskIdStatus !== F.status) return false;
-        if (F.change && r.changeLevel !== F.change) return false;
-        return true;
-      });
-    }
-    var rs = rows();
-    bar.appendChild(ui.searchBox({ value: F.q, placeholder: "Filter by id or name...", oninput: function (v) { F.q = v; draw(body, ctx); } }));
-    bar.appendChild(ui.select({
-      label: "LOB", value: F.lob, onchange: function (v) { F.lob = v; draw(body, ctx); },
-      options: [{ value: "", label: "All lines of business" }].concat(data.lobs().map(function (l) { return { value: l.id, label: l.name }; }))
-    }));
-    bar.appendChild(ui.select({
-      label: "Category", value: F.cat, onchange: function (v) { F.cat = v; draw(body, ctx); },
-      options: [{ value: "", label: "All" }, { value: "business-service", label: "Business Service" },
-      { value: "shared-services", label: "Shared Services" }, { value: "enterprise", label: "Enterprise" }]
-    }));
-    bar.appendChild(ui.select({
-      label: "Risk ID", value: F.status, onchange: function (v) { F.status = v; draw(body, ctx); },
-      options: [{ value: "", label: "All" }, { value: "complete", label: "Complete" },
-      { value: "in-progress", label: "In progress" }, { value: "not-started", label: "Not started" }]
-    }));
-    bar.appendChild(ui.el("span", { class: "g-muted", style: "font-size:12px" }, ctx.fmt.num(rs.length) + " match"));
     body.appendChild(ui.table({
       cols: [
         { key: "id", label: "ID", sort: true, render: function (r) { return ui.el("span", { class: "g-mono" }, r.id); } },
@@ -160,7 +183,7 @@
   }
 
   GRC.register({
-    id: "rau", version: "1.1.1", tab: "RCSA",
+    id: "rau", version: "1.2.0", tab: "RCSA",
     caps: { "*": { primary: [1] } },
     rail: [
       { label: "1. RAUs", route: "raus", order: 10 },

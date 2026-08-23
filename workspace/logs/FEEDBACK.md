@@ -99,12 +99,30 @@ FB-013 | R2 | 2026-08-23 | Walkthrough | general
 
 FB-014 | R3 | 2026-08-23 | Walkthrough | modules/rau.js
   Ask: Hierarchy tree ignores the flat-list filters; a search that auto-expands matching branches would help
-  Status: NEW
+  Status: ACCEPTED 2026-08-23
+  Built: 2026-08-23 rau.js 1.1.1 -> 1.2.0 (one filter bar for both views; tree auto-expands matching branches, hides empty ones, carets still collapse)
+  Released: R4
 
 FB-015 | R3 | 2026-08-23 | Walkthrough | modules/intake.js
   Ask: The wizard has no draft save; navigating away loses the form
-  Status: NEW
+  Status: ACCEPTED 2026-08-23
+  Built: 2026-08-23 intake.js 1.1.0 -> 1.2.0 (autosave to local storage on every input, restore note with discard, cleared on submit)
+  Released: R4
 
 FB-016 | R3 | 2026-08-23 | Walkthrough | modules/riskid.js
   Ask: No undo for a mistaken confirm or dismiss on the workbench; consider a re-open action on dispositioned rows
-  Status: NEW
+  Status: ACCEPTED 2026-08-23
+  Built: 2026-08-23 riskid.js 1.2.0 -> 1.3.0 with core.js 1.2.0 -> 1.3.0 removeRegister (Reopen per dispositioned row; returns the event to its scored zone, flips a complete RAU back to in progress)
+  Released: R4
+
+FB-017 | R3 | 2026-08-23 | Owner | modules/demo.js
+  Ask: One demo per role type in the View-as picker, each following the workflow that role runs
+  Status: ACCEPTED 2026-08-23
+  Built: 2026-08-23 demo.js 1.1.0 -> 2.0.0 (Present becomes a picker; six role demos, scene one switches the banner role via the tour)
+  Released: R4
+
+FB-018 | R3 | 2026-08-23 | Owner | modules/demo.js
+  Ask: A start-a-new-RAU demo proving the order of operations end to end
+  Status: ACCEPTED 2026-08-23
+  Built: 2026-08-23 demo.js 2.0.0 "Birth of a RAU": intake, uniqueness, mapping, standards, governance with the five roles, metadata, active, risk identification
+  Released: R4

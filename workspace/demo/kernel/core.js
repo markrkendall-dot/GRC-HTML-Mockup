@@ -1,4 +1,4 @@
-/* GRC kernel/core.js v1.2.0 2026-08-23 */
+/* GRC kernel/core.js v1.3.0 2026-08-23 */
 /* Kernel: module registry (tab/rail), hash router, data indexing, state,
    formatting, preflight, guided tour, reset. No dependencies, file:// safe. */
 (function () {
@@ -210,6 +210,12 @@
       D.entities.register.push(row);
       (D.regByRau[row.rauId] = D.regByRau[row.rauId] || []).push(row);
       (D.regByEvent[row.eventId] = D.regByEvent[row.eventId] || []).push(row);
+    },
+    removeRegister: function (row) {
+      function drop(arr) { var i = arr.indexOf(row); if (i >= 0) arr.splice(i, 1); }
+      drop(D.entities.register);
+      drop(D.regByRau[row.rauId] || []);
+      drop(D.regByEvent[row.eventId] || []);
     },
     metrics: function () {
       var raus = D.entities.raus, reg = D.entities.register;
@@ -599,7 +605,13 @@
     document.body.appendChild(wrap);
     function show() {
       var s = scenes[i];
-      if (s.state) { Object.keys(s.state).forEach(function (k) { state.set(k, s.state[k]); }); }
+      if (s.state) {
+        Object.keys(s.state).forEach(function (k) { state.set(k, s.state[k]); });
+        if (s.state.role) {
+          var sel = document.getElementById("g-role");
+          if (sel) sel.value = s.state.role;
+        }
+      }
       GRC.go(s.route);
       wrap.querySelector(".t").textContent = (i + 1) + ". " + s.title;
       wrap.querySelector(".x").textContent = s.text;

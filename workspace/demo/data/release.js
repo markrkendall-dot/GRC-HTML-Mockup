@@ -1,2 +1,2 @@
 window.GRC_DATA = window.GRC_DATA || {};
-window.GRC_DATA.release = {number:"R3", date:"2026-08-23", label:"Walkthrough round: process diagrams, capability lens and trace"};
+window.GRC_DATA.release = {number:"R4", date:"2026-08-23", label:"Demo round: role demos, birth of a RAU, tree filters, drafts, reopen"};

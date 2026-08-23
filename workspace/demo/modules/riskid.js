@@ -1,9 +1,9 @@
-/* GRC modules/riskid.js v1.2.0 2026-08-23 */
+/* GRC modules/riskid.js v1.3.0 2026-08-23 */
 /* Capability 2: Operational & Compliance Risk Identification - the
    applicability workbench. The engine stack-ranks all 90 risk events (and
    the MCRs beneath compliance events) against the RAU's metadata; the
    front line confirms or rejects; ambiguous items get resolved out of the
-   middle by targeted questions. */
+   middle by targeted questions. Any disposition can be reopened (FB-016). */
 (function () {
   "use strict";
 
@@ -92,7 +92,7 @@
       if (implicitDismissed) {
         wrap.appendChild(ui.el("div", { class: "g-card", style: "border-left:4px solid var(--g-line)" },
           ui.el("div", {}, [ui.badge("Risk ID complete", "ok"),
-          ui.el("span", { style: "margin-left:8px" }, implicitDismissed + " remaining candidates were dismissed below the applicability floor at completion. The register keeps confirmations and notable rejections; reopen any event from its library page if circumstances change.")])));
+          ui.el("span", { style: "margin-left:8px" }, implicitDismissed + " remaining candidates were dismissed below the applicability floor at completion. The register keeps confirmations and notable rejections; Reopen on a dispositioned row takes a decision back if circumstances change.")])));
       }
       /* suppressed by exclusions */
       if (cand.suppressed.length) {
@@ -210,6 +210,13 @@
       }
 
       /* dispositioned */
+      function reopen(x) {
+        data.removeRegister(x.d);
+        if (r.riskIdStatus === "complete") r.riskIdStatus = "in-progress";
+        GRC.traceAction(2, "Reopening a disposition");
+        ui.toast(x.s.ev.name + " reopened; it returns to its scored zone and risk ID is back in progress.");
+        draw();
+      }
       if (done.length) {
         var db = ui.el("div");
         done.sort(function (a, b) { return b.s.pct - a.s.pct; });
@@ -220,10 +227,11 @@
             { key: "score", label: "Score", num: true, render: function (x) { return String(x.d.score); } },
             { key: "st", label: "Decision", render: function (x) { return ui.badge(x.d.status, x.d.status === "confirmed" ? "ok" : ""); } },
             { key: "mcr", label: "MCRs", num: true, render: function (x) { return x.d.mcrIds ? String(x.d.mcrIds.length) : "-"; } },
-            { key: "why", label: "Rationale", render: function (x) { return x.d.rationale ? ui.el("span", { class: "g-muted", style: "font-size:12px" }, x.d.rationale) : "-"; } }
+            { key: "why", label: "Rationale", render: function (x) { return x.d.rationale ? ui.el("span", { class: "g-muted", style: "font-size:12px" }, x.d.rationale) : "-"; } },
+            { key: "re", label: "", render: function (x) { return ui.el("button", { class: "g-btn sm", onclick: function (e) { e.stopPropagation(); reopen(x); } }, "Reopen"); } }
           ], rows: done, page: 12
         }));
-        wrap.appendChild(ui.card({ title: "Dispositioned (" + done.length + ")", body: db }));
+        wrap.appendChild(ui.card({ title: "Dispositioned (" + done.length + "): mistakes are reversible", body: db }));
       }
       if (!z.likely.length && !z.middle.length && !z.unlikely.length && done.length) {
         if (r.riskIdStatus !== "complete") {
@@ -276,7 +284,7 @@
   }
 
   GRC.register({
-    id: "riskid", version: "1.2.0", tab: "RCSA",
+    id: "riskid", version: "1.3.0", tab: "RCSA",
     caps: {
       "riskid": { primary: [2], uses: [1] },
       "riskid/:rauId": { primary: [2], uses: [1], feeds: [3, 5] }

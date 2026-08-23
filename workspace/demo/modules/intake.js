@@ -1,10 +1,27 @@
-/* GRC modules/intake.js v1.1.0 2026-08-23 */
+/* GRC modules/intake.js v1.2.0 2026-08-23 */
 /* Capability 1 front end: the RAU change-request pipeline (new / merge /
    split / retire), the intake wizard with assistant, the uniqueness +
-   category review gate, and governance approval. */
+   category review gate, and governance approval. The wizard autosaves a
+   draft locally so navigating away never loses the form (FB-015). */
 (function () {
   "use strict";
   var GOV = "RCSA RAU Governance";
+  var DRAFTKEY = "grc-draft-intake";
+
+  /* ==SECTION:draft== */
+  function loadDraft() {
+    try {
+      var d = JSON.parse(localStorage.getItem(DRAFTKEY) || "null");
+      if (d && typeof d === "object" && Array.isArray(d.serviceIds)) return d;
+    } catch (e) { /* storage unavailable or corrupt: start clean */ }
+    return null;
+  }
+  function saveDraft(model) {
+    try { localStorage.setItem(DRAFTKEY, JSON.stringify(model)); } catch (e) { }
+  }
+  function clearDraft() {
+    try { localStorage.removeItem(DRAFTKEY); } catch (e) { }
+  }
 
   function isGov(ctx) { return ctx.state.get("role") === GOV; }
   function govHint(ctx, ui) {
@@ -90,17 +107,35 @@
   function wizard(el, ctx) {
     var ui = ctx.ui, data = ctx.data;
     var model = { type: "new", lobId: "", subLobId: "", category: "business-service", proposedName: "", description: "", bulletsText: "", serviceIds: [] };
+    var draft = loadDraft(), restored = false;
+    if (draft) {
+      Object.keys(model).forEach(function (k) { if (draft[k] !== undefined) model[k] = draft[k]; });
+      restored = !!(model.proposedName || model.description || model.bulletsText || model.serviceIds.length || model.subLobId);
+    }
+    function save() { saveDraft(model); }
     var msgs = [{ who: "assistant", text: "I will help you describe this RAU. Pick the business placement and the services it performs from the common catalog, then list the high-level steps of the process - one per line. I will ask questions if I need more to analyze uniqueness." }];
     el.appendChild(ui.el("div", { class: "g-page-head" },
       ui.el("div", {}, [ui.el("div", { class: "g-h1" }, "New RAU request: intake"),
-      ui.el("div", { class: "g-muted" }, "Step 1 of the pipeline. On submit, the assistant analyzes uniqueness within the Line of Business and checks the category; the RCSA RAU Governance team reviews its findings.")])));
+      ui.el("div", { class: "g-muted" }, "Step 1 of the pipeline. Drafts save on this machine as you type, so you can leave and come back. On submit, the assistant analyzes uniqueness within the Line of Business and checks the category; the RCSA RAU Governance team reviews its findings.")])));
+    if (restored) {
+      el.appendChild(ui.el("div", { class: "g-card", style: "border-left:4px solid var(--g-accent);padding:10px 14px" },
+        ui.el("div", { class: "g-row" }, [
+          ui.badge("Draft restored", "info"),
+          ui.el("span", { style: "flex:1" }, "An unsubmitted intake was saved earlier on this machine and has been restored. Nothing is analyzed until you submit."),
+          ui.el("button", { class: "g-btn sm", onclick: function () {
+            clearDraft();
+            el.innerHTML = "";
+            wizard(el, ctx);
+            ui.toast("Draft discarded.");
+          } }, "Discard draft")])));
+    }
     var form = ui.el("div");
     var chatWrap = ui.el("div");
     el.appendChild(ui.el("div", { class: "g-split", style: "grid-template-columns:3fr 2fr" }, [form, chatWrap]));
 
     function svcPicker() {
       var outer = ui.el("div");
-      var count = ui.el("span", { class: "g-pill" }, "0 selected");
+      var count = ui.el("span", { class: "g-pill" }, model.serviceIds.length + " selected");
       var filter = "";
       var box = ui.el("div", { style: "max-height:240px;overflow:auto;border:1px solid var(--g-line);border-radius:6px;padding:6px 10px;background:#fff" });
       function drawList() {
@@ -121,6 +156,7 @@
               if (cb.checked && i < 0) model.serviceIds.push(s.id);
               if (!cb.checked && i >= 0) model.serviceIds.splice(i, 1);
               count.textContent = model.serviceIds.length + " selected";
+              save();
             } });
             if (model.serviceIds.indexOf(s.id) >= 0) cb.checked = true;
             box.appendChild(ui.el("label", { style: "display:flex;gap:8px;align-items:center;padding:2px 0 2px 8px;font-size:13px", title: data.svcPath(s.id) }, [cb, s.name]));
@@ -135,13 +171,14 @@
       return outer;
     }
     function field(label, node) { return ui.el("div", { style: "margin-bottom:12px" }, [ui.el("div", { class: "g-label", style: "margin-bottom:4px" }, label), node]); }
-    var lobSel = ui.select({ options: [{ value: "", label: "Select..." }].concat(data.lobs().map(function (l) { return { value: l.id, label: l.name }; })), onchange: function (v) { model.lobId = v; model.subLobId = ""; drawSub(); } });
+    var lobSel = ui.select({ value: model.lobId, options: [{ value: "", label: "Select..." }].concat(data.lobs().map(function (l) { return { value: l.id, label: l.name }; })), onchange: function (v) { model.lobId = v; model.subLobId = ""; save(); drawSub(); } });
     var subWrap = ui.el("span");
     function drawSub() {
       subWrap.innerHTML = "";
       subWrap.appendChild(ui.select({
+        value: model.subLobId,
         options: [{ value: "", label: "Select..." }].concat(data.subLobs().filter(function (s) { return s.parentId === model.lobId; }).map(function (s) { return { value: s.id, label: s.name }; })),
-        onchange: function (v) { model.subLobId = v; }
+        onchange: function (v) { model.subLobId = v; save(); }
       }));
     }
     drawSub();
@@ -149,12 +186,12 @@
       title: "Intake form", body: ui.el("div", {}, [
         field("Line of Business", lobSel), field("SubLOB (the RAU is created at this level)", subWrap),
         field("RAU category", ui.select({
-          value: model.category, onchange: function (v) { model.category = v; },
+          value: model.category, onchange: function (v) { model.category = v; save(); },
           options: [{ value: "business-service", label: "Business Service RAU" }, { value: "shared-services", label: "Shared Services RAU" }, { value: "enterprise", label: "Enterprise RAU" }]
         })),
-        field("Proposed RAU name", ui.el("input", { class: "g-input", style: "width:100%", oninput: function (e) { model.proposedName = e.target.value; } })),
-        field("Description", ui.el("textarea", { class: "g-input", rows: "3", style: "width:100%", oninput: function (e) { model.description = e.target.value; } })),
-        field("High-level process steps (one bullet per line, 3+)", ui.el("textarea", { class: "g-input", rows: "5", style: "width:100%", placeholder: "Receive and validate requests\nApprove and release funding\nReconcile and report", oninput: function (e) { model.bulletsText = e.target.value; } })),
+        field("Proposed RAU name", ui.el("input", { class: "g-input", style: "width:100%", value: model.proposedName, oninput: function (e) { model.proposedName = e.target.value; save(); } })),
+        field("Description", ui.el("textarea", { class: "g-input", rows: "3", style: "width:100%", oninput: function (e) { model.description = e.target.value; save(); } }, model.description)),
+        field("High-level process steps (one bullet per line, 3+)", ui.el("textarea", { class: "g-input", rows: "5", style: "width:100%", placeholder: "Receive and validate requests\nApprove and release funding\nReconcile and report", oninput: function (e) { model.bulletsText = e.target.value; save(); } }, model.bulletsText)),
         field("Services performed (select all that apply)", svcPicker()),
         ui.el("div", { class: "g-row" }, [
           ui.el("button", { class: "g-btn g-btn--primary", onclick: submit }, "Submit for uniqueness analysis"),
@@ -189,6 +226,7 @@
             "No significant overlap found within the Line of Business (top match " + top + "%). The described process appears unique."
       };
       data.all("requests").unshift(req);
+      clearDraft();
       GRC.traceAction(1, "Submitting a RAU request");
       ui.toast("Submitted. The analysis is attached for RCSA RAU Governance review.");
       ctx.go("pipeline/" + req.id);
@@ -316,7 +354,7 @@
   }
 
   GRC.register({
-    id: "intake", version: "1.1.0", tab: "RCSA",
+    id: "intake", version: "1.2.0", tab: "RCSA",
     caps: { "*": { primary: [1] } },
     rail: [{ label: "RAU pipeline", route: "pipeline", order: 30 }],
     routes: { "pipeline": board, "pipeline/new": wizard, "pipeline/:id": detail }
