@@ -3,6 +3,13 @@ GRC MOCKUP WORKSPACE
 This folder IS the working structure. Unpack it as C:\GRC (or your
 Documents folder if C:\ is locked down) and keep the layout exactly:
 
+(If the ZIP itself will not cross the firewall: the whole demo also
+ships as ONE self-contained HTML file, meridian-grc-mockup.html at the
+repo root, built by tools-dev/build-single-html.js - same method as
+the risk-instance viewer. That file is for viewing and presenting
+only; building and real data still happen in this folder structure.
+See START-HERE.txt at the repo root.)
+
   demo\            THE APP - open demo\index.html in Edge. It ships
                    PRE-BUILT through release R9: capabilities 1-5 end to
                    end (RAU inventory and pipeline, risk identification,

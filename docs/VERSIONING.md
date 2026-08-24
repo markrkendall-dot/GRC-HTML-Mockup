@@ -53,6 +53,11 @@ have a release yet.
    user-facing half of the changelog.
 8. Mark released feedback items RELEASED in FEEDBACK.md. Zip R<n> if
    distributing; otherwise point users at the folder.
+9. Outside the firewall only: regenerate the single-file crossing copy
+   (`node tools-dev/build-single-html.js` -> meridian-grc-mockup.html at
+   the repo root) so the one-file edition always matches the shipped
+   release. It inlines demo\ as-is; if step 6 already ran, demo\ and
+   R<n> are identical and either source is fine.
 After step 6, R<n> is read-only forever. A bug found in R3 is fixed in the
 working copy and shipped as R4 - never patched in place.
 

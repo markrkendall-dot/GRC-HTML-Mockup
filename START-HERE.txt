@@ -1,0 +1,37 @@
+Meridian GRC Mockup - single-file edition
+=========================================
+
+WHAT THIS IS
+meridian-grc-mockup.html is the ENTIRE GRC mockup in one HTML file -
+the same method that carried the risk-instance viewer across the
+firewall. Kernel, all five capabilities, and the full synthetic
+dataset (850 RAUs, 90 risk events, 8,000 MCRs, 5,100+ controls) are
+inlined inside the one file. Release R9.
+
+WHAT TO DO
+1. Get meridian-grc-mockup.html onto your machine (email it, download
+   it, copy it - it is one plain .html file, ~7 MB).
+2. Double-click it. It opens in Edge (or any modern browser). Nothing
+   to install, no admin rights, no network access needed or attempted.
+   Everything runs inside the one file.
+
+WHAT YOU'LL SEE
+The full R9 demo: Home with the capability flow and program health,
+RAU inventory and intake pipeline, risk identification, inherent
+ratings, controls with the derived key, and the living RCSA. Click
+"Present (guided demo)" in the left rail for the nine scripted demos,
+one per role. "About / Preflight" shows the diagnostics panel - it
+should read NO TRAPPED ERRORS with every entity loaded.
+
+WHAT THIS FILE IS NOT
+It is the demo, frozen. You cannot swap real data into it or edit it
+with Copilot - that workflow needs the multi-file workspace
+(workspace/ in the repo, unpacked as C:\GRC), where data files are
+replaced by filename. Treat this file as the thing you show and share;
+treat the workspace as the thing you build in.
+
+REGENERATING IT (outside the firewall)
+  node tools-dev/build-single-html.js
+reads workspace/demo/ and rewrites meridian-grc-mockup.html at the
+repo root. Rebuild it after every release so the crossing copy always
+matches the current R number. Never edit the output by hand.
