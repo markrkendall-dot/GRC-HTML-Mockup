@@ -1,37 +1,50 @@
-Meridian GRC Mockup - single-file edition
-=========================================
+Meridian GRC Mockup - firewall crossing editions
+================================================
 
-WHAT THIS IS
-meridian-grc-mockup.html is the ENTIRE GRC mockup in one HTML file -
-the same method that carried the risk-instance viewer across the
-firewall. Kernel, all five capabilities, and the full synthetic
-dataset (850 RAUs, 90 risk events, 8,000 MCRs, 5,100+ controls) are
-inlined inside the one file. Release R9.
+Two ways to carry the R9 mockup across the firewall, both using the
+method proven with the risk-instance viewer: plain HTML files, fully
+self-contained, no network access needed or attempted, nothing to
+install. Pick by what your gateway lets through.
 
-WHAT TO DO
-1. Get meridian-grc-mockup.html onto your machine (email it, download
-   it, copy it - it is one plain .html file, ~7 MB).
-2. Double-click it. It opens in Edge (or any modern browser). Nothing
-   to install, no admin rights, no network access needed or attempted.
-   Everything runs inside the one file.
+A. ONE FILE - meridian-grc-mockup.html (~7 MB)
+----------------------------------------------
+The entire demo (kernel, all five capabilities, full synthetic
+dataset) inlined into a single HTML. Get the one file across,
+double-click it, done. Use this when large HTML attachments pass.
+It is the demo frozen: you cannot edit it piecewise or swap data
+into it.
 
-WHAT YOU'LL SEE
-The full R9 demo: Home with the capability flow and program health,
-RAU inventory and intake pipeline, risk identification, inherent
-ratings, controls with the derived key, and the living RCSA. Click
-"Present (guided demo)" in the left rail for the nine scripted demos,
-one per role. "About / Preflight" shows the diagnostics panel - it
-should read NO TRAPPED ERRORS with every entity loaded.
+B. SET OF SMALL FILES - html-edition/ (44 files, every one < 1 MB)
+------------------------------------------------------------------
+The SAME demo in its real multi-file structure - index.html plus
+kernel\, modules\, data\ - with every file named .html so each one
+crosses the firewall on its own under a ~1 MB gate. The files run
+exactly as they are: Edge executes a <script src> target by its
+content, not its extension, so there is no conversion, renaming, or
+unpacking step. Lay the files out per the packing list, double-click
+index.html, and from then on update ONE file at a time: replace it,
+Ctrl+F5. Large data entities ship split as -part1..N.html (all parts
+required, listed in index.html in order).
 
-WHAT THIS FILE IS NOT
-It is the demo, frozen. You cannot swap real data into it or edit it
-with Copilot - that workflow needs the multi-file workspace
-(workspace/ in the repo, unpacked as C:\GRC), where data files are
-replaced by filename. Treat this file as the thing you show and share;
-treat the workspace as the thing you build in.
+Start with html-edition\READ-ME-FIRST.html - it carries the setup
+steps, the update workflow, and the full packing list with sizes.
 
-REGENERATING IT (outside the firewall)
-  node tools-dev/build-single-html.js
-reads workspace/demo/ and rewrites meridian-grc-mockup.html at the
-repo root. Rebuild it after every release so the crossing copy always
-matches the current R number. Never edit the output by hand.
+This edition IS the working structure: the runbook's Copilot workflow
+applies unchanged, except files save with an .html name (the kit's
+modules/rcsa.js is modules\rcsa.html here).
+
+FIRST-OPEN CHECK (both editions)
+--------------------------------
+Click Preflight in the banner. It must say NO TRAPPED ERRORS with
+every entity loaded (850 RAUs, 90 risk events, 8,000 MCRs, 5,146
+controls...). Click Present in the left rail for the nine scripted
+role demos.
+
+REGENERATING (outside the firewall)
+-----------------------------------
+  node tools-dev/build-single-html.js   -> meridian-grc-mockup.html
+  node tools-dev/build-html-set.js      -> html-edition/ (rebuilt whole)
+Both read workspace/demo/ as-is and are deterministic (release-stamped
+from data/release.js, byte-identical rebuilds). Rerun after every
+release; never edit the outputs by hand. The multi-file .js workspace
+(workspace/) remains the canonical build-and-real-data structure.
