@@ -19,6 +19,11 @@ Documents folder if C:\ is locked down) and keep the layout exactly:
   kit\             the .md files you attach to Copilot sessions (v2,
                    matches the as-built app; start at KIT-README.md)
     cards\         one TASK card per kind of job + the FB template
+  crossing\        how the prebuilt reference app gets INSIDE past a gateway
+                   that strips .js/.py (even inside zips). The app code
+                   repackaged as allowed .md files that rebuild byte-for-byte
+                   inside. Start at crossing\RECONSTITUTE.md. Regenerate with
+                   tools-dev\build-crossing-kit.js after an app change.
   data-staging\    raw CSV exports land here before conversion
     templates\     dummy CSVs showing the exact expected columns per entity
   releases\        frozen numbered copies users see (R1, R2, ...) - never edit
@@ -37,3 +42,6 @@ RULES THAT KEEP THIS SANE (details in the runbook):
 5. Real data: raw CSVs into data-staging\, converted by
    demo\tools\dataforge.html, output .js files into demo\data\.
    Real data never leaves the firewall.
+6. The transfer gateway strips .js and .py, and looks INSIDE zips. Only
+   .md, zips of allowed files, and non-macro Office (.docx/.xlsx/.pptx)
+   cross. Code crosses as .md via crossing\; it rebuilds to .js inside.
