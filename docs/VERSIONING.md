@@ -59,7 +59,10 @@ have a release yet.
    `node tools-dev/build-html-set.js` (-> html-edition/, the multi-file
    edition with every file named .html and under 1 MB). Both read demo\
    as-is; if step 6 already ran, demo\ and R<n> are identical and either
-   source is fine.
+   source is fine. build-html-set.js also prints which html-edition
+   files changed since the last committed build - that carry list is
+   exactly what crosses the firewall for the update. Commit the rebuilt
+   html-edition\ with the release so the next delta compares correctly.
 After step 6, R<n> is read-only forever. A bug found in R3 is fixed in the
 working copy and shipped as R4 - never patched in place.
 

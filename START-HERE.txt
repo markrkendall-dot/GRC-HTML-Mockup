@@ -26,6 +26,14 @@ index.html, and from then on update ONE file at a time: replace it,
 Ctrl+F5. Large data entities ship split as -part1..N.html (all parts
 required, listed in index.html in order).
 
+Which files to carry after a rebuild: the build is deterministic, so
+bytes change only where sources changed. The builder compares every
+file against the last committed html-edition/ and names the
+differences - on the console and in READ-ME-FIRST.html under
+"Changed in this build". That short list is all that crosses;
+everything already inside stays put. Inside, Preflight's version
+tables confirm what is actually loaded after the swap.
+
 Start with html-edition\READ-ME-FIRST.html - it carries the setup
 steps, the update workflow, and the full packing list with sizes.
 
