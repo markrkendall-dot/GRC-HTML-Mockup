@@ -12,6 +12,45 @@ Kit: SCHEMA.md v___, CONTRACT.md v___ (changed/unchanged)
 Version matrix: (paste the Preflight versions table here)
 ---- END TEMPLATE ----
 
+== R5 - 2026-08-23 - Capability 3: evidence-anchored inherent ratings ==
+Feedback closed: FB-019 (round R5 of the plan in docs/DEEPDIVE-C3-C5.md)
+Module changes:
+  modules/inherent.js NEW 1.0.0: rating landing (Rate by RAU /
+    Distribution / Completeness tabs, all in place), per-RAU worksheet
+    with caret-expandable instances, assistant-suggested levels with
+    evidence chips naming their sources, one-click accept, per-level
+    override with mandatory rationale, live band computation, peer
+    outlier and stale chips; Inherent rubric page (frequency-anchored
+    likelihood, four fact-anchored impact lenses, band grid, the
+    reputational-flag stance, CARA boundary note)
+  kernel/engine.js 1.1.0 -> 1.2.0: inherent section (level math mirrored
+    by the generator, suggestion with chips, band grid, max-band RAU
+    rollup with drivers and count strip, LOB peer-outlier check)
+  kernel/core.js 1.3.0 -> 1.4.0: ratings entity indexed with
+    ratingsOfRau/ratingOf/ratingsOfEvent/setRating (upsert); BUILT set
+    gains capability 3; ratings join confirmed register rows at read
+    time so a workbench Reopen simply stops counting the rating
+  modules/skeletons.js 1.0.1 -> 1.1.0: capability 3 skeleton retired,
+    cap3 route redirects to the real module
+  modules/rau.js -> 1.2.1: flat list gains an Inherent column
+  modules/rau-profile.js -> 1.3.0: Inherent risk card on the overview
+    (band, drivers, count strip, worksheet link)
+  modules/riskid.js -> 1.3.1: dispositioned confirmed rows show the
+    inherent band or a Rate shortcut that focuses the worksheet
+  modules/mywork.js -> 1.1.0: owner queue gains inherent ratings to
+    document
+  modules/demo.js -> 2.1.0: walkthrough gains two capability 3 scenes;
+    owner role demo gains a rating scene; copy updated to three built
+    capabilities
+  modules/home.js -> 1.2.1: box 3 opens the real module
+  index.html -> 1.3.0: ratings.js and inherent.js script tags
+Data: events gain errClass/sevClass/enfFlag/visClass; NEW ratings entity
+  (2,595 rows: suggested and final levels, overrides with rationale,
+  deliberate outliers and stale set; story RAU hand-rated with one
+  instance left open); release.js R5; ratings.csv template added.
+Kit: unchanged (v2 regenerates after the C3-C5 rounds stabilize).
+Version matrix: see Preflight in the app.
+
 == R4 - 2026-08-23 - Demo round ==
 Feedback closed: FB-014 through FB-018 (see FEEDBACK.md)
 Module changes:

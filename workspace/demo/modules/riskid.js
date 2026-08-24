@@ -1,4 +1,4 @@
-/* GRC modules/riskid.js v1.3.0 2026-08-23 */
+/* GRC modules/riskid.js v1.3.1 2026-08-23 */
 /* Capability 2: Operational & Compliance Risk Identification - the
    applicability workbench. The engine stack-ranks all 90 risk events (and
    the MCRs beneath compliance events) against the RAU's metadata; the
@@ -228,6 +228,15 @@
             { key: "st", label: "Decision", render: function (x) { return ui.badge(x.d.status, x.d.status === "confirmed" ? "ok" : ""); } },
             { key: "mcr", label: "MCRs", num: true, render: function (x) { return x.d.mcrIds ? String(x.d.mcrIds.length) : "-"; } },
             { key: "why", label: "Rationale", render: function (x) { return x.d.rationale ? ui.el("span", { class: "g-muted", style: "font-size:12px" }, x.d.rationale) : "-"; } },
+            { key: "rate", label: "Inherent", render: function (x) {
+              if (x.d.status !== "confirmed") return ui.el("span", { class: "g-muted" }, "-");
+              var t = data.ratingOf(r.id, x.s.ev.id);
+              if (t) {
+                var b = ctx.engine.inherent.band(ctx.engine.inherent.fromArray(t.f)).band;
+                return ui.badge(b.charAt(0).toUpperCase() + b.slice(1), b === "low" ? "ok" : b === "moderate" ? "info" : b === "high" ? "warn" : "bad");
+              }
+              return ui.el("button", { class: "g-btn sm", onclick: function (e) { e.stopPropagation(); ctx.state.set("inhFocus", x.s.ev.id); ctx.go("inherent/" + r.id); } }, "Rate");
+            } },
             { key: "re", label: "", render: function (x) { return ui.el("button", { class: "g-btn sm", onclick: function (e) { e.stopPropagation(); reopen(x); } }, "Reopen"); } }
           ], rows: done, page: 12
         }));
@@ -284,7 +293,7 @@
   }
 
   GRC.register({
-    id: "riskid", version: "1.3.0", tab: "RCSA",
+    id: "riskid", version: "1.3.1", tab: "RCSA",
     caps: {
       "riskid": { primary: [2], uses: [1] },
       "riskid/:rauId": { primary: [2], uses: [1], feeds: [3, 5] }

@@ -126,3 +126,9 @@ FB-018 | R3 | 2026-08-23 | Owner | modules/demo.js
   Status: ACCEPTED 2026-08-23
   Built: 2026-08-23 demo.js 2.0.0 "Birth of a RAU": intake, uniqueness, mapping, standards, governance with the five roles, metadata, active, risk identification
   Released: R4
+
+FB-019 | R4 | 2026-08-23 | Owner | modules/inherent.js
+  Ask: Build capability 3 per DEEPDIVE-C3-C5.md Revision 1: evidence-anchored inherent ratings of risk instances, suggestion with provenance, override-only rationale, max-band RAU rollup with count strip
+  Status: ACCEPTED 2026-08-23 (round R5 of the agreed plan)
+  Built: 2026-08-23 inherent.js 1.0.0, engine.js 1.2.0, core.js 1.4.0, ratings data entity, integrations in rau/rau-profile/riskid/mywork/demo
+  Released: R5

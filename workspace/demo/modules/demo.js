@@ -1,4 +1,4 @@
-/* GRC modules/demo.js v2.0.0 2026-08-23 */
+/* GRC modules/demo.js v2.1.0 2026-08-23 */
 /* Present: a demo picker. One full walkthrough, one order-of-operations
    story (the birth of a RAU), and one demo per role in the View-as picker,
    each following the workflow that role actually runs day to day. */
@@ -36,7 +36,7 @@
   function walkthroughScenes(ctx) {
     var g = finders(ctx);
     var s = [
-      { route: "home", title: "One platform, ten capabilities", text: "This is a clickable design proposal for the future GRC. The map shows all ten capabilities and how they feed each other; this release builds capabilities 1 and 2 end to end. Everything you are about to see runs on data shaped like the real inventory." },
+      { route: "home", title: "One platform, ten capabilities", text: "This is a clickable design proposal for the future GRC. The map shows all ten capabilities and how they feed each other; this release builds capabilities 1 through 3 end to end. Everything you are about to see runs on data shaped like the real inventory." },
       { route: "home", title: "The lens and the trace", text: "Click capability boxes on this map to isolate a scope: pick 1 and 2 and everything not supporting them grays out; add 3 and the picture grows. As you move through the tool, the strip under the tabs names the capability behind every screen, and key actions call out which capability they belong to. What is grayed will not work until its box is built." },
       { route: "raus", title: "Capability 1: the RAU inventory", text: "A RAU is the intersection of a business and a service, created at the SubLOB level. Filter the inventory by line of business, category, or risk identification status. Every column here is a real attribute the platform maintains." },
       { route: "raus/" + g.story.id, title: "One RAU's whole story", text: "Demographics describe the unit; attributes OBLIGATE it: they drive applicability, signal matching, and scoping. Check the Metadata survey tab: every answer shows where it came from: a map step, from services, or asked directly. The Process map tab shows the handoffs that wire this RAU to its counterparties." },
@@ -71,12 +71,20 @@
         text: "Eight thematic categories, 1-5 anchors, fixed weights, published bands, identical for every RAU. Applicability stops being hundreds of opinions and becomes one defensible calculation plus documented human judgment."
       },
       {
+        route: "inherent/" + g.story.id, title: "Capability 3: evidence-anchored inherent ratings",
+        text: "Every confirmed instance gets likelihood times impact on anchored scales. The assistant suggests each level from platform evidence: volume, losses, attached MCRs, handoff dependencies, each chip naming its source. Accepting is one click; overriding any level demands written rationale. One instance here is still unrated: open it and rate it live."
+      },
+      {
+        route: "inherent-rubric", title: "The inherent rubric: anchors, not opinions",
+        text: "Likelihood is anchored to frequency; impact is the worst credible outcome on four fact-anchored lenses. Reputational is deliberately not a scored dimension: it derives from customer reach, regulatory severity, and visibility. Subjectivity survives only in documented overrides, and the override rate itself becomes a program signal."
+      },
+      {
         route: "mcrlib", title: "The MCR library, published from RRCM",
         text: "Major Compliance Requirements arrive read-only from RRCM, each aligned upstream to a parent compliance risk event. A head set carries most RCSA frequency, and the library reflects that shape. Search anything."
       },
       {
-        route: "home", title: "And this is two capabilities of ten",
-        text: "Signals will feed changes into steps 1 and 2. Ratings, controls, RCSA cycles, testing, monitoring, and policy governance stack on the same foundation you just walked. The release number in the banner identifies this build; quote it in your feedback."
+        route: "home", title: "And this is three capabilities of ten",
+        text: "Signals will feed changes into steps 1 and 2. Controls, RCSA cycles with challenge and residual, testing, monitoring, and policy governance stack on the same foundation you just walked. The release number in the banner identifies this build; quote it in your feedback."
       });
     return s;
   }
@@ -139,8 +147,9 @@
       { route: "raus/" + g.story.id, title: "Your RAU, your accountabilities", text: "The profile is the owner's contract with the platform. Demographics say what the unit is; attributes obligate it downstream; the roles panel names you and your delegate, BCM, ORBO, and BACO. Stale profiles surface in quality views, so keeping this current is part of the job." },
       { route: "riskid/" + g.story.id, title: "First pass belongs to the front line", text: "The owner team decides which risks apply; you cannot lean on ORBO or BACO for the first pass. The engine stack-ranks every candidate against your metadata: confirm the likely, dismiss the unlikely, and work the ambiguous middle." },
       { route: "riskid/" + g.story.id, title: "Resolve, do not guess", text: "For a middle-band candidate, open Resolve. The system asks one or two targeted questions; your answer updates the RAU's metadata, so every candidate rescores consistently. If you mis-click a decision, Reopen on the dispositioned table takes it back." },
-      { route: "mywork", title: "Confirm what your counterparties declared", text: "Handoffs are trusted at submission and confirmed after. When another RAU declares it hands something to yours, it lands here for your confirmation, and the dependency network updates for both sides." },
-      { route: "cap5", title: "Where the challenge will meet you", text: "Your first-pass decisions are on the record with scores and rationale. When capability 5 lands, ORBO and BACO challenge happens there, on top of the evidence you just created. Nothing you did today gets re-typed." }
+      { route: "inherent/" + g.story.id, title: "Rate what you confirmed", text: "Confirmed instances move here for inherent rating. The assistant proposes every level with evidence chips naming their sources; you accept in one click or override with rationale. One instance on this RAU is still waiting for you." },
+      { route: "mywork", title: "Confirm what your counterparties declared", text: "Handoffs are trusted at submission and confirmed after. When another RAU declares it hands something to yours, it lands here for your confirmation, and the dependency network updates for both sides. Your open ratings queue sits here too." },
+      { route: "cap5", title: "Where the challenge will meet you", text: "Your first-pass decisions and ratings are on the record with scores, evidence, and rationale. When capability 5 lands, ORBO and BACO challenge happens there, on top of the evidence you just created. Nothing you did today gets re-typed." }
     ];
   }
 
@@ -216,7 +225,7 @@
   /* ==SECTION:catalog== */
   function catalog() {
     return [
-      { id: "walkthrough", group: "story", name: "Full walkthrough", blurb: "Capabilities 1 and 2 end to end: inventory, pipeline, workbench, rubric, library.", scenes: walkthroughScenes },
+      { id: "walkthrough", group: "story", name: "Full walkthrough", blurb: "Capabilities 1 through 3 end to end: inventory, pipeline, workbench, ratings, libraries.", scenes: walkthroughScenes },
       { id: "birth", group: "story", name: "Birth of a RAU", blurb: "The order of operations, one gate per scene: intake, uniqueness, mapping, standards, governance, metadata, active, risk identification.", scenes: birthScenes },
       { id: "role-owner", group: "role", name: "RAU Owner", blurb: "Own the record, take the first pass at risk identification, confirm inbound handoffs.", scenes: ownerScenes },
       { id: "role-delegate", group: "role", name: "RAU Owner Delegate", blurb: "Run the day to day: queues, intakes, survey answers, profile housekeeping.", scenes: delegateScenes },
@@ -273,7 +282,7 @@
   }
 
   GRC.register({
-    id: "demo", version: "2.0.0", tab: "Home",
+    id: "demo", version: "2.1.0", tab: "Home",
     caps: { "present": null },
     routes: { "present": present }
   });

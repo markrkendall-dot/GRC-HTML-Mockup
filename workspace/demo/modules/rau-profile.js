@@ -1,4 +1,4 @@
-/* GRC modules/rau-profile.js v1.2.0 2026-08-23 */
+/* GRC modules/rau-profile.js v1.3.0 2026-08-23 */
 /* Capability 1: the RAU profile - demographics, attributes, metadata survey
    with provenance, process map, handoffs, and the risk summary. */
 (function () {
@@ -228,6 +228,23 @@
       }))
     }));
     var right = ui.el("div");
+    var roll = ctx.engine.inherent.rollup(r);
+    function bk(b) { return b === "low" ? "ok" : b === "moderate" ? "info" : b === "high" ? "warn" : "bad"; }
+    function bl(b) { return b.charAt(0).toUpperCase() + b.slice(1); }
+    right.appendChild(ui.card({
+      title: "Inherent risk (Capability 3)",
+      body: ui.el("div", {}, [
+        roll.band ? ui.el("div", { class: "g-row" }, [
+          ui.badge(bl(roll.band), bk(roll.band)),
+          ui.el("span", { class: "g-muted", style: "font-size:12.5px" }, "highest instance band, driven by " + roll.drivers.join("; "))]) :
+          ui.el("p", { class: "g-muted", style: "font-size:12.5px;margin:0" }, "No instances rated yet."),
+        ui.el("div", { class: "g-row", style: "margin-top:6px" },
+          ["critical", "high", "moderate", "low"].map(function (b) {
+            return roll.counts[b] ? ui.el("span", { class: "g-badge g-badge--" + bk(b), title: bl(b) }, roll.counts[b] + bl(b).slice(0, 1)) : null;
+          })),
+        ui.el("p", { class: "g-muted", style: "font-size:12px;margin:8px 0 0" }, roll.rated + " of " + roll.confirmed + " confirmed instances rated on the evidence-anchored rubric."),
+        ui.el("button", { class: "g-btn sm", style: "margin-top:6px", onclick: function () { ctx.go("inherent/" + r.id); } }, "Open rating worksheet")])
+    }));
     var tagWrap = ui.el("div");
     (r.meta.tags || []).forEach(function (t) { tagWrap.appendChild(ui.pill(t)); });
     var exWrap = ui.el("div");
@@ -335,8 +352,8 @@
   }
 
   GRC.register({
-    id: "rau-profile", version: "1.2.0", tab: "RCSA",
-    caps: { "raus/:id": { primary: [1], uses: [2] } },
+    id: "rau-profile", version: "1.3.0", tab: "RCSA",
+    caps: { "raus/:id": { primary: [1], uses: [2, 3] } },
     routes: { "raus/:id": profile }
   });
 })();

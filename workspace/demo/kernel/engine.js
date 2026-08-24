@@ -1,4 +1,4 @@
-/* GRC kernel/engine.js v1.1.0 2026-08-23 */
+/* GRC kernel/engine.js v1.2.0 2026-08-23 */
 /* The applicability engine: deterministic, rubric-standardized attribute
    comparison between a RAU's metadata and Risk Event / MCR profiles.
    Same math for all 850 RAUs. Mirrors tools-dev/generate-data.js exactly
@@ -137,9 +137,149 @@
     return out;
   }
 
+  /* ==SECTION:inherent== */
+  /* Capability 3: evidence-anchored inherent rating. Likelihood x impact,
+     5 levels each; impact = the worst credible outcome across four
+     fact-anchored lenses. Level math mirrors tools-dev/generate-data.js
+     exactly so shipped ratings reconcile with live suggestions. Chips are
+     built at runtime only. Reputational is a derived flag, not a lens. */
+  var INH = {
+    likelihood: [
+      { n: "Rare", a: "Less than once in 10 years" },
+      { n: "Unlikely", a: "Once in 3 to 10 years" },
+      { n: "Possible", a: "Once in 1 to 3 years" },
+      { n: "Likely", a: "1 to 12 times a year" },
+      { n: "Expected", a: "12 or more times a year" }],
+    lenses: [
+      { key: "fin", label: "Financial", a: ["Under $50k", "$50k to $500k", "$500k to $5M", "$5M to $25M", "Over $25M"] },
+      { key: "cust", label: "Customer", a: ["Under 10 customers", "10 to 100 customers", "100 to 10,000 customers", "10,000 to 100,000 customers", "Over 100,000 or systemic restitution"] },
+      { key: "reg", label: "Regulatory", a: ["No obligation nexus", "Obligation nexus; informal criticism plausible", "MRA-class finding plausible", "Civil money penalty or formal action plausible", "Consent order or license-threatening"] },
+      { key: "ops", label: "Operational disruption", a: ["Under 1 hour of degradation", "Under 1 day", "1 to 3 days, or a week of backlog", "3 to 10 days", "Over 10 days, or market-facing outage"] }],
+    grid: [ /* [impact-1][likelihood-1] -> band */
+      ["low", "low", "moderate", "moderate", "high"],
+      ["low", "moderate", "moderate", "high", "high"],
+      ["low", "moderate", "high", "high", "critical"],
+      ["moderate", "high", "high", "critical", "critical"],
+      ["moderate", "high", "critical", "critical", "critical"]],
+    bands: ["low", "moderate", "high", "critical"]
+  };
+  function clamp5(x) { return x < 1 ? 1 : x > 5 ? 5 : x; }
+  function hasTag(rau, prefix) {
+    var tags = (rau.meta && rau.meta.tags) || [];
+    for (var i = 0; i < tags.length; i++) { if (tags[i].indexOf(prefix) === 0) return tags[i]; }
+    return null;
+  }
+  /* MIRRORED in generate-data.js: keep byte-for-byte logic identical. */
+  function inherentLevels(rau, ev, mcrN) {
+    var vol = rau.annualVolume || 0;
+    var err = ev.errClass || 3, sev = ev.sevClass || 3;
+    var l = 1 + (vol >= 6000000 ? 3 : vol >= 2500000 ? 2 : vol >= 500000 ? 1 : 0);
+    if (err >= 4) l += 1;
+    if ((rau.priorLosses12m || 0) > 0) l += 1;
+    if (rau.changeLevel === "high") l += 1;
+    if (err <= 1) l -= 1;
+    var mm = hasTag(rau, "mm:");
+    var moves = mm && mm !== "mm:no-money-movement";
+    var fin = sev + (moves && vol >= 2500000 ? 1 : 0);
+    var cust = 1;
+    if (hasTag(rau, "cust:consumer")) {
+      cust = vol >= 2500000 ? 4 : vol >= 500000 ? 3 : 2;
+      if (ev.side === "compliance" && mcrN >= 5) cust += 1;
+    }
+    var reg;
+    if (ev.side === "compliance") reg = 2 + (mcrN >= 3 ? 1 : 0) + (ev.enfFlag ? 1 : 0);
+    else reg = 1 + (ev.enfFlag ? 1 : 0);
+    var ho = (rau.handoffs || []).length;
+    var ops = 1 + (ho >= 6 ? 2 : ho >= 3 ? 1 : 0) + (vol >= 2500000 ? 1 : 0) + (err >= 5 ? 1 : 0);
+    return { l: clamp5(l), fin: clamp5(fin), cust: clamp5(cust), reg: clamp5(reg), ops: clamp5(ops) };
+  }
+  function inherentBand(levels) {
+    var impact = Math.max(levels.fin, levels.cust, levels.reg, levels.ops);
+    var driver = null;
+    INH.lenses.forEach(function (x) { if (!driver && levels[x.key] === impact) driver = x; });
+    return { impact: impact, driver: driver, band: INH.grid[impact - 1][levels.l - 1] };
+  }
+  function levelsFromArray(a) { return { l: a[0], fin: a[1], cust: a[2], reg: a[3], ops: a[4] }; }
+  function inherentSuggest(rau, ev, regRow) {
+    var mcrN = regRow && regRow.mcrIds ? regRow.mcrIds.length : 0;
+    var lv = inherentLevels(rau, ev, mcrN);
+    var vol = rau.annualVolume || 0;
+    var chips = { l: [], fin: [], cust: [], reg: [], ops: [] };
+    function num(x) { return String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+    chips.l.push("Annual volume " + num(vol) + " items (RAU profile)");
+    chips.l.push("Error propensity class " + (ev.errClass || 3) + " of 5 (event profile)");
+    if ((rau.priorLosses12m || 0) > 0) chips.l.push("Prior 12-month losses $" + num(rau.priorLosses12m) + " (RAU profile)");
+    if (rau.changeLevel === "high") chips.l.push("Change level high (RAU profile)");
+    chips.fin.push("Typical severity class " + (ev.sevClass || 3) + " of 5 (event profile)");
+    var mm = hasTag(rau, "mm:");
+    if (mm && mm !== "mm:no-money-movement") chips.fin.push("Money movement: " + mm.slice(3) + (vol >= 2500000 ? " at high volume" : "") + " (metadata)");
+    if (hasTag(rau, "cust:consumer")) {
+      chips.cust.push("Consumer-facing (metadata survey)");
+      chips.cust.push("Volume scales a credible event to the " + INH.lenses[1].a[lv.cust - 1].toLowerCase() + " range");
+      if (ev.side === "compliance" && mcrN >= 5) chips.cust.push(mcrN + " MCRs attached: restitution-program potential (register)");
+    } else chips.cust.push("No direct consumer contact (metadata survey)");
+    if (ev.side === "compliance") {
+      chips.reg.push(mcrN + " MCR" + (mcrN === 1 ? "" : "s") + " attached to this instance (register)");
+      if (ev.enfFlag) chips.reg.push("Enforcement history in this obligation family (event profile)");
+    } else {
+      chips.reg.push(ev.enfFlag ? "Regulatory overlay on this event type (event profile)" : "Limited obligation nexus (event profile)");
+    }
+    var ho = (rau.handoffs || []).length;
+    chips.ops.push(ho + " handoff dependencies (process map)");
+    if (vol >= 2500000) chips.ops.push("High volume amplifies backlog risk (RAU profile)");
+    var bb = inherentBand(lv);
+    var rep = lv.cust >= 4 || lv.reg >= 4 || (ev.visClass || 1) >= 3;
+    return { levels: lv, impact: bb.impact, driver: bb.driver, band: bb.band, rep: rep, chips: chips };
+  }
+  /* RAU rollup: highest final band wins, named drivers, count strip. */
+  function inherentOf(rau) {
+    var data = GRC.ctx.data;
+    var counts = { critical: 0, high: 0, moderate: 0, low: 0 };
+    var confirmed = 0, rated = 0, best = -1, drivers = [];
+    data.regOfRau(rau.id).forEach(function (g) {
+      if (g.status !== "confirmed") return;
+      confirmed++;
+      var t = data.ratingOf(rau.id, g.eventId);
+      if (!t) return;
+      rated++;
+      var bb = inherentBand(levelsFromArray(t.f));
+      counts[bb.band]++;
+      var bi = INH.bands.indexOf(bb.band);
+      if (bi > best) { best = bi; drivers = []; }
+      if (bi === best) {
+        var ev = data.byId("riskEvents", g.eventId);
+        if (drivers.length < 3) drivers.push(ev ? ev.name : g.eventId);
+      }
+    });
+    return { band: best >= 0 ? INH.bands[best] : null, counts: counts, drivers: drivers, rated: rated, confirmed: confirmed };
+  }
+  /* Peer consistency: final band vs the LOB median for the same event. */
+  function peerOutlier(rau, eventId, finalLevels) {
+    var data = GRC.ctx.data;
+    var lobId = data.orgPath(rau.subLobId).lobId;
+    var idx = [];
+    data.ratingsOfEvent(eventId).forEach(function (t) {
+      if (t.rauId === rau.id) return;
+      var r = data.byId("raus", t.rauId);
+      if (!r || data.orgPath(r.subLobId).lobId !== lobId) return;
+      idx.push(INH.bands.indexOf(inherentBand(levelsFromArray(t.f)).band));
+    });
+    if (idx.length < 3) return null;
+    idx.sort(function (a, b) { return a - b; });
+    var med = idx[Math.floor(idx.length / 2)];
+    var mine = INH.bands.indexOf(inherentBand(finalLevels).band);
+    if (Math.abs(mine - med) < 2) return null;
+    return { peers: idx.length, median: INH.bands[med], mine: INH.bands[mine] };
+  }
+
   GRC.engine = {
     rubric: rubric, score: score, suppressedBy: suppressedBy,
     candidates: candidates, zones: zones, mcrCandidates: mcrCandidates,
-    questionsFor: questionsFor, answer: answer, mcrFit: mcrFit
+    questionsFor: questionsFor, answer: answer, mcrFit: mcrFit,
+    inherent: {
+      def: INH, levels: inherentLevels, band: inherentBand,
+      fromArray: levelsFromArray, suggest: inherentSuggest,
+      rollup: inherentOf, peerOutlier: peerOutlier
+    }
   };
 })();

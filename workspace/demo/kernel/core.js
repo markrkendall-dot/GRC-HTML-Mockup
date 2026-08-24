@@ -1,4 +1,4 @@
-/* GRC kernel/core.js v1.3.0 2026-08-23 */
+/* GRC kernel/core.js v1.4.0 2026-08-23 */
 /* Kernel: module registry (tab/rail), hash router, data indexing, state,
    formatting, preflight, guided tour, reset. No dependencies, file:// safe. */
 (function () {
@@ -37,7 +37,7 @@
     9: { name: "Monitoring", needs: [1, 2, 3, 4, 5, 6] },
     10: { name: "Policy Governance", needs: [] }
   };
-  var BUILT = { 1: true, 2: true };
+  var BUILT = { 1: true, 2: true, 3: true };
   GRC.caps = {
     all: CAPS,
     name: function (n) { return CAPS[n] ? CAPS[n].name : "Capability " + n; },
@@ -155,7 +155,7 @@
   function indexData() {
     var raw = window.GRC_DATA || {};
     D = { entities: {}, byId: {}, ver: {} };
-    ["orgNodes", "services", "raus", "riskEvents", "mcrs", "register", "requests", "metaQuestions", "rubric"].forEach(function (k) {
+    ["orgNodes", "services", "raus", "riskEvents", "mcrs", "register", "requests", "metaQuestions", "rubric", "ratings"].forEach(function (k) {
       var src = raw[k] || { version: "-", rows: [] };
       D.entities[k] = clone(src.rows || []);
       D.ver[k] = src.version || "-";
@@ -178,6 +178,12 @@
     });
     D.mcrsByEvent = {};
     D.entities.mcrs.forEach(function (m) { (D.mcrsByEvent[m.parentEventId] = D.mcrsByEvent[m.parentEventId] || []).push(m); });
+    D.ratByRau = {}; D.ratByEvent = {}; D.ratKey = {};
+    D.entities.ratings.forEach(function (t) {
+      (D.ratByRau[t.rauId] = D.ratByRau[t.rauId] || []).push(t);
+      (D.ratByEvent[t.eventId] = D.ratByEvent[t.eventId] || []).push(t);
+      D.ratKey[t.rauId + "|" + t.eventId] = t;
+    });
   }
 
   /* ==SECTION:data-api== */
@@ -216,6 +222,21 @@
       drop(D.entities.register);
       drop(D.regByRau[row.rauId] || []);
       drop(D.regByEvent[row.eventId] || []);
+    },
+    /* Ratings join to CONFIRMED register rows at read time, so a reopened
+       instance simply stops counting; if re-confirmed, its rating returns. */
+    ratingsOfRau: function (rauId) { return D.ratByRau[rauId] || []; },
+    ratingsOfEvent: function (evId) { return D.ratByEvent[evId] || []; },
+    ratingOf: function (rauId, evId) { return D.ratKey[rauId + "|" + evId] || null; },
+    setRating: function (row) {
+      var key = row.rauId + "|" + row.eventId;
+      var old = D.ratKey[key];
+      function drop(arr) { var i = arr.indexOf(old); if (i >= 0) arr.splice(i, 1); }
+      if (old) { drop(D.entities.ratings); drop(D.ratByRau[old.rauId] || []); drop(D.ratByEvent[old.eventId] || []); }
+      D.entities.ratings.push(row);
+      (D.ratByRau[row.rauId] = D.ratByRau[row.rauId] || []).push(row);
+      (D.ratByEvent[row.eventId] = D.ratByEvent[row.eventId] || []).push(row);
+      D.ratKey[key] = row;
     },
     metrics: function () {
       var raus = D.entities.raus, reg = D.entities.register;
@@ -458,7 +479,7 @@
     pf.className = "";
     var m = data.metrics();
     var rows = "";
-    ["orgNodes", "services", "raus", "riskEvents", "mcrs", "register", "requests", "metaQuestions", "rubric"].forEach(function (k) {
+    ["orgNodes", "services", "raus", "riskEvents", "mcrs", "register", "requests", "metaQuestions", "rubric", "ratings"].forEach(function (k) {
       rows += "<tr><td>" + k + "</td><td class='num'>" + fmt.num(D.entities[k].length) + "</td><td class='g-mono'>" + D.ver[k] + "</td></tr>";
     });
     var mods = "";

@@ -1,4 +1,4 @@
-/* GRC modules/rau.js v1.2.0 2026-08-23 */
+/* GRC modules/rau.js v1.2.1 2026-08-23 */
 /* Capability 1: RAU directory (hierarchy tree with carets, flat list as a
    toggle) and profile quality. Expanding levels never leaves the page.
    The tree and the flat list share one set of filters; while a filter is
@@ -147,6 +147,7 @@
         { key: "category", label: "Category", render: function (r) { return fmt.cat(r.category); } },
         { key: "owner", label: "RAU Owner", render: function (r) { return r.roles.owner; } },
         { key: "riskIdStatus", label: "Risk ID", sort: true, render: function (r) { return ui.badge(r.riskIdStatus.replace("-", " "), fmt.riskIdKind(r.riskIdStatus)); } },
+        { key: "inherent", label: "Inherent", sort: true, sortVal: function (r) { return ["low", "moderate", "high", "critical"].indexOf(ctx.engine.inherent.rollup(r).band); }, render: function (r) { var b = ctx.engine.inherent.rollup(r).band; return b ? ui.badge(b.charAt(0).toUpperCase() + b.slice(1), b === "low" ? "ok" : b === "moderate" ? "info" : b === "high" ? "warn" : "bad") : ui.el("span", { class: "g-muted" }, "-"); } },
         { key: "risks", label: "Confirmed risks", num: true, sort: true, sortVal: function (r) { return data.regOfRau(r.id).filter(function (g) { return g.status === "confirmed"; }).length; }, render: function (r) { return String(data.regOfRau(r.id).filter(function (g) { return g.status === "confirmed"; }).length); } },
         { key: "lastRcsaDate", label: "Last RCSA", sort: true, render: function (r) { return fmt.date(r.lastRcsaDate); } }
       ],
@@ -183,7 +184,7 @@
   }
 
   GRC.register({
-    id: "rau", version: "1.2.0", tab: "RCSA",
+    id: "rau", version: "1.2.1", tab: "RCSA",
     caps: { "*": { primary: [1] } },
     rail: [
       { label: "1. RAUs", route: "raus", order: 10 },

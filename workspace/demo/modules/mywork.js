@@ -1,4 +1,4 @@
-/* GRC modules/mywork.js v1.0.2 2026-08-23 */
+/* GRC modules/mywork.js v1.1.0 2026-08-23 */
 /* My Work: role-aware queues. Switch "View as" in the banner to change hats. */
 (function () {
   "use strict";
@@ -56,6 +56,24 @@
           ], rows: todo, onRow: function (r) { ctx.go("riskid/" + r.id); }
         }) : ui.empty("All caught up.")
       }));
+      /* inherent ratings to document (Capability 3) */
+      var rateTodo = [];
+      for (var ri2 = 0; ri2 < data.all("raus").length && rateTodo.length < 8; ri2++) {
+        var rr2 = data.all("raus")[ri2];
+        var roll2 = ctx.engine.inherent.rollup(rr2);
+        if (roll2.confirmed && roll2.rated < roll2.confirmed) rateTodo.push({ r: rr2, roll: roll2 });
+      }
+      el.appendChild(ui.card({
+        title: "Inherent ratings to document",
+        body: rateTodo.length ? ui.table({
+          cols: [
+            { key: "id", label: "RAU", render: function (x) { return ui.el("span", { class: "g-mono" }, x.r.id); } },
+            { key: "name", label: "Name", render: function (x) { return x.r.name; } },
+            { key: "gap", label: "Unrated instances", num: true, render: function (x) { return String(x.roll.confirmed - x.roll.rated); } },
+            { key: "go", label: "", render: function () { return ui.el("button", { class: "g-btn sm" }, "Open worksheet"); } }
+          ], rows: rateTodo, onRow: function (x) { ctx.go("inherent/" + x.r.id); }
+        }) : ui.empty("Every confirmed instance on your RAUs is rated.")
+      }));
       /* handoff confirmations */
       var pend = [];
       data.all("raus").forEach(function (r) {
@@ -101,8 +119,8 @@
   }
 
   GRC.register({
-    id: "mywork", version: "1.0.2", tab: "RCSA",
-    caps: { "mywork": { primary: [1, 2] } },
+    id: "mywork", version: "1.1.0", tab: "RCSA",
+    caps: { "mywork": { primary: [1, 2, 3] } },
     routes: { "mywork": mywork }
   });
 })();

@@ -363,6 +363,38 @@ var riskEvents = [];
     if (EXCL_MAP[base]) ev.excludedBy = [EXCL_MAP[base]];
   });
 })();
+/* ==SECTION:event-risk-profile== */
+/* Capability 3 fields: error propensity, typical severity, enforcement
+   history, external visibility. Curated for named obligation families,
+   seeded defaults elsewhere. */
+var EV_PROFILE = {
+  "Sanctions Screening Failure": { sev: 5, enf: 1, vis: 2 },
+  "BSA/AML Program Failure": { sev: 4, enf: 1, vis: 2 },
+  "UDAAP - Unfair or Deceptive Practice": { sev: 4, enf: 1, vis: 3 },
+  "Fair Lending Violation": { sev: 4, enf: 1, vis: 3 },
+  "Error Resolution Failure (Reg E)": { sev: 2, enf: 1, vis: 2 },
+  "Mortgage Servicing Rule Violation (Reg X)": { sev: 3, enf: 1, vis: 2 },
+  "Privacy or Data Protection Violation": { sev: 3, enf: 0, vis: 3 },
+  "Debt Collection Practice Violation (FDCPA)": { sev: 2, enf: 1, vis: 2 },
+  "Servicemember Protections Violation (SCRA/MLA)": { sev: 3, enf: 1, vis: 3 },
+  "Fiduciary Duty Breach": { sev: 4, enf: 0, vis: 2 },
+  "Volcker/Trading Compliance Failure": { sev: 4, enf: 0, vis: 1 }
+};
+riskEvents.forEach(function (ev) {
+  var base = ev.name.replace(/ - (Origination|Servicing|Operations|Institutional|Consumer|Commercial)$/, "");
+  var p = EV_PROFILE[base] || null;
+  if (ev.side === "operational") {
+    ev.errClass = pick([2, 3, 3, 4, 4, 5]);
+    ev.sevClass = p ? p.sev : pick([2, 2, 3, 3, 4]);
+    ev.enfFlag = p ? !!p.enf : chance(0.08);
+    ev.visClass = p ? p.vis : (chance(0.15) ? 2 : 1);
+  } else {
+    ev.errClass = pick([1, 2, 2, 3, 3, 4]);
+    ev.sevClass = p ? p.sev : 3;
+    ev.enfFlag = p ? !!p.enf : chance(0.2);
+    ev.visClass = p ? p.vis : (chance(0.3) ? 2 : 1);
+  }
+});
 var cmEventIds = riskEvents.filter(function (e) { return e.side === "compliance"; }).map(function (e) { return e.id; });
 
 /* ==SECTION:mcrs== */
@@ -505,6 +537,111 @@ var register = [];
   }
 })();
 
+/* ==SECTION:ratings== */
+/* Capability 3: inherent ratings per confirmed risk instance.
+   Level math MIRRORS kernel/engine.js inherentLevels exactly, so shipped
+   suggested levels reconcile with live recomputation. Rows: s = suggested
+   [likelihood, financial, customer, regulatory, operational], f = final,
+   ov = overridden, note = override rationale. */
+function inhHasTag(rau, prefix) {
+  var tags = (rau.meta && rau.meta.tags) || [];
+  for (var i = 0; i < tags.length; i++) { if (tags[i].indexOf(prefix) === 0) return tags[i]; }
+  return null;
+}
+function inhClamp(x) { return x < 1 ? 1 : x > 5 ? 5 : x; }
+function inhLevels(rau, ev, mcrN) {
+  var vol = rau.annualVolume || 0;
+  var err = ev.errClass || 3, sev = ev.sevClass || 3;
+  var l = 1 + (vol >= 6000000 ? 3 : vol >= 2500000 ? 2 : vol >= 500000 ? 1 : 0);
+  if (err >= 4) l += 1;
+  if ((rau.priorLosses12m || 0) > 0) l += 1;
+  if (rau.changeLevel === "high") l += 1;
+  if (err <= 1) l -= 1;
+  var mm = inhHasTag(rau, "mm:");
+  var moves = mm && mm !== "mm:no-money-movement";
+  var fin = sev + (moves && vol >= 2500000 ? 1 : 0);
+  var cust = 1;
+  if (inhHasTag(rau, "cust:consumer")) {
+    cust = vol >= 2500000 ? 4 : vol >= 500000 ? 3 : 2;
+    if (ev.side === "compliance" && mcrN >= 5) cust += 1;
+  }
+  var reg;
+  if (ev.side === "compliance") reg = 2 + (mcrN >= 3 ? 1 : 0) + (ev.enfFlag ? 1 : 0);
+  else reg = 1 + (ev.enfFlag ? 1 : 0);
+  var ho = (rau.handoffs || []).length;
+  var ops = 1 + (ho >= 6 ? 2 : ho >= 3 ? 1 : 0) + (vol >= 2500000 ? 1 : 0) + (err >= 5 ? 1 : 0);
+  return [inhClamp(l), inhClamp(fin), inhClamp(cust), inhClamp(reg), inhClamp(ops)];
+}
+var OV_NOTES = [
+  "Volume overstates exposure here: most items are book-entry with no external movement.",
+  "Prior-period remediation added a systemic control; recurrence evidence supports the lower frequency.",
+  "Carrier concentration raises the credible customer count above the volume anchor.",
+  "Losses in the last cycle exceeded the class anchor; rated to observed severity.",
+  "Downstream dependency has a same-day manual workaround; disruption anchor overstated.",
+  "Obligation applies to a narrow product slice of this RAU; nexus is thinner than the MCR count implies."
+];
+var ratings = [];
+(function buildRatings() {
+  var rauById = {};
+  raus.forEach(function (r) { rauById[r.id] = r; });
+  var evById = {};
+  riskEvents.forEach(function (e) { evById[e.id] = e; });
+  var outliersLeft = 10;
+  register.forEach(function (g) {
+    if (g.status !== "confirmed" || g.rauId === STORY_ID) return;
+    var rau = rauById[g.rauId], ev = evById[g.eventId];
+    if (!rau || !ev) return;
+    var pRated = rau.riskIdStatus === "complete" ? 0.9 : 0.55;
+    if (!chance(pRated)) return;
+    var mcrN = g.mcrIds ? g.mcrIds.length : 0;
+    var s = inhLevels(rau, ev, mcrN);
+    var f = s.slice();
+    var ov = 0, note;
+    if (outliersLeft > 0 && chance(0.004)) {
+      /* deliberate peer outlier: a big shove for the attention story */
+      outliersLeft--;
+      var di = ri(5);
+      f[di] = inhClamp(f[di] + pick([-3, 3]));
+      if (f[di] !== s[di]) { ov = 1; note = pick(OV_NOTES); }
+    } else if (chance(0.12)) {
+      var dj = ri(5);
+      f[dj] = inhClamp(f[dj] + pick([-1, 1]));
+      if (f[dj] !== s[dj]) { ov = 1; note = pick(OV_NOTES); }
+    }
+    var row = {
+      rauId: g.rauId, eventId: g.eventId, s: s, f: f, ov: ov,
+      by: chance(0.7) ? rau.roles.owner : rau.roles.delegate,
+      date: chance(0.08) ? dateBack(380 + ri(300)) : dateBack(320)
+    };
+    if (note) row.note = note;
+    ratings.push(row);
+  });
+  /* Story RAU: every confirmed instance rated except one operational
+     instance left open for the live demo; two hand-crafted overrides. */
+  var story = rauById[STORY_ID];
+  if (story) {
+    var srows = register.filter(function (g) { return g.rauId === STORY_ID && g.status === "confirmed"; });
+    var lastOp = null;
+    srows.forEach(function (g) { if (evById[g.eventId].side === "operational") lastOp = g; });
+    srows.forEach(function (g) {
+      var ev = evById[g.eventId];
+      if (g === lastOp) return; /* left unrated for the live demo */
+      var mcrN = g.mcrIds ? g.mcrIds.length : 0;
+      var s = inhLevels(story, ev, mcrN);
+      var f = s.slice();
+      var row = { rauId: STORY_ID, eventId: g.eventId, s: s, f: f, ov: 0, by: story.roles.owner, date: dateBack(15) };
+      if (ev.name.indexOf("Mortgage Servicing") === 0) {
+        f[2] = inhClamp(f[2] + 1); row.ov = 1;
+        row.note = "Escrow errors reach the full serviced portfolio; carrier concentration raises the credible customer count above the volume anchor.";
+      } else if (ev.name.indexOf("Sanctions") === 0) {
+        f[1] = inhClamp(f[1] - 1); row.ov = 1;
+        row.note = "Disbursements are dual-approved above threshold; a credible single event sits below the class anchor.";
+      }
+      ratings.push(row);
+    });
+  }
+})();
+
 /* ==SECTION:requests== */
 var requests = [];
 (function buildRequests() {
@@ -588,9 +725,10 @@ sizes.register = writeData("register", register);
 sizes.requests = writeData("requests", requests);
 sizes.metaquestions = writeData("metaQuestions", META_QS);
 sizes.rubric = writeData("rubric", [], { def: rubric });
+sizes.ratings = writeData("ratings", ratings);
 fs.writeFileSync(path.join(OUT, "release.js"),
   "window.GRC_DATA = window.GRC_DATA || {};\n" +
-  "window.GRC_DATA.release = {number:\"R4\", date:\"" + TODAY + "\", label:\"Demo round: role demos, birth of a RAU, tree filters, drafts, reopen\"};\n");
+  "window.GRC_DATA.release = {number:\"R5\", date:\"" + TODAY + "\", label:\"Capability 3: evidence-anchored inherent ratings\"};\n");
 
 /* ==SECTION:csv-templates== */
 function csv(name, headers, rows) {
@@ -614,9 +752,10 @@ csv("services", ["id", "parentId", "level", "name"], services.slice(0, 5));
 csv("riskevents", ["id", "side", "name", "description", "qualification", "keywords", "tags", "excludedBy"], riskEvents.slice(0, 3));
 csv("mcrs", ["id", "name", "parentEventId", "regFamily", "citation", "regulator", "publishedDate", "tags", "obligations", "prohibitions"], mcrs.slice(0, 3));
 csv("register", ["rauId", "eventId", "status", "score", "mcrIds", "by", "date", "rationale"], register.slice(0, 3));
+csv("ratings", ["rauId", "eventId", "s", "f", "ov", "note", "by", "date"], ratings.slice(0, 3));
 
 /* ==SECTION:stats== */
 console.log("orgNodes", orgNodes.length, "| services", services.length, "| raus", raus.length,
   "| events", riskEvents.length, "| mcrs", mcrs.length, "| register", register.length,
-  "| requests", requests.length, "| featured", featured.length);
+  "| requests", requests.length, "| ratings", ratings.length, "| featured", featured.length);
 Object.keys(sizes).forEach(function (k) { console.log(k, Math.round(sizes[k] / 1024) + " KB"); });

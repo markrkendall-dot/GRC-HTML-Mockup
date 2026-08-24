@@ -1,22 +1,12 @@
-/* GRC modules/skeletons.js v1.0.1 2026-08-23 */
-/* Skeleton pages for capabilities 3, 4, and 5 so all ten capabilities are
-   recognized in the tool, with their place in the flow, even before they
-   are built. Each page states purpose, inputs, outputs, and the planned
+/* GRC modules/skeletons.js v1.1.0 2026-08-23 */
+/* Skeleton pages for capabilities not yet built, so all ten capabilities
+   are recognized in the tool with their place in the flow. Capability 3
+   graduated to modules/inherent.js in R5; its old route redirects. Each
+   remaining page states purpose, inputs, outputs, and the planned
    screens, and invites feedback through the pill. */
 (function () {
   "use strict";
   var CAPS = {
-    cap3: {
-      n: 3, title: "Inherent Risk Rating Documentation & Calculation",
-      purpose: "Document and calculate the inherent risk of each confirmed risk on a RAU: likelihood, impact across the standard dimensions, and a written rationale, on the program's inherent rating rubric.",
-      consumes: "The confirmed risk register from Capability 2, RAU metadata and volumes from Capability 1.",
-      produces: "Inherent ratings and rationale per risk, feeding residual risk calculation in Capability 5 and prioritization in Capabilities 7 and 9.",
-      screens: [
-        "Rating worksheet per risk: likelihood pick with anchored definitions, impact scored per dimension, calculated score and band, required rationale",
-        "Documentation completeness view: risks missing rationale or with stale ratings",
-        "Rating distribution across a RAU, SubLOB, or LOB, expandable in place"],
-      note: "The inherent rating rubric is its own standard, separate from the applicability rubric in Capability 2."
-    },
     cap4: {
       n: 4, title: "Control Identification",
       purpose: "Identify and map controls to the confirmed risks on each RAU: what the control is, who owns it, whether it is key, and which risks it addresses.",
@@ -76,17 +66,18 @@
   }
 
   GRC.register({
-    id: "skeletons", version: "1.0.1", tab: "RCSA",
+    id: "skeletons", version: "1.1.0", tab: "RCSA",
     caps: {
-      "cap3": { primary: [3], uses: [2], preview: true },
       "cap4": { primary: [4], uses: [2], preview: true },
       "cap5": { primary: [5], uses: [3, 4], preview: true }
     },
     rail: [
-      { label: "3. Inherent ratings", route: "cap3", order: 22 },
       { label: "4. Controls", route: "cap4", order: 24 },
       { label: "5. RCSA cycles", route: "cap5", order: 26 }
     ],
-    routes: { "cap3": skeleton("cap3"), "cap4": skeleton("cap4"), "cap5": skeleton("cap5") }
+    routes: {
+      "cap3": function (el, ctx) { ctx.go("inherent"); },
+      "cap4": skeleton("cap4"), "cap5": skeleton("cap5")
+    }
   });
 })();
