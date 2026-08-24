@@ -12,6 +12,61 @@ Kit: SCHEMA.md v___, CONTRACT.md v___ (changed/unchanged)
 Version matrix: (paste the Preflight versions table here)
 ---- END TEMPLATE ----
 
+== R7 - 2026-08-23 - Capability 5: the living RCSA ==
+Feedback closed: FB-021 (round R7 of the plan in docs/DEEPDIVE-C3-C5.md)
+Module changes:
+  modules/rcsa.js NEW 1.0.0: affirmation dashboard (LOB tree, states
+    Current / Changes pending / Due / Overdue, residual strips,
+    direction vs the last signature); assessment workspace (lines read
+    inherent x control environment = residual via the knockdown rule,
+    CHANGED and CHALLENGED chips, links into the worksheet and attach
+    flow); what-changed adoption queue with Adopt / Adopt all; the
+    affirmation gate (all rated, changes adopted, challenges resolved)
+    and owner signature with stored snapshot; challenge log per RAU and
+    global with respond (agree-and-change or stands) and resolve
+    (uphold / withdraw); 2LOD attention view ranking peer outliers,
+    score-band mismatches, expected gaps, override density, aging
+    changes, and open challenges, with session Reviewed dismissal;
+    GRC.challenge drawer, the in-universe sibling of the feedback bar
+  kernel/engine.js 1.3.0 -> 1.4.0: rcsa section (effectiveness = weaker
+    of design and performance; environment Strong/Adequate/Weak;
+    residual knockdown to High/Moderate/Low; per-RAU residual profile;
+    affirmation state; bank-wide attention ranking)
+  kernel/core.js 1.5.0 -> 1.6.0: affirmations and challenges indexed;
+    LIVING-RECORD HOOKS: addRegister/removeRegister/setRating/addLink/
+    removeLink now queue human-readable unadopted changes on the RAU;
+    setControlRating logs to every linked RAU; addChallenge, adoptChange,
+    affirm APIs; BUILT set gains capability 5 (all five RCSA-spine
+    capabilities are now built)
+  modules/controls.js -> 1.1.0: design and performance ratings are
+    editable on the control detail (effectiveness, environment strength,
+    and residual recompute everywhere on change); Challenge button
+  modules/riskid.js -> 1.4.1, modules/inherent.js -> 1.1.0: Challenge
+    buttons on dispositions and ratings
+  modules/rau.js -> 1.3.0: directory gains a Residual column
+  modules/rau-profile.js -> 1.5.0: Residual and affirmation card
+  modules/mywork.js -> 1.2.0: owner gains challenges-to-answer and
+    affirmations-due queues; ORBO and BACO get REAL desks: the attention
+    slice for their side plus their challenges in flight
+  modules/skeletons.js -> 1.3.0: all skeletons retired; cap3/cap4/cap5
+    routes survive as redirects
+  modules/home.js -> 1.3.0: box 5 opens the real module; copy says
+    capabilities 1 through 5
+  modules/demo.js -> 2.3.0: NEW story demo "One risk, front to back"
+    (confirm, rate, mitigate, residual, challenge, answer, affirm, then
+    the bank board); ORBO and BACO role demos rebuilt around attention
+    and challenge; walkthrough gains two capability 5 scenes; owner demo
+    ends on the real workspace
+  index.html -> 1.5.0: affirmations/challenges data tags, rcsa.js tag
+Data: NEW affirmations (375 RAUs: last-affirmed dates mixed across
+  states, snapshots shifted on a slice so direction arrows show, ~44
+  RAUs with unadopted changes; story RAU crafted with two pending
+  changes); NEW challenges (28: story RAU carries one open BACO
+  challenge on the Reg X override and one upheld ORBO challenge);
+  residual math mirrored in the generator; release.js R7; CSV templates.
+Kit: unchanged (v2 regeneration is the R8 conversation).
+Version matrix: see Preflight in the app.
+
 == R6 - 2026-08-23 - Capability 4: controls with derived key ==
 Feedback closed: FB-020 (round R6 of the plan in docs/DEEPDIVE-C3-C5.md)
 Module changes:

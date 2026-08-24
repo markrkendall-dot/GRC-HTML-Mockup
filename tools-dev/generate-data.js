@@ -782,6 +782,196 @@ mcrs.forEach(function (m) {
   if (m.head) m.recCtl = picks(REC_TYPES, 1 + ri(2));
 });
 
+/* ==SECTION:affirmations== */
+/* Capability 5: the living RCSA. Residual math MIRRORS kernel/engine.js
+   (band grid, effectiveness = weaker of design and performance, env
+   strength, knockdown) so shipped affirmation snapshots reconcile with
+   live recomputation. Snapshots for a slice of RAUs are shifted by one
+   so the dashboard shows direction arrows out of the box. */
+var INH_GRID = [
+  ["low", "low", "moderate", "moderate", "high"],
+  ["low", "moderate", "moderate", "high", "high"],
+  ["low", "moderate", "high", "high", "critical"],
+  ["moderate", "high", "high", "critical", "critical"],
+  ["moderate", "high", "critical", "critical", "critical"]];
+var INH_BANDS = ["low", "moderate", "high", "critical"];
+var EFF_RANK = { "effective": 2, "partially-effective": 1, "ineffective": 0 };
+var affirmations = [], challenges = [];
+(function buildAffirmations() {
+  var ctlById = {};
+  controls.forEach(function (c) { ctlById[c.id] = c; });
+  var linksByInst = {}, linksByCtl = {};
+  controlLinks.forEach(function (ln) {
+    (linksByInst[ln.r + "|" + ln.e] = linksByInst[ln.r + "|" + ln.e] || []).push(ln);
+    (linksByCtl[ln.c] = linksByCtl[ln.c] || []).push(ln);
+  });
+  var expByEvent = {}, expByCtl = {};
+  expRules.forEach(function (x) {
+    (expByEvent[x.eventId] = expByEvent[x.eventId] || []).push(x);
+    expByCtl[x.controlId] = true;
+  });
+  var ratKey = {};
+  ratings.forEach(function (t) { ratKey[t.rauId + "|" + t.eventId] = t; });
+  function bandOf(rauId, evId) {
+    var t = ratKey[rauId + "|" + evId];
+    if (!t) return null;
+    var impact = Math.max(t.f[1], t.f[2], t.f[3], t.f[4]);
+    return INH_GRID[impact - 1][t.f[0] - 1];
+  }
+  function eff(c) {
+    var w = Math.min(EFF_RANK[c.design], EFF_RANK[c.perf]);
+    return w === 2 ? "effective" : w === 1 ? "partially-effective" : "ineffective";
+  }
+  var keyMemo = {};
+  function isKey(c) {
+    if (keyMemo[c.id] !== undefined) return keyMemo[c.id];
+    var links = linksByCtl[c.id] || [];
+    var rauSet = {}, sole = false, crit = false;
+    links.forEach(function (ln) {
+      rauSet[ln.r] = true;
+      var b = bandOf(ln.r, ln.e);
+      if (b === "critical") crit = true;
+      if ((b === "high" || b === "critical") && (linksByInst[ln.r + "|" + ln.e] || []).length === 1) sole = true;
+    });
+    var k = sole || !!expByCtl[c.id] || links.length >= 5 || Object.keys(rauSet).length >= 3 || crit;
+    keyMemo[c.id] = k;
+    return k;
+  }
+  function envOf(rauId, evId) {
+    var ctls = (linksByInst[rauId + "|" + evId] || []).map(function (ln) { return ctlById[ln.c]; }).filter(Boolean);
+    var rules = expByEvent[evId] || [];
+    var expMissing = rules.some(function (x) { return !ctls.some(function (c) { return c.id === x.controlId; }); });
+    if (!ctls.length) return "weak";
+    var bestRank = -1, anchor = false;
+    ctls.forEach(function (c) {
+      var r = EFF_RANK[eff(c)];
+      if (r > bestRank) bestRank = r;
+      if (r === 2 && (expByCtl[c.id] || isKey(c))) anchor = true;
+    });
+    if (bestRank <= 0) return "weak";
+    if (anchor && !expMissing) return "strong";
+    return "adequate";
+  }
+  function residual(band, strength) {
+    var idx = INH_BANDS.indexOf(band);
+    var knock = strength === "strong" ? 2 : strength === "adequate" ? 1 : 0;
+    var kb = INH_BANDS[Math.max(0, idx - knock)];
+    return (kb === "critical" || kb === "high") ? "high" : kb === "moderate" ? "moderate" : "low";
+  }
+  var confByRau = {};
+  register.forEach(function (g) {
+    if (g.status !== "confirmed") return;
+    (confByRau[g.rauId] = confByRau[g.rauId] || []).push(g);
+  });
+  raus.forEach(function (r) {
+    var conf = confByRau[r.id];
+    if (!conf) return;
+    var prof = { high: 0, moderate: 0, low: 0 }, lines = 0;
+    conf.forEach(function (g) {
+      var b = bandOf(r.id, g.eventId);
+      if (!b) return;
+      lines++;
+      prof[residual(b, envOf(r.id, g.eventId))]++;
+    });
+    var isStory = r.id === STORY_ID;
+    /* date mix: ~70% current, ~12% due, ~8% overdue, rest recent */
+    var roll = chance(0.7) ? 30 + ri(270) : chance(0.6) ? 306 + ri(59) : 366 + ri(120);
+    if (isStory) roll = 200;
+    function daysAgo(n) { return new Date(new Date("2026-08-23T00:00:00Z").getTime() - n * 86400000).toISOString().slice(0, 10); }
+    var snapshot = { high: prof.high, moderate: prof.moderate, low: prof.low, lines: lines };
+    var prior = null;
+    if (isStory || chance(0.2)) {
+      /* shift the snapshot by one so live-vs-snapshot shows direction */
+      prior = { high: snapshot.high, moderate: snapshot.moderate, low: snapshot.low, lines: lines };
+      if (isStory || chance(0.5)) { snapshot.high += 1; if (snapshot.moderate > 0) snapshot.moderate -= 1; }
+      else if (snapshot.high > 0) { snapshot.high -= 1; snapshot.moderate += 1; }
+    }
+    var a = { rauId: r.id, date: daysAgo(roll), by: r.roles.owner, snapshot: snapshot, pending: [] };
+    if (prior) a.prior = prior;
+    /* unadopted changes on ~12% of RAUs, crafted on the story RAU */
+    if (isStory) {
+      var regxEv = null, ctlEv = null;
+      conf.forEach(function (g) {
+        var ev = riskEvents.filter(function (e) { return e.id === g.eventId; })[0];
+        if (ev.name.indexOf("Mortgage Servicing") === 0) regxEv = g.eventId;
+        if (!ctlEv && ev.side === "operational") ctlEv = g.eventId;
+      });
+      a.pending.push({ date: dateBack(12), kind: "rating", text: "Inherent rating overridden on Mortgage Servicing Rule Violation (Reg X): customer lens raised with rationale", eventId: regxEv });
+      a.pending.push({ date: dateBack(5), kind: "control", text: "Daily escrow sub-ledger reconciliation re-scoped to include tax disbursement postings", eventId: ctlEv });
+    } else if (chance(0.12)) {
+      var n = 1 + ri(3);
+      for (var ci = 0; ci < n; ci++) {
+        var g2 = pick(conf);
+        var ev2 = riskEvents.filter(function (e) { return e.id === g2.eventId; })[0];
+        a.pending.push({
+          date: dateBack(5 + ri(60)),
+          kind: pick(["rating", "control", "instance"]),
+          text: pick([
+            "Inherent rating changed on " + ev2.name,
+            "Control attached on " + ev2.name,
+            "Control performance rating updated on " + ev2.name,
+            "Instance confirmed: " + ev2.name]),
+          eventId: g2.eventId
+        });
+      }
+    }
+    affirmations.push(a);
+  });
+  /* challenges: anytime, from the 2LOD; story gets one open and one resolved */
+  var story = raus.filter(function (r) { return r.id === STORY_ID; })[0];
+  var cn2 = 1;
+  function chId() { return "CH-" + pad(cn2++, 3); }
+  if (story) {
+    var srows2 = confByRau[STORY_ID] || [];
+    var regx2 = null, op2 = null;
+    srows2.forEach(function (g) {
+      var ev = riskEvents.filter(function (e) { return e.id === g.eventId; })[0];
+      if (ev.name.indexOf("Mortgage Servicing") === 0) regx2 = g;
+      if (!op2 && ev.side === "operational") op2 = g;
+    });
+    if (regx2) challenges.push({
+      id: chId(), rauId: STORY_ID, kind: "rating", eventId: regx2.eventId,
+      what: "The customer-lens override to level 4 sits above the LOB peer pattern for this event; the volume anchor alone supports level 3.",
+      should: "Revert to the evidence-based level, or attach the carrier concentration analysis that justifies the exception.",
+      by: "BACO (Compliance Risk)", byName: story.roles.baco, date: dateBack(9), state: "open"
+    });
+    if (op2) challenges.push({
+      id: chId(), rauId: STORY_ID, kind: "env", eventId: op2.eventId,
+      what: "The control environment read as Strong while the reconciliation control was only partially effective in performance.",
+      should: "Adequate until the performance rating recovers.",
+      by: "ORBO (Operational Risk)", byName: story.roles.orbo, date: dateBack(45), state: "upheld",
+      response: "Agreed. Performance rating corrected and the environment recomputed to Adequate.",
+      respondedBy: story.roles.owner, respondedDate: dateBack(40), resolvedDate: dateBack(38)
+    });
+  }
+  var chWhat = [
+    ["rating", "Final band sits two levels from the LOB median for this event with a thin rationale.", "Re-rate to the evidence or document the differentiator."],
+    ["rating", "Likelihood accepted at Expected while the loss history shows nothing in three years.", "Walk the frequency anchor back to Possible or attach the near-miss data."],
+    ["env", "Single point of mitigation on a High instance; the lone control is manual and monthly.", "Add a preventive control or accept the exposure in writing."],
+    ["instance", "This confirmation looks like it belongs to the counterparty RAU that executes the process.", "Reopen the disposition and re-run applicability after the handoff review."],
+    ["control", "Declared key but derives non-key; nothing this control touches is High or Critical.", "Drop the key declaration or link it where it actually carries weight."]
+  ];
+  var candRaus = raus.filter(function (r) { return r.id !== STORY_ID && confByRau[r.id] && confByRau[r.id].length >= 3; });
+  for (var k2 = 0; k2 < 26 && candRaus.length; k2++) {
+    var r3 = pick(candRaus);
+    var g3 = pick(confByRau[r3.id]);
+    var t3 = pick(chWhat);
+    var st3 = pick(["open", "open", "responded", "upheld", "withdrawn"]);
+    var ch3 = {
+      id: chId(), rauId: r3.id, kind: t3[0], eventId: g3.eventId,
+      what: t3[1], should: t3[2],
+      by: pick(["ORBO (Operational Risk)", "BACO (Compliance Risk)"]),
+      byName: pick([r3.roles.orbo, r3.roles.baco]), date: dateBack(4 + ri(80)), state: st3
+    };
+    if (st3 !== "open") {
+      ch3.response = st3 === "withdrawn" ? "Walked the evidence together; the rating stands as documented." : "Agreed; the record was corrected.";
+      ch3.respondedBy = r3.roles.owner; ch3.respondedDate = dateBack(2 + ri(30));
+      if (st3 === "upheld" || st3 === "withdrawn") ch3.resolvedDate = ch3.respondedDate;
+    }
+    challenges.push(ch3);
+  }
+})();
+
 /* ==SECTION:requests== */
 var requests = [];
 (function buildRequests() {
@@ -869,9 +1059,11 @@ sizes.ratings = writeData("ratings", ratings);
 sizes.controls = writeData("controls", controls);
 sizes.controllinks = writeData("controlLinks", controlLinks);
 sizes.expectedcontrols = writeData("expectedControls", expRules);
+sizes.affirmations = writeData("affirmations", affirmations);
+sizes.challenges = writeData("challenges", challenges);
 fs.writeFileSync(path.join(OUT, "release.js"),
   "window.GRC_DATA = window.GRC_DATA || {};\n" +
-  "window.GRC_DATA.release = {number:\"R6\", date:\"" + TODAY + "\", label:\"Capability 4: controls with derived key and expected controls\"};\n");
+  "window.GRC_DATA.release = {number:\"R7\", date:\"" + TODAY + "\", label:\"Capability 5: living RCSA, affirmation, challenge, residual\"};\n");
 
 /* ==SECTION:csv-templates== */
 function csv(name, headers, rows) {
@@ -899,10 +1091,13 @@ csv("ratings", ["rauId", "eventId", "s", "f", "ov", "note", "by", "date"], ratin
 csv("controls", ["id", "name", "desc", "owningRauId", "shared", "type", "automation", "frequency", "owner", "declaredKey", "design", "perf", "status", "created"], controls.slice(0, 3));
 csv("controllinks", ["c", "r", "e"], controlLinks.slice(0, 3));
 csv("expectedcontrols", ["id", "eventId", "controlId", "note"], expRules.slice(0, 2));
+csv("affirmations", ["rauId", "date", "by", "snapshot", "prior", "pending"], affirmations.slice(0, 3));
+csv("challenges", ["id", "rauId", "kind", "eventId", "what", "should", "by", "byName", "date", "state", "response"], challenges.slice(0, 3));
 
 /* ==SECTION:stats== */
 console.log("orgNodes", orgNodes.length, "| services", services.length, "| raus", raus.length,
   "| events", riskEvents.length, "| mcrs", mcrs.length, "| register", register.length,
   "| requests", requests.length, "| ratings", ratings.length, "| controls", controls.length,
-  "| links", controlLinks.length, "| expected", expRules.length, "| featured", featured.length);
+  "| links", controlLinks.length, "| expected", expRules.length, "| affirmations", affirmations.length,
+  "| challenges", challenges.length, "| featured", featured.length);
 Object.keys(sizes).forEach(function (k) { console.log(k, Math.round(sizes[k] / 1024) + " KB"); });

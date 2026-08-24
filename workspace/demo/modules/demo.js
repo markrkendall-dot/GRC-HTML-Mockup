@@ -1,4 +1,4 @@
-/* GRC modules/demo.js v2.2.0 2026-08-23 */
+/* GRC modules/demo.js v2.3.0 2026-08-23 */
 /* Present: a demo picker. One full walkthrough, one order-of-operations
    story (the birth of a RAU), and one demo per role in the View-as picker,
    each following the workflow that role actually runs day to day. */
@@ -42,7 +42,7 @@
   function walkthroughScenes(ctx) {
     var g = finders(ctx);
     var s = [
-      { route: "home", title: "One platform, ten capabilities", text: "This is a clickable design proposal for the future GRC. The map shows all ten capabilities and how they feed each other; this release builds capabilities 1 through 4 end to end. Everything you are about to see runs on data shaped like the real inventory." },
+      { route: "home", title: "One platform, ten capabilities", text: "This is a clickable design proposal for the future GRC. The map shows all ten capabilities and how they feed each other; this release builds capabilities 1 through 5 end to end. Everything you are about to see runs on data shaped like the real inventory." },
       { route: "home", title: "The lens and the trace", text: "Click capability boxes on this map to isolate a scope: pick 1 and 2 and everything not supporting them grays out; add 3 and the picture grows. As you move through the tool, the strip under the tabs names the capability behind every screen, and key actions call out which capability they belong to. What is grayed will not work until its box is built." },
       { route: "raus", title: "Capability 1: the RAU inventory", text: "A RAU is the intersection of a business and a service, created at the SubLOB level. Filter the inventory by line of business, category, or risk identification status. Every column here is a real attribute the platform maintains." },
       { route: "raus/" + g.story.id, title: "One RAU's whole story", text: "Demographics describe the unit; attributes OBLIGATE it: they drive applicability, signal matching, and scoping. Check the Metadata survey tab: every answer shows where it came from: a map step, from services, or asked directly. The Process map tab shows the handoffs that wire this RAU to its counterparties." },
@@ -97,12 +97,20 @@
         text: "The loudest gap is an expected control that is missing where its situation is live. Below it: High and Critical instances with no control at all, and instances riding on a single point of mitigation. Fixing a gap here updates every view immediately, because it is all one dataset."
       },
       {
+        route: "rcsa/" + g.story.id, title: "Capability 5: the living RCSA",
+        text: "No staged cycle, no tollgates. Each line reads inherent times control environment into a residual band via the knockdown rule. Changes queue for adoption, the second line challenges anything anytime (one is open on this RAU now), and the owner signs one annual affirmation when the record is clean."
+      },
+      {
+        route: "rcsa", title: "The affirmation board and the attention view",
+        text: "The whole bank: affirmation states, residual profiles, direction since the last signature. Behind the second tab, the 2LOD attention view ranks the non-standard, so ORBO and BACO investigate outliers and gaps instead of relitigating settled problems."
+      },
+      {
         route: "mcrlib", title: "The MCR library, published from RRCM",
         text: "Major Compliance Requirements arrive read-only from RRCM, each aligned upstream to a parent compliance risk event. A head set carries most RCSA frequency, and the library reflects that shape. Search anything."
       },
       {
-        route: "home", title: "And this is four capabilities of ten",
-        text: "Signals will feed changes into steps 1 and 2. RCSA cycles with challenge and residual, testing, monitoring, and policy governance stack on the same foundation you just walked. The release number in the banner identifies this build; quote it in your feedback."
+        route: "home", title: "And this is five capabilities of ten",
+        text: "Signals will feed changes into steps 1 and 2. Testing, monitoring, and policy governance stack on the same foundation you just walked. The whole RCSA spine, intake to affirmation, is now clickable end to end. The release number in the banner identifies this build; quote it in your feedback."
       });
     return s;
   }
@@ -157,6 +165,24 @@
     return s;
   }
 
+  /* ==SECTION:money== */
+  /* The whole spine on one instance: confirm, rate, mitigate, residual,
+     challenge, answer, affirm. Capabilities 1 through 5 in one sitting. */
+  function moneyScenes(ctx) {
+    var g = finders(ctx);
+    var gapEv = g.storyGap ? g.storyGap.eventId : "";
+    return [
+      { route: "riskid/" + g.story.id, state: { role: "RAU Owner" }, title: "A risk instance is born", text: "Everything downstream hangs off one record: a confirmed risk instance, RAU times event, created here on the workbench by the front line. This RAU's register is mid-flight; the dispositioned table below is the evidence trail every later capability builds on." },
+      { route: "inherent/" + g.story.id, title: "Rate it from evidence", text: "One instance is still unrated. Open it: every level arrives suggested from platform data with provenance chips. Accept in one click, or override with rationale. Without this rating, residual cannot compute, and the affirmation gate will say so." },
+      { route: "attach/" + g.story.id + "/" + gapEv, title: "Mitigate it in three tiers", text: "The same instance has no controls. Attach the expected control if one applies, take a shareable match ranked by attach rate, or draft a skeleton and document it. Derived key status and coverage recompute the moment you act." },
+      { route: "rcsa/" + g.story.id, title: "Residual falls out of the math", text: "The assessment line reads inherent band times control environment strength: Strong knocks it down two bands, Adequate one, Weak none. Notice the pending changes card: everything you just did queued on the RAU for adoption. This is the living record." },
+      { route: "rcsa/" + g.story.id, state: { role: "BACO (Compliance Risk)" }, title: "Challenge, anytime, no tollgate", text: "You are now compliance second line. A challenge is already open on the Reg X rating override, and every line has a Challenge button: I think this thing is wrong, here is what it should be. No cycle stage, no gate; the record is always challengeable." },
+      { route: "rcsa/" + g.story.id, state: { role: "RAU Owner" }, title: "Answer as the owner", text: "Back in the owner's chair: respond to the open challenge (agree and change, or explain why it stands), then the challenger upholds or withdraws. Adopt the pending changes while you are here. The affirmation gate below shows exactly what still blocks the signature." },
+      { route: "rcsa/" + g.story.id, title: "Sign the annual affirmation", text: "With every instance rated, changes adopted, and challenges resolved, the owner signs. The snapshot is stored, direction resets, and the record keeps living. No second-line tollgate; challenge was continuous the whole way." },
+      { route: "rcsa", title: "The whole bank on one board", text: "Every RAU with confirmed risks, its affirmation state, residual profile, and direction since the last signature. Overdue and change-pending units surface themselves. That is one risk, front to back, and the machinery that keeps 850 RAUs honest." }
+    ];
+  }
+
   /* ==SECTION:roles== */
   function ownerScenes(ctx) {
     var g = finders(ctx);
@@ -166,8 +192,8 @@
       { route: "riskid/" + g.story.id, title: "First pass belongs to the front line", text: "The owner team decides which risks apply; you cannot lean on ORBO or BACO for the first pass. The engine stack-ranks every candidate against your metadata: confirm the likely, dismiss the unlikely, and work the ambiguous middle." },
       { route: "riskid/" + g.story.id, title: "Resolve, do not guess", text: "For a middle-band candidate, open Resolve. The system asks one or two targeted questions; your answer updates the RAU's metadata, so every candidate rescores consistently. If you mis-click a decision, Reopen on the dispositioned table takes it back." },
       { route: "inherent/" + g.story.id, title: "Rate what you confirmed", text: "Confirmed instances move here for inherent rating. The assistant proposes every level with evidence chips naming their sources; you accept in one click or override with rationale. One instance on this RAU is still waiting for you." },
-      { route: "mywork", title: "Confirm what your counterparties declared", text: "Handoffs are trusted at submission and confirmed after. When another RAU declares it hands something to yours, it lands here for your confirmation, and the dependency network updates for both sides. Your open ratings queue sits here too." },
-      { route: "cap5", title: "Where the challenge will meet you", text: "Your first-pass decisions and ratings are on the record with scores, evidence, and rationale. When capability 5 lands, ORBO and BACO challenge happens there, on top of the evidence you just created. Nothing you did today gets re-typed." }
+      { route: "mywork", title: "Confirm what your counterparties declared", text: "Handoffs are trusted at submission and confirmed after. When another RAU declares it hands something to yours, it lands here for your confirmation, and the dependency network updates for both sides. Your ratings queue, open challenges, and affirmations due sit here too." },
+      { route: "rcsa/" + g.story.id, title: "Answer challenges, sign once a year", text: "The second line challenges your records anytime; you respond here, they resolve. Changes from every capability queue for your adoption, and when the record is clean you sign the annual affirmation. No tollgate, no re-typing: the evidence you built all year IS the assessment." }
     ];
   }
 
@@ -202,30 +228,27 @@
   function orboScenes(ctx) {
     var g = finders(ctx);
     var s = [
-      { route: "mywork", state: { role: "ORBO (Operational Risk)" }, title: "The 2LOD view, honestly scoped", text: "ORBO sees a read-only feed of what the front line confirmed. The formal challenge workflow arrives with capability 5; this release does not pretend otherwise. The banner now views the tool as ORBO." },
-      { route: "events", title: "The operational half of the library", text: "Fifty operational risk events, each with a name, description, qualification, and keywords. Those fields are not documentation; they are the raw material the applicability engine scores against every RAU's metadata." }
+      { route: "mywork", state: { role: "ORBO (Operational Risk)" }, title: "The 2LOD desk is live now", text: "ORBO's queue is real: the attention list ranks the non-standard on the operational side, and your challenges in flight sit beneath it. The banner now views the tool as ORBO." },
+      { route: "rcsa-attention", title: "Investigate the non-standard, skip the settled", text: "Peer outliers, applicability-versus-band mismatches, expected-control gaps, judgment-dense RAUs, aging changes, and open challenges, ranked with the reason each one is here. Mark an item reviewed and it stays gone. You never relitigate a settled problem." },
+      { route: "rcsa/" + g.story.id, title: "Read a whole RAU in one table", text: "Every line: applicability, inherent band, control environment with its why, residual out of the knockdown. The CHANGED chips mark what moved since the owner last affirmed. This is what you investigate before deciding whether anything deserves a challenge." },
+      { route: "rcsa/" + g.story.id, title: "File it from the record itself", text: "Every line, rating, and control carries a Challenge button: what looks wrong, what it should be, filed as you, routed to the owner. This RAU already carries an upheld ORBO challenge in its log; the mechanism you are looking at is how it got there." }
     ];
-    if (g.opEvent) s.push({ route: "events/" + g.opEvent.id, title: "Reverse view: one event across the bank", text: "This is the busiest operational event in the register. Every RAU that confirmed it is listed with its score, so ORBO can see where the event concentrates and which confirmations look out of family before challenge even starts." });
-    s.push(
-      { route: "rubric", title: "Challenge against math, not vibes", text: "Eight categories, 1-5 anchors, fixed weights, published bands. When ORBO disagrees with a front-line call, the argument is about specific rubric categories and evidence, not about whose opinion is louder." },
-      { route: "riskid/" + g.story.id, title: "The evidence trail is already there", text: "On the workbench every decision carries a score, a decider, a date, and for rejected likely candidates a written rationale. That record is what ORBO will challenge in capability 5; it exists from the first pass, not reconstructed later." },
-      { route: "cap5", title: "Where ORBO challenge lands", text: "Capability 5 adds the challenge workflow on top of the register: ORBO reviews confirmations and rejections per RAU, with the residual math. The skeleton shows what is planned so expectations stay honest." }
-    );
+    if (g.opEvent) s.push({ route: "events/" + g.opEvent.id, title: "Reverse view: one event across the bank", text: "The busiest operational event in the register, with every confirming RAU and score. Concentration and out-of-family confirmations show up here before they show up in a loss event." });
+    s.push({ route: "rubric", title: "Challenge against math, not vibes", text: "Both rubrics are published: applicability and inherent. When ORBO disagrees with a front-line call, the argument is about specific anchors and evidence, not about whose opinion is louder. That is what makes the challenge log defensible." });
     return s;
   }
 
   function bacoScenes(ctx) {
     var g = finders(ctx);
     var s = [
-      { route: "mywork", state: { role: "BACO (Compliance Risk)" }, title: "Compliance 2LOD, same honest scope", text: "BACO sees the read-only feed of front-line confirmations until the capability 5 challenge workflow lands. The banner now views the tool as BACO." },
-      { route: "mcrlib", title: "8,000 MCRs, published from RRCM", text: "Major Compliance Requirements arrive read-only from RRCM, each carrying an upstream parent compliance risk event. A head set of about 2,000 carries 80% of RCSA frequency, and the library reflects that shape. The Fit column is BACO's early-warning signal." }
+      { route: "mywork", state: { role: "BACO (Compliance Risk)" }, title: "The compliance 2LOD desk is live", text: "BACO's queue is real: the attention list ranks the non-standard on the compliance side, and your challenges in flight, including the open one on the story RAU, sit beneath it. The banner now views the tool as BACO." },
+      { route: "rcsa-attention", title: "The compliance slice of attention", text: "Expected-control gaps on FCRM situations, outlier ratings on compliance instances, override-dense RAUs, aging changes, open challenges: ranked, with reasons, settled items gone. This IS the BACO workflow; there is no tollgate to wait for." },
+      { route: "rcsa/" + g.story.id, title: "Your open challenge, in context", text: "BACO already challenged the Reg X rating override on this RAU: the line wears a CHALLENGED chip, the log at the bottom holds the argument, and the affirmation gate is blocked until it resolves. When the owner responds, you uphold or withdraw." }
     ];
-    if (g.headMcr) s.push({ route: "mcrlib/" + g.headMcr.id, title: "Goodness of fit, one MCR at a time", text: "The fit panel compares this MCR's profile to its parent event and to the best alternative event. A weak fit means the MCR may straddle two risk event ideas: a rewrite candidate to raise with the RRCM owners before it muddies applicability scoring." });
-    if (g.coEvent) s.push({ route: "events/" + g.coEvent.id, title: "The rollup under a compliance event", text: "Expand any MCR in place: obligations, prohibitions, process types, and its fit against this parent. The rewrite-candidates filter in the library collects the stragglers; this view shows them in context." });
+    if (g.headMcr) s.push({ route: "mcrlib/" + g.headMcr.id, title: "Goodness of fit, one MCR at a time", text: "The fit panel compares this MCR's profile to its parent event and the best alternative. A weak fit is a rewrite candidate to raise with the RRCM owners before it muddies applicability scoring. MCR metadata also guides the drafted control skeletons the business starts from." });
     s.push(
-      { route: "riskid/" + g.story.id, title: "MCRs ride the confirmation", text: "When the front line confirms a compliance event, the top-ranked MCRs beneath it attach to the register row automatically. BACO's future challenge starts from that suggested set, not from a blank page." },
-      { route: "controls-key", title: "Key status BACO can defend", text: "Key controls stop being a checkbox: four transparent rules derive key from the live landscape, including being the expected control for a compliance situation. MCR metadata even guides the drafted skeleton when the business writes a new control. The disagreement tables are where compliance 2LOD looks first." },
-      { route: "cap5", title: "Where BACO challenge lands", text: "Capability 5 brings the BACO challenge on top of the register, the ratings, and the control mapping. Until then the register is building the evidence BACO will need." }
+      { route: "riskid/" + g.story.id, title: "MCRs ride the confirmation", text: "When the front line confirms a compliance event, the top-ranked MCRs beneath it attach to the register row automatically. Your challenge work starts from that suggested set and the ratings built on it, never from a blank page." },
+      { route: "controls-key", title: "Key status BACO can defend", text: "Four transparent rules derive key from the live landscape, including being the expected control for a compliance situation. The disagreement tables are where compliance 2LOD looks first, and everything here is challengeable from the record itself." }
     );
     return s;
   }
@@ -245,8 +268,9 @@
   /* ==SECTION:catalog== */
   function catalog() {
     return [
-      { id: "walkthrough", group: "story", name: "Full walkthrough", blurb: "Capabilities 1 through 4 end to end: inventory, pipeline, workbench, ratings, controls, libraries.", scenes: walkthroughScenes },
+      { id: "walkthrough", group: "story", name: "Full walkthrough", blurb: "Capabilities 1 through 5 end to end: inventory, pipeline, workbench, ratings, controls, RCSA.", scenes: walkthroughScenes },
       { id: "birth", group: "story", name: "Birth of a RAU", blurb: "The order of operations, one gate per scene: intake, uniqueness, mapping, standards, governance, metadata, active, risk identification.", scenes: birthScenes },
+      { id: "money", group: "story", name: "One risk, front to back", blurb: "The whole spine on one instance: confirm, rate, mitigate, residual, challenge, answer, affirm.", scenes: moneyScenes },
       { id: "role-owner", group: "role", name: "RAU Owner", blurb: "Own the record, take the first pass at risk identification, confirm inbound handoffs.", scenes: ownerScenes },
       { id: "role-delegate", group: "role", name: "RAU Owner Delegate", blurb: "Run the day to day: queues, intakes, survey answers, profile housekeeping.", scenes: delegateScenes },
       { id: "role-bcm", group: "role", name: "BCM Contact", blurb: "Shepherd the business's change requests through the pipeline and coach maps to standard.", scenes: bcmScenes },
@@ -302,7 +326,7 @@
   }
 
   GRC.register({
-    id: "demo", version: "2.2.0", tab: "Home",
+    id: "demo", version: "2.3.0", tab: "Home",
     caps: { "present": null },
     routes: { "present": present }
   });

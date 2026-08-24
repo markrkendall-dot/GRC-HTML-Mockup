@@ -1,4 +1,4 @@
-/* GRC modules/controls.js v1.0.0 2026-08-23 */
+/* GRC modules/controls.js v1.1.0 2026-08-23 */
 /* Capability 4: control identification. One central inventory (the GRC
    is the system of record), controls attached to risk instances, shared
    controls reused across RAUs, expected controls for defined situations,
@@ -212,8 +212,26 @@
             ui.el("span", { class: "g-h1" }, c.name),
             ui.el("span", { class: "g-mono g-muted" }, c.id),
             c.shared ? ui.badge("Shared", "info") : null,
-            dk.key ? keyBadge(ui, dk) : null])])));
+            dk.key ? keyBadge(ui, dk) : null,
+            ui.el("span", { class: "sp", style: "flex:1" }),
+            ui.el("button", { class: "g-btn sm", title: "Second line: flag this control record as wrong, anytime", onclick: function () {
+              GRC.challenge(ctx, { rauId: c.owningRauId, kind: "control", controlId: c.id, label: c.id + " " + c.name + " (owned by " + c.owningRauId + ", " + (dk.key ? "derives key" : "derives non-key") + ")" });
+            } }, "Challenge")])])));
       var left = ui.el("div");
+      function effSelect(field, note) {
+        return ui.el("span", { class: "g-row", style: "gap:8px" }, [
+          effBadge(ui, c[field]),
+          ui.select({
+            value: c[field], onchange: function (v) {
+              data.setControlRating(c, field, v);
+              GRC.traceAction(5, "Rating control " + (field === "design" ? "design" : "performance"));
+              ui.toast("Control " + field + " set to " + v.replace("-", " ") + ". Effectiveness, environment strength, and residual recompute everywhere this control is linked.");
+              draw();
+            },
+            options: [{ value: "effective", label: "effective" }, { value: "partially-effective", label: "partially effective" }, { value: "ineffective", label: "ineffective" }]
+          }),
+          note ? ui.el("span", { class: "g-muted", style: "font-size:12px" }, note) : null]);
+      }
       left.appendChild(ui.card({
         title: "Attributes", body: ui.kv([
           ["Type", c.type], ["Automation", c.automation], ["Frequency", c.frequency],
@@ -221,8 +239,9 @@
           ["Owning RAU", own ? ui.el("a", { href: "#/raus/" + own.id }, own.id + " " + own.name) : c.owningRauId],
           ["Shared", c.shared ? "Yes: other RAUs may attach it" : "No: local to the owning RAU"],
           ["Status", c.status], ["Created", fmt.date(c.created)],
-          ["Design rating", effBadge(ui, c.design)],
-          ["Performance rating", ui.el("span", {}, [effBadge(ui, c.perf), ui.el("span", { class: "g-muted", style: "font-size:12px;margin-left:6px" }, "owner judgment today; Capability 7 test results will feed this")])]])
+          ["Design rating", effSelect("design")],
+          ["Performance rating", effSelect("perf", "owner judgment today; Capability 7 test results will feed this")],
+          ["Effectiveness", ui.el("span", {}, [effBadge(ui, ctx.engine.rcsa.effectiveness(c)), ui.el("span", { class: "g-muted", style: "font-size:12px;margin-left:6px" }, "the weaker of design and performance; drives residual in Capability 5")])]])
       }));
       var lint = eng.lint(c);
       left.appendChild(ui.card({
@@ -444,7 +463,7 @@
   }
 
   GRC.register({
-    id: "controls", version: "1.0.0", tab: "RCSA",
+    id: "controls", version: "1.1.0", tab: "RCSA",
     caps: {
       "controls": { primary: [4], uses: [2, 3] },
       "controls-coverage": { primary: [4], uses: [2, 3] },

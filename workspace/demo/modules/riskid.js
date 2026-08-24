@@ -1,4 +1,4 @@
-/* GRC modules/riskid.js v1.4.0 2026-08-23 */
+/* GRC modules/riskid.js v1.4.1 2026-08-23 */
 /* Capability 2: Operational & Compliance Risk Identification - the
    applicability workbench. The engine stack-ranks all 90 risk events (and
    the MCRs beneath compliance events) against the RAU's metadata; the
@@ -242,7 +242,14 @@
               var n = data.controlsOfInstance(r.id, x.s.ev.id).length;
               return ui.el("button", { class: "g-btn sm" + (n ? "" : " g-btn--primary"), title: n ? "Manage the attached controls" : "No controls attached yet: open the recommendation flow", onclick: function (e) { e.stopPropagation(); ctx.go("attach/" + r.id + "/" + x.s.ev.id); } }, n ? String(n) : "Attach");
             } },
-            { key: "re", label: "", render: function (x) { return ui.el("button", { class: "g-btn sm", onclick: function (e) { e.stopPropagation(); reopen(x); } }, "Reopen"); } }
+            { key: "re", label: "", render: function (x) {
+              return ui.el("span", { class: "g-row", style: "gap:6px" }, [
+                ui.el("button", { class: "g-btn sm", onclick: function (e) { e.stopPropagation(); reopen(x); } }, "Reopen"),
+                ui.el("button", { class: "g-btn sm", title: "Second line: flag this disposition as wrong, anytime", onclick: function (e) {
+                  e.stopPropagation();
+                  GRC.challenge(ctx, { rauId: r.id, kind: "instance", eventId: x.s.ev.id, label: r.id + " " + r.name + ": " + x.s.ev.name + " " + x.d.status + " at applicability " + x.d.score });
+                } }, "Challenge")]);
+            } }
           ], rows: done, page: 12
         }));
         wrap.appendChild(ui.card({ title: "Dispositioned (" + done.length + "): mistakes are reversible", body: db }));
@@ -298,7 +305,7 @@
   }
 
   GRC.register({
-    id: "riskid", version: "1.4.0", tab: "RCSA",
+    id: "riskid", version: "1.4.1", tab: "RCSA",
     caps: {
       "riskid": { primary: [2], uses: [1] },
       "riskid/:rauId": { primary: [2], uses: [1], feeds: [3, 4, 5] }

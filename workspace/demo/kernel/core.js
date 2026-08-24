@@ -1,4 +1,4 @@
-/* GRC kernel/core.js v1.5.0 2026-08-23 */
+/* GRC kernel/core.js v1.6.0 2026-08-23 */
 /* Kernel: module registry (tab/rail), hash router, data indexing, state,
    formatting, preflight, guided tour, reset. No dependencies, file:// safe. */
 (function () {
@@ -37,7 +37,7 @@
     9: { name: "Monitoring", needs: [1, 2, 3, 4, 5, 6] },
     10: { name: "Policy Governance", needs: [] }
   };
-  var BUILT = { 1: true, 2: true, 3: true, 4: true };
+  var BUILT = { 1: true, 2: true, 3: true, 4: true, 5: true };
   GRC.caps = {
     all: CAPS,
     name: function (n) { return CAPS[n] ? CAPS[n].name : "Capability " + n; },
@@ -155,7 +155,7 @@
   function indexData() {
     var raw = window.GRC_DATA || {};
     D = { entities: {}, byId: {}, ver: {} };
-    ["orgNodes", "services", "raus", "riskEvents", "mcrs", "register", "requests", "metaQuestions", "rubric", "ratings", "controls", "controlLinks", "expectedControls"].forEach(function (k) {
+    ["orgNodes", "services", "raus", "riskEvents", "mcrs", "register", "requests", "metaQuestions", "rubric", "ratings", "controls", "controlLinks", "expectedControls", "affirmations", "challenges"].forEach(function (k) {
       var src = raw[k] || { version: "-", rows: [] };
       D.entities[k] = clone(src.rows || []);
       D.ver[k] = src.version || "-";
@@ -197,7 +197,24 @@
     D.entities.expectedControls.forEach(function (x) {
       if (x.eventId) (D.expByEvent[x.eventId] = D.expByEvent[x.eventId] || []).push(x);
     });
+    D.affByRau = {};
+    D.entities.affirmations.forEach(function (a) { a.pending = a.pending || []; D.affByRau[a.rauId] = a; });
+    D.chalByRau = {};
+    D.entities.challenges.forEach(function (c) { (D.chalByRau[c.rauId] = D.chalByRau[c.rauId] || []).push(c); });
   }
+  /* The living record: session mutations queue as unadopted changes on
+     the RAU, feeding affirmation state and the 2LOD attention view. */
+  function pushChange(rauId, kind, text, eventId) {
+    if (!D) return;
+    var a = D.affByRau[rauId];
+    if (!a) {
+      a = { rauId: rauId, date: null, by: null, snapshot: null, pending: [] };
+      D.entities.affirmations.push(a);
+      D.affByRau[rauId] = a;
+    }
+    a.pending.push({ date: (GRC.ctx && GRC.ctx.fmt) ? GRC.ctx.fmt.today() : "", kind: kind, text: text, eventId: eventId || null });
+  }
+  function evName(evId) { var e = D.byId.riskEvents[evId]; return e ? e.name : evId; }
 
   /* ==SECTION:data-api== */
   function orgNode(id) { return D.byId.orgNodes[id] || null; }
@@ -229,12 +246,14 @@
       D.entities.register.push(row);
       (D.regByRau[row.rauId] = D.regByRau[row.rauId] || []).push(row);
       (D.regByEvent[row.eventId] = D.regByEvent[row.eventId] || []).push(row);
+      if (row.status === "confirmed") pushChange(row.rauId, "instance", "Instance confirmed: " + evName(row.eventId), row.eventId);
     },
     removeRegister: function (row) {
       function drop(arr) { var i = arr.indexOf(row); if (i >= 0) arr.splice(i, 1); }
       drop(D.entities.register);
       drop(D.regByRau[row.rauId] || []);
       drop(D.regByEvent[row.eventId] || []);
+      pushChange(row.rauId, "instance", "Disposition reopened: " + evName(row.eventId), row.eventId);
     },
     /* Ratings join to CONFIRMED register rows at read time, so a reopened
        instance simply stops counting; if re-confirmed, its rating returns. */
@@ -256,6 +275,8 @@
       (D.linksByCtl[ln.c] = D.linksByCtl[ln.c] || []).push(ln);
       (D.linksByInst[ln.r + "|" + ln.e] = D.linksByInst[ln.r + "|" + ln.e] || []).push(ln);
       (D.linksByEvent[ln.e] = D.linksByEvent[ln.e] || []).push(ln);
+      var c = D.byId.controls[ln.c];
+      pushChange(ln.r, "control", "Control attached on " + evName(ln.e) + ": " + (c ? c.name : ln.c), ln.e);
     },
     removeLink: function (ln) {
       function drop(arr) { var i = arr.indexOf(ln); if (i >= 0) arr.splice(i, 1); }
@@ -263,6 +284,43 @@
       drop(D.linksByCtl[ln.c] || []);
       drop(D.linksByInst[ln.r + "|" + ln.e] || []);
       drop(D.linksByEvent[ln.e] || []);
+      var c = D.byId.controls[ln.c];
+      pushChange(ln.r, "control", "Control unlinked on " + evName(ln.e) + ": " + (c ? c.name : ln.c), ln.e);
+    },
+    setControlRating: function (ctl, field, value) {
+      ctl[field] = value;
+      var touched = {};
+      (D.linksByCtl[ctl.id] || []).forEach(function (ln) {
+        if (touched[ln.r]) return;
+        touched[ln.r] = true;
+        pushChange(ln.r, "control", "Control " + (field === "design" ? "design" : "performance") + " rating set to " + value + ": " + ctl.name, ln.e);
+      });
+    },
+    affirmationOf: function (rauId) { return D.affByRau[rauId] || null; },
+    challengesOf: function (rauId) { return D.chalByRau[rauId] || []; },
+    addChallenge: function (ch) {
+      D.entities.challenges.push(ch);
+      (D.chalByRau[ch.rauId] = D.chalByRau[ch.rauId] || []).push(ch);
+    },
+    adoptChange: function (rauId, row) {
+      var a = D.affByRau[rauId];
+      if (!a) return;
+      var i = a.pending.indexOf(row);
+      if (i >= 0) a.pending.splice(i, 1);
+    },
+    affirm: function (rauId, by, snapshot) {
+      var a = D.affByRau[rauId];
+      if (!a) {
+        a = { rauId: rauId, pending: [] };
+        D.entities.affirmations.push(a);
+        D.affByRau[rauId] = a;
+      }
+      a.prior = a.snapshot || null;
+      a.snapshot = snapshot;
+      a.date = (GRC.ctx && GRC.ctx.fmt) ? GRC.ctx.fmt.today() : "";
+      a.by = by;
+      a.pending = [];
+      return a;
     },
     ratingsOfRau: function (rauId) { return D.ratByRau[rauId] || []; },
     ratingsOfEvent: function (evId) { return D.ratByEvent[evId] || []; },
@@ -276,6 +334,7 @@
       (D.ratByRau[row.rauId] = D.ratByRau[row.rauId] || []).push(row);
       (D.ratByEvent[row.eventId] = D.ratByEvent[row.eventId] || []).push(row);
       D.ratKey[key] = row;
+      pushChange(row.rauId, "rating", (row.ov ? "Inherent rating overridden on " : "Inherent rating saved for ") + evName(row.eventId), row.eventId);
     },
     metrics: function () {
       var raus = D.entities.raus, reg = D.entities.register;
@@ -518,7 +577,7 @@
     pf.className = "";
     var m = data.metrics();
     var rows = "";
-    ["orgNodes", "services", "raus", "riskEvents", "mcrs", "register", "requests", "metaQuestions", "rubric", "ratings", "controls", "controlLinks", "expectedControls"].forEach(function (k) {
+    ["orgNodes", "services", "raus", "riskEvents", "mcrs", "register", "requests", "metaQuestions", "rubric", "ratings", "controls", "controlLinks", "expectedControls", "affirmations", "challenges"].forEach(function (k) {
       rows += "<tr><td>" + k + "</td><td class='num'>" + fmt.num(D.entities[k].length) + "</td><td class='g-mono'>" + D.ver[k] + "</td></tr>";
     });
     var mods = "";

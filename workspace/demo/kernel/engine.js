@@ -1,4 +1,4 @@
-/* GRC kernel/engine.js v1.3.0 2026-08-23 */
+/* GRC kernel/engine.js v1.4.0 2026-08-23 */
 /* The applicability engine: deterministic, rubric-standardized attribute
    comparison between a RAU's metadata and Risk Event / MCR profiles.
    Same math for all 850 RAUs. Mirrors tools-dev/generate-data.js exactly
@@ -389,6 +389,142 @@
     return out;
   }
 
+  /* ==SECTION:rcsa== */
+  /* Capability 5: the living RCSA. Control effectiveness is the weaker of
+     design and performance; the instance's control environment strength
+     knocks the inherent band down to a three-band residual (Strong takes
+     it down two, Adequate one, Weak none). Affirmation state and the
+     2LOD attention ranking are computed live; nothing is staged. */
+  var EFF_RANK = { "effective": 2, "partially-effective": 1, "ineffective": 0 };
+  function effectiveness(control) {
+    var d = EFF_RANK[control.design] === undefined ? 2 : EFF_RANK[control.design];
+    var p = EFF_RANK[control.perf] === undefined ? 2 : EFF_RANK[control.perf];
+    var w = Math.min(d, p);
+    return w === 2 ? "effective" : w === 1 ? "partially-effective" : "ineffective";
+  }
+  function envStrength(rauId, eventId, memo) {
+    var data = GRC.ctx.data;
+    var ctls = data.controlsOfInstance(rauId, eventId);
+    var expRules = data.expectedFor(eventId);
+    var expMissing = expRules.some(function (rule) {
+      return !ctls.some(function (c) { return c.id === rule.controlId; });
+    });
+    var why = [];
+    if (!ctls.length) return { strength: "weak", why: ["No control linked"] };
+    var bestRank = -1, anchor = false;
+    ctls.forEach(function (c) {
+      var e = effectiveness(c);
+      var r = EFF_RANK[e];
+      if (r > bestRank) bestRank = r;
+      if (r === 2) {
+        var isExp = expRules.some(function (rule) { return rule.controlId === c.id; });
+        var isKey;
+        if (memo) {
+          if (memo[c.id] === undefined) memo[c.id] = derivedKey(c).key;
+          isKey = memo[c.id];
+        } else isKey = derivedKey(c).key;
+        if (isExp || isKey) anchor = true;
+      }
+    });
+    if (bestRank <= 0) return { strength: "weak", why: ["No control better than ineffective"] };
+    if (anchor && !expMissing) {
+      return { strength: "strong", why: ["Effective key or expected control in place", "No expected control missing"] };
+    }
+    if (expMissing) why.push("Expected control missing");
+    if (!anchor) why.push(bestRank === 2 ? "Effective controls, none key or expected" : "Best control only partially effective");
+    return { strength: "adequate", why: why };
+  }
+  function residualOf(inhBand, strength) {
+    var idx = INH.bands.indexOf(inhBand);
+    if (idx < 0) return null;
+    var knock = strength === "strong" ? 2 : strength === "adequate" ? 1 : 0;
+    var kb = INH.bands[Math.max(0, idx - knock)];
+    var res = (kb === "critical" || kb === "high") ? "high" : kb === "moderate" ? "moderate" : "low";
+    return { residual: res, knocked: kb, knock: knock };
+  }
+  function lineOf(rau, g, memo) {
+    var data = GRC.ctx.data;
+    var t = data.ratingOf(rau.id, g.eventId);
+    var band = t ? inherentBand(levelsFromArray(t.f)).band : null;
+    var env = envStrength(rau.id, g.eventId, memo);
+    var res = band ? residualOf(band, env.strength) : null;
+    return { g: g, rating: t, band: band, env: env, res: res };
+  }
+  function residualProfile(rau, memo) {
+    var data = GRC.ctx.data;
+    var out = { high: 0, moderate: 0, low: 0, unrated: 0, lines: [] };
+    data.regOfRau(rau.id).forEach(function (g) {
+      if (g.status !== "confirmed") return;
+      var ln = lineOf(rau, g, memo);
+      out.lines.push(ln);
+      if (!ln.res) out.unrated++;
+      else out[ln.res.residual]++;
+    });
+    return out;
+  }
+  function affState(rau) {
+    var data = GRC.ctx.data;
+    var aff = data.affirmationOf(rau.id);
+    var today = GRC.ctx.fmt.today();
+    var pending = aff && aff.pending ? aff.pending.length : 0;
+    var openChal = data.challengesOf(rau.id).filter(function (c) { return c.state === "open" || c.state === "responded"; }).length;
+    if (!aff || !aff.date) return { state: "never", days: null, aff: aff, pending: pending, openChal: openChal };
+    var days = Math.round((new Date(today) - new Date(aff.date)) / 86400000);
+    var state = days > 365 ? "overdue" : days > 305 ? "due" : pending ? "pending-changes" : "current";
+    return { state: state, days: days, aff: aff, pending: pending, openChal: openChal };
+  }
+  /* 2LOD attention: the non-standard and unfamiliar, ranked with reasons.
+     side: "operational" (ORBO), "compliance" (BACO), or null for both. */
+  function attention(side) {
+    var data = GRC.ctx.data;
+    var items = [];
+    var overByRau = {};
+    data.all("raus").forEach(function (rau) {
+      var rated = 0, over = 0;
+      data.regOfRau(rau.id).forEach(function (g) {
+        if (g.status !== "confirmed") return;
+        var ev = data.byId("riskEvents", g.eventId);
+        if (side && ev && ev.side !== side) return;
+        var t = data.ratingOf(rau.id, g.eventId);
+        if (!t) return;
+        rated++;
+        if (t.ov) over++;
+        var band = inherentBand(levelsFromArray(t.f)).band;
+        var out = peerOutlier(rau, g.eventId, levelsFromArray(t.f));
+        if (out) items.push({ kind: "outlier", w: 90, rau: rau, eventId: g.eventId, reason: "Final band " + out.mine + " vs LOB median " + out.median + " across " + out.peers + " peers" });
+        if (g.score >= 70 && band === "low") items.push({ kind: "mismatch", w: 60, rau: rau, eventId: g.eventId, reason: "Applicability " + g.score + " but rated Low: strong fit, weak rating" });
+        if (g.score < 45 && (band === "critical" || band === "high")) items.push({ kind: "mismatch", w: 55, rau: rau, eventId: g.eventId, reason: "Applicability only " + g.score + " but rated " + band + ": check the confirmation itself" });
+      });
+      if (rated >= 5 && over / rated > 0.3) overByRau[rau.id] = { rau: rau, over: over, rated: rated };
+      var st = affState(rau);
+      if (st.pending) {
+        var oldest = null;
+        (st.aff.pending || []).forEach(function (p) { if (!oldest || p.date < oldest) oldest = p.date; });
+        items.push({ kind: "changes", w: 40 + Math.min(30, st.pending * 5), rau: rau, reason: st.pending + " unadopted change" + (st.pending === 1 ? "" : "s") + " since the last affirmation" + (oldest ? ", oldest " + oldest : "") });
+      }
+      if (st.state === "overdue") items.push({ kind: "overdue", w: 70, rau: rau, reason: "Affirmation overdue: " + st.days + " days since " + st.aff.date });
+    });
+    Object.keys(overByRau).forEach(function (k) {
+      var x = overByRau[k];
+      items.push({ kind: "overrides", w: 65, rau: x.rau, reason: x.over + " of " + x.rated + " ratings overridden (" + Math.round(100 * x.over / x.rated) + "%): judgment-dense RAU" });
+    });
+    data.all("raus").forEach(function (rau) {
+      coverage(rau).expectedMissing.forEach(function (x) {
+        var ev = data.byId("riskEvents", x.g.eventId);
+        if (side && ev && ev.side !== side) return;
+        items.push({ kind: "exp-gap", w: 80, rau: rau, eventId: x.g.eventId, reason: "Expected control missing: " + (x.control ? x.control.name : x.rule.controlId) });
+      });
+    });
+    data.all("challenges").forEach(function (ch) {
+      if (ch.state !== "open" && ch.state !== "responded") return;
+      var rau = data.byId("raus", ch.rauId);
+      if (!rau) return;
+      items.push({ kind: "challenge", w: 75, rau: rau, eventId: ch.eventId || null, chId: ch.id, reason: (ch.state === "open" ? "Open" : "Awaiting resolution:") + " challenge " + ch.id + " by " + ch.by + ": " + ch.what.slice(0, 80) });
+    });
+    items.sort(function (a, b) { return b.w - a.w; });
+    return items;
+  }
+
   GRC.engine = {
     rubric: rubric, score: score, suppressedBy: suppressedBy,
     candidates: candidates, zones: zones, mcrCandidates: mcrCandidates,
@@ -401,6 +537,11 @@
     ctl: {
       derivedKey: derivedKey, recs: controlRecs, similar: similarControls,
       lint: descLint, coverage: coverage, bandOf: ctlBandOf
+    },
+    rcsa: {
+      effectiveness: effectiveness, envStrength: envStrength,
+      residual: residualOf, line: lineOf, profile: residualProfile,
+      affState: affState, attention: attention
     }
   };
 })();

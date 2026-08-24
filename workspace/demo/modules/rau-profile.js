@@ -1,4 +1,4 @@
-/* GRC modules/rau-profile.js v1.4.0 2026-08-23 */
+/* GRC modules/rau-profile.js v1.5.0 2026-08-23 */
 /* Capability 1: the RAU profile - demographics, attributes, metadata survey
    with provenance, process map, handoffs, and the risk summary. */
 (function () {
@@ -278,6 +278,24 @@
         ui.el("p", { class: "g-muted", style: "font-size:12px;margin:8px 0 0" }, roll.rated + " of " + roll.confirmed + " confirmed instances rated on the evidence-anchored rubric."),
         ui.el("button", { class: "g-btn sm", style: "margin-top:6px", onclick: function () { ctx.go("inherent/" + r.id); } }, "Open rating worksheet")])
     }));
+    var prof5 = ctx.engine.rcsa.profile(r);
+    var st5 = ctx.engine.rcsa.affState(r);
+    var stMap5 = { "current": ["Current", "ok"], "pending-changes": ["Changes pending", "info"], "due": ["Due", "warn"], "overdue": ["Overdue", "bad"], "never": ["Never affirmed", "bad"] };
+    right.appendChild(ui.card({
+      title: "Residual risk and affirmation (Capability 5)",
+      body: ui.el("div", {}, [
+        ui.el("div", { class: "g-row" }, [
+          prof5.high ? ui.el("span", { class: "g-badge g-badge--bad" }, prof5.high + "H") : null,
+          prof5.moderate ? ui.el("span", { class: "g-badge g-badge--info" }, prof5.moderate + "M") : null,
+          prof5.low ? ui.el("span", { class: "g-badge g-badge--ok" }, prof5.low + "L") : null,
+          prof5.unrated ? ui.el("span", { class: "g-badge", title: "Unrated instances: residual cannot compute" }, prof5.unrated + "U") : null,
+          ui.el("span", { class: "g-badge g-badge--" + stMap5[st5.state][1] }, stMap5[st5.state][0])]),
+        ui.el("p", { class: "g-muted", style: "font-size:12px;margin:8px 0 0" },
+          (st5.aff && st5.aff.date ? "Last affirmed " + fmt.date(st5.aff.date) + " by " + st5.aff.by + ". " : "Never affirmed. ") +
+          (st5.pending ? st5.pending + " unadopted change" + (st5.pending === 1 ? "" : "s") + ". " : "") +
+          (st5.openChal ? st5.openChal + " open challenge" + (st5.openChal === 1 ? "" : "s") + "." : "")),
+        ui.el("button", { class: "g-btn sm", style: "margin-top:6px", onclick: function () { ctx.go("rcsa/" + r.id); } }, "Open assessment workspace")])
+    }));
     var tagWrap = ui.el("div");
     (r.meta.tags || []).forEach(function (t) { tagWrap.appendChild(ui.pill(t)); });
     var exWrap = ui.el("div");
@@ -385,8 +403,8 @@
   }
 
   GRC.register({
-    id: "rau-profile", version: "1.4.0", tab: "RCSA",
-    caps: { "raus/:id": { primary: [1], uses: [2, 3, 4] } },
+    id: "rau-profile", version: "1.5.0", tab: "RCSA",
+    caps: { "raus/:id": { primary: [1], uses: [2, 3, 4, 5] } },
     routes: { "raus/:id": profile }
   });
 })();

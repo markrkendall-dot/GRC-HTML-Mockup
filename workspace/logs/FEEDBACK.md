@@ -138,3 +138,9 @@ FB-020 | R5 | 2026-08-23 | Owner | modules/controls.js
   Status: ACCEPTED 2026-08-23 (round R6 of the agreed plan)
   Built: 2026-08-23 controls.js 1.0.0, engine.js 1.3.0, core.js 1.5.0, controls/controlLinks/expectedControls data entities, MCR recommended control types, integrations in riskid/rau-profile/gallery/skeletons/home/demo
   Released: R6
+
+FB-021 | R6 | 2026-08-23 | Owner | modules/rcsa.js
+  Ask: Build capability 5 per DEEPDIVE-C3-C5.md Revision 1: living RCSA with annual owner affirmation (no staged cycle, no 2LOD tollgate), change adoption queue, challenge-anytime like the feedback bar, 2LOD attention view for the non-standard, residual from control environment strength vs inherent via a simple knockdown
+  Status: ACCEPTED 2026-08-23 (round R7 of the agreed plan)
+  Built: 2026-08-23 rcsa.js 1.0.0, engine.js 1.4.0, core.js 1.6.0, affirmations/challenges data entities, challenge buttons across riskid/inherent/controls, editable control design/performance ratings, mywork real 2LOD queues, "One risk, front to back" demo
+  Released: R7

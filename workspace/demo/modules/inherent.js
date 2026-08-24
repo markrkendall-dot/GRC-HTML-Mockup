@@ -1,4 +1,4 @@
-/* GRC modules/inherent.js v1.0.0 2026-08-23 */
+/* GRC modules/inherent.js v1.1.0 2026-08-23 */
 /* Capability 3: evidence-anchored inherent risk rating. Each confirmed
    risk instance gets likelihood x impact on anchored 5-level scales; the
    assistant suggests every level from platform data with provenance
@@ -302,7 +302,11 @@
             t.ov ? ui.el("span", { class: "g-muted", style: "font-size:12.5px" }, "Override rationale: " + (t.note || "-")) : ui.el("span", { class: "g-muted", style: "font-size:12.5px" }, "Accepted the evidence-based suggestion."),
             ui.el("span", { class: "sp", style: "flex:1" }),
             ui.el("span", { class: "g-muted", style: "font-size:12px" }, "Rated by " + t.by + " on " + fmt.date(t.date)),
-            ui.el("button", { class: "g-btn sm", onclick: function () { ED[key] = { edit: true, f: t.f.slice() }; draw(); } }, "Re-rate")]));
+            ui.el("button", { class: "g-btn sm", onclick: function () { ED[key] = { edit: true, f: t.f.slice() }; draw(); } }, "Re-rate"),
+            ui.el("button", { class: "g-btn sm", title: "Second line: flag this rating as wrong, anytime", onclick: function () {
+              var bb2 = inh(ctx).band(inh(ctx).fromArray(t.f));
+              GRC.challenge(ctx, { rauId: r.id, kind: "rating", eventId: g.eventId, label: r.id + " " + r.name + ": " + ev.name + " rated " + bandLabel(bb2.band) + (t.ov ? " with an override" : "") });
+            } }, "Challenge")]));
         }
       }
       function save(note) {
@@ -417,7 +421,7 @@
   }
 
   GRC.register({
-    id: "inherent", version: "1.0.0", tab: "RCSA",
+    id: "inherent", version: "1.1.0", tab: "RCSA",
     caps: {
       "inherent": { primary: [3], uses: [2] },
       "inherent/:rauId": { primary: [3], uses: [1, 2], feeds: [5] },

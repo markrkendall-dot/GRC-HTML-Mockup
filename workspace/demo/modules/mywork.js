@@ -1,4 +1,4 @@
-/* GRC modules/mywork.js v1.1.0 2026-08-23 */
+/* GRC modules/mywork.js v1.2.0 2026-08-23 */
 /* My Work: role-aware queues. Switch "View as" in the banner to change hats. */
 (function () {
   "use strict";
@@ -98,29 +98,78 @@
           } }, "Confirm handoff")]));
       });
       el.appendChild(ui.card({ title: "Inbound handoffs to confirm (trusted at submission, confirmed after)", body: hb }));
+      /* challenges awaiting the owner's answer */
+      var openCh = data.all("challenges").filter(function (c) { return c.state === "open"; }).slice(0, 8);
+      el.appendChild(ui.card({
+        title: "Challenges awaiting your answer (" + openCh.length + " shown)",
+        body: openCh.length ? ui.table({
+          cols: [
+            { key: "id", label: "ID", render: function (c) { return ui.el("span", { class: "g-mono" }, c.id); } },
+            { key: "rau", label: "RAU", render: function (c) { var r2 = data.byId("raus", c.rauId); return r2 ? r2.id + " " + r2.name : c.rauId; } },
+            { key: "what", label: "The challenge", render: function (c) { return ui.el("span", { style: "font-size:12.5px" }, c.what.slice(0, 90)); } },
+            { key: "by", label: "By", render: function (c) { return ui.el("span", { class: "g-muted", style: "font-size:12px" }, c.by); } },
+            { key: "go", label: "", render: function () { return ui.el("button", { class: "g-btn sm g-btn--primary" }, "Answer"); } }
+          ], rows: openCh, onRow: function (c) { ctx.go("rcsa/" + c.rauId); }
+        }) : ui.empty("No open challenges on your RAUs.")
+      }));
+      /* affirmations due or overdue */
+      var affDue = [];
+      for (var ai = 0; ai < data.all("raus").length && affDue.length < 8; ai++) {
+        var ra = data.all("raus")[ai];
+        var st2 = ctx.engine.rcsa.affState(ra);
+        if (st2.state === "due" || st2.state === "overdue") affDue.push({ r: ra, st: st2 });
+      }
+      el.appendChild(ui.card({
+        title: "Annual affirmations due",
+        body: affDue.length ? ui.table({
+          cols: [
+            { key: "id", label: "RAU", render: function (x) { return ui.el("span", { class: "g-mono" }, x.r.id); } },
+            { key: "name", label: "Name", render: function (x) { return x.r.name; } },
+            { key: "st", label: "State", render: function (x) { return ui.badge(x.st.state, x.st.state === "overdue" ? "bad" : "warn"); } },
+            { key: "d", label: "Days since affirmed", num: true, render: function (x) { return String(x.st.days); } },
+            { key: "go", label: "", render: function () { return ui.el("button", { class: "g-btn sm" }, "Open workspace"); } }
+          ], rows: affDue, onRow: function (x) { ctx.go("rcsa/" + x.r.id); }
+        }) : ui.empty("Nothing due in your sample.")
+      }));
       return;
     }
 
     /* ==SECTION:2lod== */
-    var recent = data.all("register").filter(function (g) { return g.status === "confirmed"; }).slice(-10).reverse();
+    /* ORBO and BACO: the promised challenge workflow is real now. */
+    var side = role.indexOf("ORBO") === 0 ? "operational" : "compliance";
+    var att = ctx.engine.rcsa.attention(side).slice(0, 10);
     el.appendChild(ui.card({
-      title: role.indexOf("ORBO") === 0 ? "Recently confirmed operational risks (challenge arrives with Capability 5)" : "Recently confirmed risks (challenge arrives with Capability 5)",
+      title: "Attention: the non-standard on your side (" + att.length + " of the ranked list)",
       body: ui.el("div", {}, [
-        ui.el("p", { class: "g-muted" }, "The front line takes the first pass at risk identification; the 2LOD challenge workflow lands in RCSA Administration (Capability 5). Until then this is a read-only feed."),
-        ui.table({
+        ui.el("p", { class: "g-muted", style: "font-size:12.5px" }, "The system points you at peer outliers, mismatches, gaps, and aging items so settled problems stay settled. Challenge anything that does not hold up, from any record, anytime."),
+        att.length ? ui.table({
           cols: [
-            { key: "rauId", label: "RAU", render: function (g) { var r = data.byId("raus", g.rauId); return ui.el("a", { href: "#/raus/" + g.rauId }, r ? r.id + " " + r.name : g.rauId); } },
-            { key: "eventId", label: "Risk event", render: function (g) { var e = data.byId("riskEvents", g.eventId); return e ? e.name : g.eventId; } },
-            { key: "score", label: "Score", num: true },
-            { key: "by", label: "By" }
-          ], rows: recent, page: 10
-        })])
+            { key: "k", label: "Signal", render: function (x) { return ui.badge(x.kind, x.kind === "outlier" || x.kind === "exp-gap" ? "bad" : "warn"); } },
+            { key: "rau", label: "RAU", render: function (x) { return ui.el("span", {}, [ui.el("span", { class: "g-mono g-muted" }, x.rau.id + " "), x.rau.name]); } },
+            { key: "why", label: "Why", render: function (x) { return ui.el("span", { style: "font-size:12.5px" }, x.reason); } },
+            { key: "go", label: "", render: function () { return ui.el("button", { class: "g-btn sm g-btn--primary" }, "Investigate"); } }
+          ], rows: att, onRow: function (x) { ctx.go("rcsa/" + x.rau.id); }
+        }) : ui.empty("Nothing non-standard on your side right now."),
+        ui.el("div", { style: "margin-top:8px" }, ui.el("button", { class: "g-btn sm", onclick: function () { ctx.go("rcsa-attention"); } }, "Open the full attention view"))])
+    }));
+    var mine = data.all("challenges").filter(function (c) { return c.by === role && (c.state === "open" || c.state === "responded"); });
+    el.appendChild(ui.card({
+      title: "Your challenges in flight (" + mine.length + ")",
+      body: mine.length ? ui.table({
+        cols: [
+          { key: "id", label: "ID", render: function (c) { return ui.el("span", { class: "g-mono" }, c.id); } },
+          { key: "rau", label: "RAU", render: function (c) { var r2 = data.byId("raus", c.rauId); return r2 ? r2.id + " " + r2.name : c.rauId; } },
+          { key: "what", label: "What you flagged", render: function (c) { return ui.el("span", { style: "font-size:12.5px" }, c.what.slice(0, 90)); } },
+          { key: "state", label: "State", render: function (c) { return ui.badge(c.state, c.state === "open" ? "bad" : "warn"); } },
+          { key: "go", label: "", render: function (c) { return ui.el("button", { class: "g-btn sm" }, c.state === "responded" ? "Resolve" : "Open"); } }
+        ], rows: mine, page: 8, onRow: function (c) { ctx.go("rcsa/" + c.rauId); }
+      }) : ui.empty("Nothing in flight. File one from any record's Challenge button.")
     }));
   }
 
   GRC.register({
-    id: "mywork", version: "1.1.0", tab: "RCSA",
-    caps: { "mywork": { primary: [1, 2, 3] } },
+    id: "mywork", version: "1.2.0", tab: "RCSA",
+    caps: { "mywork": { primary: [1, 2, 3, 5] } },
     routes: { "mywork": mywork }
   });
 })();
