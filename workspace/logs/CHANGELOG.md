@@ -12,6 +12,36 @@ Kit: SCHEMA.md v___, CONTRACT.md v___ (changed/unchanged)
 Version matrix: (paste the Preflight versions table here)
 ---- END TEMPLATE ----
 
+== R8 - 2026-08-24 - Integration round: My list, program health, links ==
+Feedback closed: FB-022 (work list), FB-023 (C9 preview + cross-links)
+Module changes:
+  kernel/core.js 1.6.0 -> 1.7.0: "My list", a shopping cart for work.
+    GRC.cart with add/toggle/remove, a persistent pill at the bottom
+    right, a drawer showing collected items with LOOKS DONE detection
+    (rate/mitigate/expected/challenge/affirm items check the live record),
+    copy and clear, and a Work-through mode that steps the list item by
+    item with Open / Done / Skip. Persists per release in localStorage,
+    like the feedback drawer. GRC.cart.btn renders the + My list toggle.
+  modules/inherent.js -> 1.2.0: + My list on unrated and stale
+    completeness rows and on unrated worksheet instances
+  modules/controls.js -> 1.2.0: + My list on all three coverage tables
+  modules/rcsa.js -> 1.1.0: + My list on attention rows, non-current
+    dashboard RAUs, and open challenges; event names in the assessment
+    lines and the attention view are now links (cross-link sweep)
+  modules/home.js -> 1.4.0: Program health card (Capability 9 preview):
+    inherent rating coverage, override rate, expected-control gaps,
+    affirmations overdue and due, open challenges; every number computed
+    live on visit and linked to the screen it reads from
+  modules/demo.js -> 2.4.0: walkthrough gains a My list scene
+  modules/gallery.js -> 1.3.0: gallery item "Collect work like a
+    shopping cart" with Keep/Discuss/Cut voting
+  index.html -> 1.6.0: pill, in-list button state, and work-through bar
+    styles
+Data: regenerated same seed; release.js R8; entities unchanged.
+Kit: v2 regeneration proposed to the owner now that capabilities 1-5
+  are stable (see the R8 release note).
+Version matrix: see Preflight in the app.
+
 == R7 - 2026-08-23 - Capability 5: the living RCSA ==
 Feedback closed: FB-021 (round R7 of the plan in docs/DEEPDIVE-C3-C5.md)
 Module changes:

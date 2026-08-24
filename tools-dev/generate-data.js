@@ -1063,7 +1063,7 @@ sizes.affirmations = writeData("affirmations", affirmations);
 sizes.challenges = writeData("challenges", challenges);
 fs.writeFileSync(path.join(OUT, "release.js"),
   "window.GRC_DATA = window.GRC_DATA || {};\n" +
-  "window.GRC_DATA.release = {number:\"R7\", date:\"" + TODAY + "\", label:\"Capability 5: living RCSA, affirmation, challenge, residual\"};\n");
+  "window.GRC_DATA.release = {number:\"R8\", date:\"" + TODAY + "\", label:\"Integration round: work list, program health preview, cross-links\"};\n");
 
 /* ==SECTION:csv-templates== */
 function csv(name, headers, rows) {

@@ -144,3 +144,15 @@ FB-021 | R6 | 2026-08-23 | Owner | modules/rcsa.js
   Status: ACCEPTED 2026-08-23 (round R7 of the agreed plan)
   Built: 2026-08-23 rcsa.js 1.0.0, engine.js 1.4.0, core.js 1.6.0, affirmations/challenges data entities, challenge buttons across riskid/inherent/controls, editable control design/performance ratings, mywork real 2LOD queues, "One risk, front to back" demo
   Released: R7
+
+FB-022 | R7 | 2026-08-24 | Owner | kernel/core.js
+  Ask: A shopping-cart style way to collect tasks, intuitive for non-tech users
+  Status: ACCEPTED 2026-08-24
+  Built: 2026-08-24 core.js 1.7.0 "My list": + My list buttons on gaps, unrated instances, challenges, and affirmations across inherent/controls/rcsa; persistent pill bottom right; drawer with looks-done detection, copy, clear; Work-through mode that walks the list item by item; localStorage persistence per release; walkthrough scene and gallery item
+  Released: R8
+
+FB-023 | R7 | 2026-08-24 | Owner (round plan) | modules/home.js
+  Ask: R8 integration round: Capability 9 program-health preview fed by C3-C5, cross-link sweep
+  Status: ACCEPTED 2026-08-24
+  Built: 2026-08-24 home.js 1.4.0 Program health card (live-computed rating coverage, override rate, expected gaps, affirmation aging, open challenges, each linking to its source screen); event-name links in the assessment workspace and attention view
+  Released: R8

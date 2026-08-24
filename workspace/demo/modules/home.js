@@ -1,4 +1,4 @@
-/* GRC modules/home.js v1.3.0 2026-08-23 */
+/* GRC modules/home.js v1.4.0 2026-08-23 */
 /* Home: the capability flow doubles as a lens. Click boxes to select a
    development scope; everything not supporting that scope grays out, and
    the readout shows what else is required and a suggested build order. */
@@ -75,6 +75,58 @@
       box(10, "Governs every capability above", "soon/Policy-0")]));
     el.appendChild(mapCard);
 
+    /* ==SECTION:program-health== */
+    /* Capability 9 preview: monitoring metrics computed LIVE from the
+       record, never stored, so they always reconcile with the screens
+       they link to. Rates and gaps, not decoration. */
+    (function healthCard() {
+      var R = ctx.engine.rcsa;
+      var confirmed = 0, rated = 0;
+      data.all("register").forEach(function (g) {
+        if (g.status !== "confirmed") return;
+        confirmed++;
+        if (data.ratingOf(g.rauId, g.eventId)) rated++;
+      });
+      var ovr = 0, totR = data.all("ratings").length;
+      data.all("ratings").forEach(function (t) { if (t.ov) ovr++; });
+      var gaps = 0;
+      data.all("expectedControls").forEach(function (rule) {
+        data.regOfEvent(rule.eventId).forEach(function (g) {
+          if (g.status !== "confirmed") return;
+          if (!data.controlsOfInstance(g.rauId, g.eventId).some(function (c) { return c.id === rule.controlId; })) gaps++;
+        });
+      });
+      var over = 0, due = 0, pendChg = 0;
+      data.all("raus").forEach(function (r) {
+        var st = R.affState(r);
+        if (st.state === "overdue") over++;
+        else if (st.state === "due") due++;
+        else if (st.state === "pending-changes") pendChg++;
+      });
+      var openCh = data.all("challenges").filter(function (c) { return c.state === "open" || c.state === "responded"; }).length;
+      function row(label, value, kind, route, hint) {
+        return ui.el("div", { class: "g-row", style: "padding:4px 0;border-bottom:1px dashed var(--g-line-soft)" }, [
+          ui.el("span", { style: "width:250px;flex:none;font-size:13px" }, label),
+          ui.el("span", { class: "g-badge g-badge--" + kind, title: hint || "" }, value),
+          ui.el("span", { class: "sp", style: "flex:1" }),
+          ui.el("a", { href: "#/" + route, style: "font-size:12px" }, "open the screen it reads from")]);
+      }
+      var covPct = confirmed ? Math.round(100 * rated / confirmed) : 0;
+      var ovPct = totR ? Math.round(100 * ovr / totR) : 0;
+      el.appendChild(ui.card({
+        title: "Program health (Capability 9 preview)",
+        body: ui.el("div", {}, [
+          ui.el("div", { class: "g-row", style: "margin-bottom:6px" }, [
+            ui.badge("C9 preview", "brand"),
+            ui.el("span", { class: "g-muted", style: "font-size:12.5px" }, "Computed live from the record on every visit, exactly how Monitoring will read it. Nothing here is a stored number.")]),
+          row("Inherent rating coverage", covPct + "% of confirmed instances", covPct >= 85 ? "ok" : "warn", "inherent", rated + " of " + confirmed + " rated"),
+          row("Override rate", ovPct + "% of ratings", ovPct <= 15 ? "ok" : "warn", "inherent", ovr + " documented overrides"),
+          row("Expected-control gaps", String(gaps), gaps ? "bad" : "ok", "controls-coverage", "Expected controls missing where their situation is live"),
+          row("Affirmations overdue / due", over + " / " + due, over ? "bad" : due ? "warn" : "ok", "rcsa", pendChg + " more RAUs carry unadopted changes"),
+          row("Challenges open or unresolved", String(openCh), openCh ? "warn" : "ok", "rcsa-challenges", "Filed by the second line, answered by owners")])
+      }));
+    })();
+
     /* ==SECTION:lens-readout== */
     if (closure) {
       var required = closure.filter(function (n) { return sel.indexOf(n) < 0; });
@@ -109,7 +161,7 @@
   }
 
   GRC.register({
-    id: "home", version: "1.3.0", tab: "Home",
+    id: "home", version: "1.4.0", tab: "Home",
     rail: [{ label: "Program map", route: "home", order: 10 }],
     caps: { "home": null },
     routes: { "home": home }

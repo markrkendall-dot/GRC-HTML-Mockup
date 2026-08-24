@@ -1,4 +1,4 @@
-/* GRC modules/rcsa.js v1.0.0 2026-08-23 */
+/* GRC modules/rcsa.js v1.1.0 2026-08-23 */
 /* Capability 5: RCSA administration as a LIVING record. No staged cycle
    and no challenge tollgate: changes from capabilities 1-4 queue on the
    RAU for adoption, the owner signs one annual affirmation, the second
@@ -125,7 +125,9 @@
         ui.el("td", {}, resStrip(ui, prof)),
         ui.el("td", {}, direction(ui, prof, st.aff) || ui.el("span", { class: "g-muted" }, "-")),
         ui.el("td", {}, st.aff && st.aff.date ? ctx.fmt.date(st.aff.date) : "-"),
-        ui.el("td", { class: "num" }, (st.pending || 0) + " / " + (st.openChal || 0))]);
+        ui.el("td", { class: "num" }, [
+          document.createTextNode((st.pending || 0) + " / " + (st.openChal || 0) + " "),
+          st.state !== "current" ? GRC.cart.btn({ key: "aff|" + r.id, kind: "affirm", rauId: r.id, label: "Bring " + r.id + " to affirmation", sub: r.name + " (" + st.state + ")", route: "rcsa/" + r.id }) : null].filter(Boolean))]);
       tr.onclick = function () { ctx.go("rcsa/" + r.id); };
       return tr;
     }
@@ -189,10 +191,20 @@
       cols: [
         { key: "k", label: "Signal", render: function (x) { var k = KIND[x.kind] || [x.kind, ""]; return ui.badge(k[0], k[1]); } },
         { key: "rau", label: "RAU", render: function (x) { return ui.el("span", {}, [ui.el("span", { class: "g-mono g-muted" }, x.rau.id + " "), x.rau.name]); } },
-        { key: "ev", label: "Where", render: function (x) { if (!x.eventId) return ui.el("span", { class: "g-muted" }, "RAU level"); var e = ctx.data.byId("riskEvents", x.eventId); return e ? e.name : x.eventId; } },
+        { key: "ev", label: "Where", render: function (x) { if (!x.eventId) return ui.el("span", { class: "g-muted" }, "RAU level"); var e = ctx.data.byId("riskEvents", x.eventId); return e ? ui.el("a", { href: "#/events/" + x.eventId, onclick: function (ev2) { ev2.stopPropagation(); } }, e.name) : x.eventId; } },
         { key: "why", label: "Why it is here", render: function (x) { return ui.el("span", { style: "font-size:12.5px" }, x.reason); } },
         { key: "act", label: "", render: function (x) {
+          var kindMap = { challenge: "challenge", "exp-gap": "expected", changes: "affirm", overdue: "affirm" };
+          var ck = kindMap[x.kind] || "review";
+          var item = {
+            key: "att|" + x.kind + "|" + x.rau.id + "|" + (x.eventId || "") + "|" + (x.chId || ""),
+            kind: ck, rauId: x.rau.id, eventId: x.eventId || null, chId: x.chId || null,
+            label: (ck === "affirm" ? "Bring " + x.rau.id + " to affirmation" : x.reason.slice(0, 70)),
+            sub: x.rau.id + " " + x.rau.name,
+            route: ck === "expected" && x.eventId ? "attach/" + x.rau.id + "/" + x.eventId : "rcsa/" + x.rau.id
+          };
           return ui.el("span", { class: "g-row", style: "gap:6px" }, [
+            GRC.cart.btn(item),
             ui.el("button", { class: "g-btn sm g-btn--primary", onclick: function (e) { e.stopPropagation(); ctx.go("rcsa/" + x.rau.id); } }, "Investigate"),
             ui.el("button", { class: "g-btn sm", title: "Reviewed and found acceptable; hidden for this session", onclick: function (e) {
               e.stopPropagation();
@@ -306,7 +318,7 @@
           { key: "ev", label: "Risk instance", render: function (ln) {
             var e = data.byId("riskEvents", ln.g.eventId);
             return ui.el("span", {}, [
-              e ? e.name : ln.g.eventId,
+              e ? ui.el("a", { href: "#/events/" + ln.g.eventId, onclick: function (ev3) { ev3.stopPropagation(); } }, e.name) : ln.g.eventId,
               changedEv[ln.g.eventId] ? ui.el("span", { class: "g-badge g-badge--info", style: "margin-left:6px", title: "Touched by an unadopted change" }, "CHANGED") : null,
               chalByEv[ln.g.eventId] ? ui.el("span", { class: "g-badge g-badge--bad", style: "margin-left:6px", title: chalByEv[ln.g.eventId].map(function (c) { return c.id + " " + c.state; }).join(", ") }, "CHALLENGED") : null]);
           } },
@@ -374,6 +386,7 @@
           ui.el("span", { class: "g-mono g-muted" }, c.id), chStateBadge(ui, c.state), ui.badge(c.kind, ""),
           e ? ui.el("span", { style: "font-size:13px" }, e.name) : null,
           ui.el("span", { class: "sp", style: "flex:1" }),
+          (c.state === "open" || c.state === "responded") ? GRC.cart.btn({ key: "chal|" + c.id, kind: "challenge", chId: c.id, rauId: r.id, label: (c.state === "open" ? "Answer" : "Resolve") + " challenge " + c.id + " on " + r.id, sub: c.what.slice(0, 70), route: "rcsa/" + r.id }) : null,
           ui.el("span", { class: "g-muted", style: "font-size:12px" }, c.by + ", " + fmt.date(c.date))]));
         box.appendChild(ui.el("p", { style: "margin:6px 0 2px;font-size:13px" }, [ui.el("b", {}, "Wrong: "), c.what]));
         box.appendChild(ui.el("p", { style: "margin:2px 0;font-size:13px" }, [ui.el("b", {}, "Should be: "), c.should]));
@@ -407,7 +420,7 @@
   }
 
   GRC.register({
-    id: "rcsa", version: "1.0.0", tab: "RCSA",
+    id: "rcsa", version: "1.1.0", tab: "RCSA",
     caps: {
       "rcsa": { primary: [5], uses: [3, 4] },
       "rcsa-attention": { primary: [5], uses: [2, 3, 4] },

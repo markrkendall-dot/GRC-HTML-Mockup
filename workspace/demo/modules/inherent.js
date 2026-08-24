@@ -1,4 +1,4 @@
-/* GRC modules/inherent.js v1.1.0 2026-08-23 */
+/* GRC modules/inherent.js v1.2.0 2026-08-23 */
 /* Capability 3: evidence-anchored inherent risk rating. Each confirmed
    risk instance gets likelihood x impact on anchored 5-level scales; the
    assistant suggests every level from platform data with provenance
@@ -158,6 +158,10 @@
           { key: "rau", label: "RAU", render: function (x) { return ui.el("span", {}, [ui.el("span", { class: "g-mono g-muted" }, x.r.id + " "), x.r.name]); } },
           { key: "ev", label: "Risk instance", render: function (x) { var e = data.byId("riskEvents", x.g.eventId); return e ? e.name : x.g.eventId; } },
           { key: "score", label: "Applicability", num: true, render: function (x) { return String(x.g.score); } },
+          { key: "cart", label: "", render: function (x) {
+            var e = data.byId("riskEvents", x.g.eventId);
+            return GRC.cart.btn({ key: "rate|" + x.r.id + "|" + x.g.eventId, kind: "rate", rauId: x.r.id, eventId: x.g.eventId, label: "Rate " + (e ? e.name : x.g.eventId) + " on " + x.r.id, sub: x.r.name, route: "inherent/" + x.r.id });
+          } },
           { key: "go", label: "", render: function () { return ui.el("button", { class: "g-btn sm g-btn--primary" }, "Rate"); } }
         ], rows: unrated.slice(0, 300), page: 10,
         onRow: function (x) { ctx.state.set("inhFocus", x.g.eventId); ctx.go("inherent/" + x.r.id); }
@@ -170,7 +174,11 @@
           { key: "rau", label: "RAU", render: function (x) { return ui.el("span", {}, [ui.el("span", { class: "g-mono g-muted" }, x.r.id + " "), x.r.name]); } },
           { key: "ev", label: "Risk instance", render: function (x) { var e = data.byId("riskEvents", x.t.eventId); return e ? e.name : x.t.eventId; } },
           { key: "date", label: "Rated", render: function (x) { return fmt.date(x.t.date); } },
-          { key: "by", label: "By", render: function (x) { return x.t.by; } }
+          { key: "by", label: "By", render: function (x) { return x.t.by; } },
+          { key: "cart", label: "", render: function (x) {
+            var e = data.byId("riskEvents", x.t.eventId);
+            return GRC.cart.btn({ key: "restale|" + x.r.id + "|" + x.t.eventId, kind: "review", rauId: x.r.id, eventId: x.t.eventId, label: "Refresh the stale rating on " + (e ? e.name : x.t.eventId), sub: x.r.id + " " + x.r.name, route: "inherent/" + x.r.id });
+          } }
         ], rows: stale, page: 10,
         onRow: function (x) { ctx.state.set("inhFocus", x.t.eventId); ctx.go("inherent/" + x.r.id); }
       }) : ui.empty("Nothing stale.")
@@ -240,6 +248,7 @@
         if (out) chips.push(ui.el("span", { class: "g-badge g-badge--bad", title: "Final band " + bandLabel(out.mine) + " vs LOB median " + bandLabel(out.median) + " across " + out.peers + " peers" }, "Peer outlier"));
       } else {
         chips.push(ui.badge("Not rated", ""));
+        chips.push(GRC.cart.btn({ key: "rate|" + r.id + "|" + g.eventId, kind: "rate", rauId: r.id, eventId: g.eventId, label: "Rate " + ev.name + " on " + r.id, sub: r.name, route: "inherent/" + r.id }));
       }
       var head = ui.el("div", { class: "g-row click" }, [
         ui.el("span", { class: "caret" + (open ? " open" : "") }),
@@ -421,7 +430,7 @@
   }
 
   GRC.register({
-    id: "inherent", version: "1.1.0", tab: "RCSA",
+    id: "inherent", version: "1.2.0", tab: "RCSA",
     caps: {
       "inherent": { primary: [3], uses: [2] },
       "inherent/:rauId": { primary: [3], uses: [1, 2], feeds: [5] },

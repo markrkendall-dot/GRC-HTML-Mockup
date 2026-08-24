@@ -1,4 +1,4 @@
-/* GRC modules/controls.js v1.1.0 2026-08-23 */
+/* GRC modules/controls.js v1.2.0 2026-08-23 */
 /* Capability 4: control identification. One central inventory (the GRC
    is the system of record), controls attached to risk instances, shared
    controls reused across RAUs, expected controls for defined situations,
@@ -122,6 +122,10 @@
           { key: "ev", label: "Risk instance", render: function (y) { var e = data.byId("riskEvents", y.x.g.eventId); return e ? e.name : y.x.g.eventId; } },
           { key: "exp", label: "Expected control", render: function (y) { return y.x.control ? ui.el("a", { href: "#/controls/" + y.x.control.id, onclick: function (e) { e.stopPropagation(); } }, y.x.control.name) : "-"; } },
           { key: "why", label: "Why expected", render: function (y) { return ui.el("span", { class: "g-muted", style: "font-size:12px" }, y.x.rule.note); } },
+          { key: "cart", label: "", render: function (y) {
+            var e = data.byId("riskEvents", y.x.g.eventId);
+            return GRC.cart.btn({ key: "exp|" + y.r.id + "|" + y.x.g.eventId, kind: "expected", rauId: y.r.id, eventId: y.x.g.eventId, label: "Attach the expected control on " + (e ? e.name : y.x.g.eventId), sub: y.r.id + " " + y.r.name, route: "attach/" + y.r.id + "/" + y.x.g.eventId });
+          } },
           { key: "fix", label: "", render: function (y) {
             return ui.el("button", { class: "g-btn sm g-btn--primary", onclick: function (e) {
               e.stopPropagation();
@@ -144,6 +148,10 @@
           { key: "rau", label: "RAU", render: function (y) { return ui.el("span", {}, [ui.el("span", { class: "g-mono g-muted" }, y.r.id + " "), y.r.name]); } },
           { key: "ev", label: "Risk instance", render: function (y) { var e = data.byId("riskEvents", y.x.g.eventId); return e ? e.name : y.x.g.eventId; } },
           { key: "band", label: "Inherent", render: function (y) { return bandBadge(ui, y.x.band); } },
+          { key: "cart", label: "", render: function (y) {
+            var e = data.byId("riskEvents", y.x.g.eventId);
+            return GRC.cart.btn({ key: "mit|" + y.r.id + "|" + y.x.g.eventId, kind: "mitigate", rauId: y.r.id, eventId: y.x.g.eventId, label: "Add controls to " + (e ? e.name : y.x.g.eventId), sub: y.r.id + " " + y.r.name + ", inherent " + y.x.band, route: "attach/" + y.r.id + "/" + y.x.g.eventId });
+          } },
           { key: "go", label: "", render: function () { return ui.el("button", { class: "g-btn sm" }, "Attach controls"); } }
         ], rows: noCtl, page: 10,
         onRow: function (y) { ctx.go("attach/" + y.r.id + "/" + y.x.g.eventId); }
@@ -156,7 +164,11 @@
           { key: "rau", label: "RAU", render: function (y) { return ui.el("span", {}, [ui.el("span", { class: "g-mono g-muted" }, y.r.id + " "), y.r.name]); } },
           { key: "ev", label: "Risk instance", render: function (y) { var e = data.byId("riskEvents", y.x.g.eventId); return e ? e.name : y.x.g.eventId; } },
           { key: "band", label: "Inherent", render: function (y) { return bandBadge(ui, y.x.band); } },
-          { key: "ctl", label: "The lone control", render: function (y) { return ui.el("a", { href: "#/controls/" + y.x.control.id, onclick: function (e) { e.stopPropagation(); } }, y.x.control.name); } }
+          { key: "ctl", label: "The lone control", render: function (y) { return ui.el("a", { href: "#/controls/" + y.x.control.id, onclick: function (e) { e.stopPropagation(); } }, y.x.control.name); } },
+          { key: "cart", label: "", render: function (y) {
+            var e = data.byId("riskEvents", y.x.g.eventId);
+            return GRC.cart.btn({ key: "sp|" + y.r.id + "|" + y.x.g.eventId, kind: "review", rauId: y.r.id, eventId: y.x.g.eventId, label: "Review the single point of mitigation on " + (e ? e.name : y.x.g.eventId), sub: y.r.id + " " + y.r.name, route: "attach/" + y.r.id + "/" + y.x.g.eventId });
+          } }
         ], rows: single.slice(0, 300), page: 10,
         onRow: function (y) { ctx.go("attach/" + y.r.id + "/" + y.x.g.eventId); }
       }) : ui.empty("Nothing rides on a single control.")
@@ -463,7 +475,7 @@
   }
 
   GRC.register({
-    id: "controls", version: "1.1.0", tab: "RCSA",
+    id: "controls", version: "1.2.0", tab: "RCSA",
     caps: {
       "controls": { primary: [4], uses: [2, 3] },
       "controls-coverage": { primary: [4], uses: [2, 3] },

@@ -1,4 +1,4 @@
-/* GRC modules/demo.js v2.3.0 2026-08-23 */
+/* GRC modules/demo.js v2.4.0 2026-08-23 */
 /* Present: a demo picker. One full walkthrough, one order-of-operations
    story (the birth of a RAU), and one demo per role in the View-as picker,
    each following the workflow that role actually runs day to day. */
@@ -103,6 +103,10 @@
       {
         route: "rcsa", title: "The affirmation board and the attention view",
         text: "The whole bank: affirmation states, residual profiles, direction since the last signature. Behind the second tab, the 2LOD attention view ranks the non-standard, so ORBO and BACO investigate outliers and gaps instead of relitigating settled problems."
+      },
+      {
+        route: "rcsa-attention", title: "My list: a cart for work",
+        text: "See the + My list buttons on these rows? They are everywhere work surfaces: gaps, unrated instances, challenges, affirmations. Collect as you browse, exactly like a shopping cart, then open My list at the bottom right and Work through it: the tool walks you item by item and notices when something looks finished. Built for people who do not live in this tool."
       },
       {
         route: "mcrlib", title: "The MCR library, published from RRCM",
@@ -326,7 +330,7 @@
   }
 
   GRC.register({
-    id: "demo", version: "2.3.0", tab: "Home",
+    id: "demo", version: "2.4.0", tab: "Home",
     caps: { "present": null },
     routes: { "present": present }
   });

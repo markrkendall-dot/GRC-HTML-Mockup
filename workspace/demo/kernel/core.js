@@ -1,4 +1,4 @@
-/* GRC kernel/core.js v1.6.0 2026-08-23 */
+/* GRC kernel/core.js v1.7.0 2026-08-23 */
 /* Kernel: module registry (tab/rail), hash router, data indexing, state,
    formatting, preflight, guided tour, reset. No dependencies, file:// safe. */
 (function () {
@@ -746,6 +746,161 @@
     show();
   };
 
+  /* ==SECTION:worklist== */
+  /* "My list": a shopping cart for work. Browse anywhere, add items with
+     one click, then work through the list step by step. Items know how
+     to check whether they look finished. Persists per release, like the
+     feedback drawer; intended for people who do not live in this tool. */
+  var CART = [];
+  var CART_KEY = "grc-worklist";
+  function cartLoad() {
+    CART_KEY = "grc-worklist-" + (D && D.release ? D.release.number : "R");
+    try { CART = JSON.parse(localStorage.getItem(CART_KEY) || "[]"); } catch (e) { CART = []; }
+    if (!Array.isArray(CART)) CART = [];
+  }
+  function cartSave() { try { localStorage.setItem(CART_KEY, JSON.stringify(CART)); } catch (e) { } }
+  function cartPaint() {
+    var p = document.getElementById("g-cart-pill");
+    if (!p) return;
+    p.innerHTML = "My list <span class='n'>" + CART.length + "</span>";
+  }
+  function cartLooksDone(it) {
+    try {
+      if (it.kind === "rate") return !!data.ratingOf(it.rauId, it.eventId);
+      if (it.kind === "mitigate") return data.controlsOfInstance(it.rauId, it.eventId).length > 0;
+      if (it.kind === "expected") {
+        var rules = data.expectedFor(it.eventId);
+        if (!rules.length) return true;
+        var cs = data.controlsOfInstance(it.rauId, it.eventId);
+        return rules.every(function (rule) { return cs.some(function (c) { return c.id === rule.controlId; }); });
+      }
+      if (it.kind === "challenge") {
+        var ch = null;
+        D.entities.challenges.forEach(function (c) { if (c.id === it.chId) ch = c; });
+        return !ch || ch.state === "upheld" || ch.state === "withdrawn";
+      }
+      if (it.kind === "affirm") {
+        var r = data.byId("raus", it.rauId);
+        return r ? GRC.engine.rcsa.affState(r).state === "current" : true;
+      }
+    } catch (e) { }
+    return false;
+  }
+  var KIND_LABEL = {
+    rate: ["Rate", "warn"], mitigate: ["Add controls", "bad"], expected: ["Expected control", "bad"],
+    challenge: ["Challenge", "warn"], affirm: ["Affirm", "info"], review: ["Review", ""]
+  };
+  GRC.cart = {
+    all: function () { return CART; },
+    count: function () { return CART.length; },
+    has: function (key) { return CART.some(function (x) { return x.key === key; }); },
+    add: function (it) {
+      if (GRC.cart.has(it.key)) return;
+      it.added = fmt.today();
+      CART.push(it);
+      cartSave(); cartPaint();
+      if (GRC.ctx && GRC.ctx.ui) GRC.ctx.ui.toast("Added to My list (" + CART.length + "). Work it whenever you like.");
+    },
+    remove: function (key) {
+      CART = CART.filter(function (x) { return x.key !== key; });
+      cartSave(); cartPaint();
+    },
+    toggle: function (it) { if (GRC.cart.has(it.key)) GRC.cart.remove(it.key); else GRC.cart.add(it); },
+    clear: function () { CART = []; cartSave(); cartPaint(); },
+    btn: function (it) {
+      var b = document.createElement("button");
+      function paint() {
+        var has = GRC.cart.has(it.key);
+        b.className = "g-btn sm" + (has ? " cart-in" : "");
+        b.textContent = has ? "In list" : "+ My list";
+        b.title = has ? "In your work list; click to remove" : "Add to your work list: collect now, work it later";
+      }
+      b.onclick = function (e) { e.stopPropagation(); GRC.cart.toggle(it); paint(); };
+      paint();
+      return b;
+    },
+    open: cartOpen,
+    work: cartWork
+  };
+  function cartOpen() {
+    var ui = GRC.ctx.ui;
+    var body = ui.el("div");
+    body.appendChild(ui.el("p", { class: "g-muted", style: "font-size:12.5px;margin:0 0 10px" },
+      "Collect work as you browse, like a shopping cart: nothing happens until you work the list. Items check themselves off-color when they look finished; you confirm."));
+    if (!CART.length) body.appendChild(ui.empty("Empty. Look for the + My list button on gaps, unrated instances, challenges, and affirmations."));
+    CART.slice().forEach(function (it) {
+      var kl = KIND_LABEL[it.kind] || [it.kind, ""];
+      var done = cartLooksDone(it);
+      body.appendChild(ui.el("div", { class: "fb-item" }, [
+        ui.el("div", { class: "g-row" }, [
+          ui.badge(kl[0], kl[1]),
+          done ? ui.el("span", { class: "g-badge g-badge--ok", title: "The record says this is handled; remove it when you agree" }, "LOOKS DONE") : null,
+          ui.el("span", { style: "flex:1;min-width:220px" }, it.label),
+          ui.el("button", {
+            class: "g-btn sm g-btn--primary", onclick: function () { dr.close(); GRC.go(it.route); }
+          }, "Open"),
+          ui.el("button", { class: "g-btn sm", title: "Remove from the list", onclick: function () { GRC.cart.remove(it.key); dr.close(); cartOpen(); } }, "x")]),
+        it.sub ? ui.el("div", { class: "g-muted", style: "font-size:12px;margin-top:3px" }, it.sub) : null]));
+    });
+    var foot = ui.el("div", { class: "g-row", style: "margin-top:12px" });
+    var workBtn = ui.el("button", { class: "g-btn g-btn--primary", onclick: function () { dr.close(); cartWork(); } }, "Work through my list (" + CART.length + ")");
+    workBtn.disabled = !CART.length;
+    foot.appendChild(workBtn);
+    foot.appendChild(ui.el("button", {
+      class: "g-btn", onclick: function () {
+        var lines = CART.map(function (it, i) { return (i + 1) + ". [" + it.kind + "] " + it.label + (it.sub ? " (" + it.sub + ")" : "") + " -> #/" + it.route; });
+        var txt = "My list, " + (D.release ? D.release.number : "") + ", " + fmt.today() + "\n" + lines.join("\n");
+        try { navigator.clipboard.writeText(txt); GRC.ctx.ui.toast("List copied."); } catch (e) { prompt("Copy your list:", txt); }
+      }
+    }, "Copy list"));
+    foot.appendChild(ui.el("button", { class: "g-btn", onclick: function () { if (confirm("Clear the whole list?")) { GRC.cart.clear(); dr.close(); } } }, "Clear"));
+    body.appendChild(foot);
+    var dr = ui.drawer({ title: "My list: collected work (" + CART.length + ")", body: body });
+  }
+  /* checkout: step through the list one item at a time */
+  function cartWork() {
+    var old = document.getElementById("g-cartbar");
+    if (old) old.parentNode.removeChild(old);
+    if (!CART.length) { if (GRC.ctx && GRC.ctx.ui) GRC.ctx.ui.toast("Your list is empty."); return; }
+    var i = 0;
+    var bar = document.createElement("div");
+    bar.id = "g-cartbar";
+    document.body.appendChild(bar);
+    function close() { if (bar.parentNode) bar.parentNode.removeChild(bar); }
+    function show(navigate) {
+      if (!CART.length) {
+        if (GRC.ctx && GRC.ctx.ui) GRC.ctx.ui.toast("List complete. Nice work.");
+        close(); return;
+      }
+      if (i >= CART.length) i = 0;
+      var it = CART[i];
+      var done = cartLooksDone(it);
+      bar.innerHTML = "";
+      var lbl = document.createElement("span");
+      lbl.className = "t";
+      lbl.textContent = (i + 1) + " of " + CART.length + ": " + it.label;
+      bar.appendChild(lbl);
+      if (done) {
+        var dchip = document.createElement("span");
+        dchip.className = "donechip";
+        dchip.textContent = "LOOKS DONE";
+        bar.appendChild(dchip);
+      }
+      function mk(label, cls, fn) {
+        var b = document.createElement("button");
+        b.textContent = label; if (cls) b.className = cls; b.onclick = fn;
+        bar.appendChild(b);
+        return b;
+      }
+      mk("Open", "p", function () { GRC.go(it.route); });
+      mk("Done, next", "", function () { GRC.cart.remove(it.key); show(true); });
+      mk("Skip", "", function () { i++; show(true); });
+      mk("Exit", "", close);
+      if (navigate) GRC.go(it.route);
+    }
+    show(true);
+  }
+
   /* ==SECTION:boot== */
   GRC.resetData = function () { indexData(); render(); if (GRC.ctx && GRC.ctx.ui) GRC.ctx.ui.toast("Demo data reset to shipped state."); };
   GRC.boot = function () {
@@ -771,6 +926,13 @@
     pill.textContent = "Provide Feedback for this Demo";
     pill.onclick = openFeedback;
     document.body.appendChild(pill);
+    cartLoad();
+    var cpill = document.createElement("button");
+    cpill.id = "g-cart-pill";
+    cpill.title = "Your work list: collect items as you browse, then work through them.";
+    cpill.onclick = cartOpen;
+    document.body.appendChild(cpill);
+    cartPaint();
     window.addEventListener("hashchange", render);
     render();
   };

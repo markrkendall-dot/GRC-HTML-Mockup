@@ -1,4 +1,4 @@
-/* GRC modules/gallery.js v1.2.0 2026-08-23 */
+/* GRC modules/gallery.js v1.3.0 2026-08-23 */
 /* Feature gallery: curated, concrete examples of features to ship, grouped
    by theme and complexity. Each opens a live example. Keep / Discuss / Cut
    votes are stored with feedback and included in the export, so a room can
@@ -55,6 +55,7 @@
       {
         theme: "Working across the tool", items: [
           { id: "gal-search", tier: "Basic", title: "Search everything from one box", what: "One search across RAUs, risk events, MCRs, and pipeline requests.", show: function () { ctx.state.set("search", "escrow"); ctx.go("search"); } },
+          { id: "gal-worklist", tier: "Basic", title: "Collect work like a shopping cart", what: "A + My list button sits on gaps, unrated instances, challenges, and affirmations. Collect as you browse, then Work through the list item by item; it notices when something looks finished.", show: function () { ctx.go("rcsa-attention"); setTimeout(function () { ctx.ui.toast("Add a few rows with + My list, then open My list at the bottom right."); }, 400); } },
           { id: "gal-mywork", tier: "Basic", title: "Role-aware queues in My Work", what: "The same screen shows different queues for the RAU Owner, the governance team, and the second line.", show: function () { ctx.state.set("role", "RCSA RAU Governance"); var sel = document.getElementById("g-role"); if (sel) sel.value = "RCSA RAU Governance"; ctx.go("mywork"); setTimeout(function () { ctx.ui.toast("Now viewing as RCSA RAU Governance. Change View as in the banner to switch hats."); }, 350); } },
           { id: "gal-confirmhandoff", tier: "Standard", title: "Confirm an inbound handoff", what: "Handoffs are trusted at submission and confirmed by the counterparty afterward, from their queue.", show: function () { ctx.state.set("role", "RAU Owner"); var sel = document.getElementById("g-role"); if (sel) sel.value = "RAU Owner"; ctx.go("mywork"); } }
         ]
@@ -169,7 +170,7 @@
   }
 
   GRC.register({
-    id: "gallery", version: "1.2.0", tab: "Home",
+    id: "gallery", version: "1.3.0", tab: "Home",
     caps: {
       "gallery": { primary: [1, 2] },
       "gallery/assign-control": { primary: [4], uses: [2], preview: true },
