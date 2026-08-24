@@ -4,18 +4,21 @@ This folder IS the working structure. Unpack it as C:\GRC (or your
 Documents folder if C:\ is locked down) and keep the layout exactly:
 
   demo\            THE APP - open demo\index.html in Edge. It ships
-                   PRE-BUILT: reference build R1 = capabilities 1 and 2
-                   (RAU Demographics & Attributes; Risk Identification)
-                   running on synthetic data at true scale (850 RAUs,
-                   90 risk events, 8,000 MCRs). Click Present in the left
-                   rail for the guided walkthrough.
+                   PRE-BUILT through release R9: capabilities 1-5 end to
+                   end (RAU inventory and pipeline, risk identification,
+                   inherent ratings, controls with derived key, the
+                   living RCSA with affirmation, challenge and residual)
+                   on synthetic data at true scale (850 RAUs, 90 events,
+                   8,000 MCRs, 5,100 controls). Click Present in the
+                   left rail: nine demos, including one per role.
     kernel\        core.js, engine.js, ui.js, charts.js (edit via Copilot)
     modules\       one .js per capability               (edit via Copilot)
     data\          one .js per entity - YOUR REAL DATA REPLACES THESE
                    (same filenames; see data-staging\README.txt)
     tools\         (dataforge.html arrives in a later phase)
-  kit\             the .md files you attach to Copilot sessions
-    cards\         one TASK card per session + TASK-FB template
+  kit\             the .md files you attach to Copilot sessions (v2,
+                   matches the as-built app; start at KIT-README.md)
+    cards\         one TASK card per kind of job + the FB template
   data-staging\    raw CSV exports land here before conversion
     templates\     dummy CSVs showing the exact expected columns per entity
   releases\        frozen numbered copies users see (R1, R2, ...) - never edit
@@ -24,7 +27,7 @@ Documents folder if C:\ is locked down) and keep the layout exactly:
   logs\            FEEDBACK.md (user feedback register)
                    CHANGELOG.md (what changed, per release)
                    LOG.txt (one line per build session)
-  GRC-Mockup-Runbook.docx   the manual. Start at Part 0.
+  GRC-Mockup-Runbook.docx   the manual (v2). Start at Part 0.
 
 RULES THAT KEEP THIS SANE (details in the runbook):
 1. Users only ever see releases\R<n>\. Never demo\.

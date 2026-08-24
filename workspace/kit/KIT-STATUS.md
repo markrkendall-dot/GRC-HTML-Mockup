@@ -1,20 +1,24 @@
-# KIT STATUS - read before using these cards
+# KIT STATUS - v2, current as of release R9
 
-The demo\ folder ships PRE-BUILT (reference build R1, capabilities 1 and 2).
-You do NOT rebuild it from these cards. The kit's job inside the firewall
-is now EDITS and FEEDBACK:
+This kit matches the app as built through R9: capabilities 1 through 5
+end to end, nine demos, the feedback drawer, the My list work cart, and
+the living-RCSA machinery. Generated from the reference build after the
+R5-R8 rounds stabilized, replacing kit v1 (which described the original
+generic plan and was marked stale from R1).
 
-- CONTRACT.md and PROMPTS.md still govern every Copilot session (the EDIT
-  and FIX prompts are what you will mostly use). One caveat: the reference
-  build's module API is richer than CONTRACT.md v1.0 describes (register
-  gains tab/rail; ctx gains engine). When editing a file, the attached
-  CURRENT-*.md mirror is the truth; the contract governs style and output
-  rules.
-- cards\TASK-FB-TEMPLATE.md is the workhorse: every user-feedback change
-  becomes a filled FB card and one EDIT session per touched module.
-- The build cards (TASK-P*, TASK-M-*) describe the ORIGINAL generic plan
-  and are superseded by the built files. Kept for reference; a v2 card set
-  regenerates from the reference build after the first feedback round.
-- SCHEMA v2 lives in the data files themselves and in the repo's
-  docs/DEEPDIVE-C1-C2.md. WORKSHEET.md still collects your org-specific
-  decisions.
+Card versions: CONTRACT v2.0, SCHEMA v2.0, ENGINE v1.0, MODULES v1.0,
+PROMPTS v1.1, KIT-README v2. Task cards: EDIT-MODULE, FEEDBACK-ROUND,
+REAL-DATA, NEW-MODULE, FB-TEMPLATE.
+
+Trust order when things disagree:
+1. The built files in demo\ (the truth).
+2. MODULES.md and the in-app Preflight version matrix.
+3. CONTRACT / SCHEMA / ENGINE cards.
+4. The runbook's appendix summaries.
+If you find a disagreement, fix the card in the same round and note it in
+logs\CHANGELOG.md under the release you shipped.
+
+Retired: the v1 build-phase cards (TASK-P1-*, TASK-P2-*, TASK-P3-*,
+TASK-M-*) are deleted from this kit. They described a pre-build plan that
+the reference build superseded; keeping them invited pasting the wrong
+spec into Copilot. The repository history still has them if ever needed.

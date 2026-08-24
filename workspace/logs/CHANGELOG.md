@@ -12,6 +12,29 @@ Kit: SCHEMA.md v___, CONTRACT.md v___ (changed/unchanged)
 Version matrix: (paste the Preflight versions table here)
 ---- END TEMPLATE ----
 
+== R9 - 2026-08-24 - Kit v2 and runbook v2 ==
+Feedback closed: FB-024 (the R8 release note's kit regeneration decision)
+No app code changes; release.js R9 only.
+Kit (workspace\kit\): regenerated from the as-built system.
+  CONTRACT.md 2.0: as-built module API (tab/rail/caps, ctx.engine,
+    kernel services cart/challenge/tour), localStorage-behind-try/catch
+    amendment, hard behavioral rules learned over R1-R8
+  SCHEMA.md 2.0: 15 entities as generated, the full data API, invariants
+    (read-time joins, compute-not-store, the generator mirror rule)
+  ENGINE.md 1.0 NEW: the four engine sections as spec, mirror warnings
+  MODULES.md 1.0 NEW: file-by-file inventory, versions, sizes, rail map
+  PROMPTS.md 1.1: card-selection addendum; KIT-README/KIT-STATUS v2
+  cards\: TASK-EDIT-MODULE, TASK-FEEDBACK-ROUND, TASK-REAL-DATA,
+    TASK-NEW-MODULE (all new); FB template kept; the 20 v1 build-phase
+    cards (TASK-P*, TASK-M-*) retired to git history
+  Root firewall-kit\ replaced by a superseded pointer.
+Runbook: GRC-Mockup-Runbook.docx v2 (13 parts + appendices, XSD-valid)
+  rewritten for the as-built system and the proven R2-R9 operating
+  rhythm; now ships INSIDE the workspace at the root, where
+  README-FIRST.txt always said it was. README-FIRST refreshed to R9.
+Data: regenerated same seed; entities unchanged.
+Version matrix: see Preflight in the app.
+
 == R8 - 2026-08-24 - Integration round: My list, program health, links ==
 Feedback closed: FB-022 (work list), FB-023 (C9 preview + cross-links)
 Module changes:

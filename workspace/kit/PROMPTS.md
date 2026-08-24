@@ -1,4 +1,4 @@
-# PROMPTS.md - the only things you ever type into Copilot
+# PROMPTS.md v1.1 - the only things you ever type into Copilot
 
 Replace the <angle-bracket> parts. Type everything else exactly as written.
 Every session starts a NEW Copilot conversation.
@@ -25,3 +25,10 @@ block format. Do not repeat anything that came before the marker.
 The file you produced fails this check: <paste the failed check, and describe
 what you see instead>. Output the entire corrected file as one fenced code
 block. Change only what is needed to pass the check.
+
+## v1.1 ADDENDUM - which cards ride along
+EDIT sessions attach CONTRACT.md + the TASK card + CURRENT-<name>.md, plus:
+SCHEMA.md when the change reads or writes data; ENGINE.md when it touches
+scoring, ratings, key status, residual, or attention (and remember the
+generator mirror rule in ENGINE.md); MODULES.md when the change spans
+files. Never attach more than you need; every extra card dilutes the rest.

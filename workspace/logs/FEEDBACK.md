@@ -156,3 +156,9 @@ FB-023 | R7 | 2026-08-24 | Owner (round plan) | modules/home.js
   Status: ACCEPTED 2026-08-24
   Built: 2026-08-24 home.js 1.4.0 Program health card (live-computed rating coverage, override rate, expected gaps, affirmation aging, open challenges, each linking to its source screen); event-name links in the assessment workspace and attention view
   Released: R8
+
+FB-024 | R8 | 2026-08-24 | Owner (round plan) | kit and runbook
+  Ask: R9: regenerate the firewall kit and runbook now that capabilities 1-5 are stable
+  Status: ACCEPTED 2026-08-24
+  Built: 2026-08-24 kit v2 (CONTRACT 2.0, SCHEMA 2.0, ENGINE 1.0 new, MODULES 1.0 new, PROMPTS 1.1, task cards EDIT-MODULE / FEEDBACK-ROUND / REAL-DATA / NEW-MODULE; v1 build cards retired); runbook v2 docx placed at the workspace root as README-FIRST always promised; README-FIRST refreshed to R9
+  Released: R9
