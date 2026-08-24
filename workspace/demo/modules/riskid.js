@@ -1,4 +1,4 @@
-/* GRC modules/riskid.js v1.3.1 2026-08-23 */
+/* GRC modules/riskid.js v1.4.0 2026-08-23 */
 /* Capability 2: Operational & Compliance Risk Identification - the
    applicability workbench. The engine stack-ranks all 90 risk events (and
    the MCRs beneath compliance events) against the RAU's metadata; the
@@ -237,6 +237,11 @@
               }
               return ui.el("button", { class: "g-btn sm", onclick: function (e) { e.stopPropagation(); ctx.state.set("inhFocus", x.s.ev.id); ctx.go("inherent/" + r.id); } }, "Rate");
             } },
+            { key: "ctl", label: "Controls", render: function (x) {
+              if (x.d.status !== "confirmed") return ui.el("span", { class: "g-muted" }, "-");
+              var n = data.controlsOfInstance(r.id, x.s.ev.id).length;
+              return ui.el("button", { class: "g-btn sm" + (n ? "" : " g-btn--primary"), title: n ? "Manage the attached controls" : "No controls attached yet: open the recommendation flow", onclick: function (e) { e.stopPropagation(); ctx.go("attach/" + r.id + "/" + x.s.ev.id); } }, n ? String(n) : "Attach");
+            } },
             { key: "re", label: "", render: function (x) { return ui.el("button", { class: "g-btn sm", onclick: function (e) { e.stopPropagation(); reopen(x); } }, "Reopen"); } }
           ], rows: done, page: 12
         }));
@@ -293,10 +298,10 @@
   }
 
   GRC.register({
-    id: "riskid", version: "1.3.1", tab: "RCSA",
+    id: "riskid", version: "1.4.0", tab: "RCSA",
     caps: {
       "riskid": { primary: [2], uses: [1] },
-      "riskid/:rauId": { primary: [2], uses: [1], feeds: [3, 5] }
+      "riskid/:rauId": { primary: [2], uses: [1], feeds: [3, 4, 5] }
     },
     rail: [{ label: "2. Risk identification", route: "riskid", order: 20 }],
     routes: { "riskid": landing, "riskid/:rauId": workbench }

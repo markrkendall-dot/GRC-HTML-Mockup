@@ -1,24 +1,13 @@
-/* GRC modules/skeletons.js v1.1.0 2026-08-23 */
+/* GRC modules/skeletons.js v1.2.0 2026-08-23 */
 /* Skeleton pages for capabilities not yet built, so all ten capabilities
    are recognized in the tool with their place in the flow. Capability 3
-   graduated to modules/inherent.js in R5; its old route redirects. Each
+   graduated to modules/inherent.js in R5 and Capability 4 to
+   modules/controls.js in R6; their old routes redirect. Each
    remaining page states purpose, inputs, outputs, and the planned
    screens, and invites feedback through the pill. */
 (function () {
   "use strict";
   var CAPS = {
-    cap4: {
-      n: 4, title: "Control Identification",
-      purpose: "Identify and map controls to the confirmed risks on each RAU: what the control is, who owns it, whether it is key, and which risks it addresses.",
-      consumes: "The confirmed risk register from Capability 2 and RAU process maps from Capability 1.",
-      produces: "The risk-to-control mapping consumed by Control Testing (7), Audit Testing (8), and residual risk in RCSA Administration (5).",
-      screens: [
-        "Control inventory per RAU and enterprise-wide, with caret expansion from risk to its controls",
-        "Coverage gaps: confirmed risks with no key control",
-        "Control detail: linked risks, owner, type, automation, test history once Capability 7 lands"],
-      note: "A working preview already exists: open the Feature gallery item \"Assign a new control to an existing risk instance\".",
-      link: { label: "Open the control assignment preview", route: "gallery/assign-control" }
-    },
     cap5: {
       n: 5, title: "RCSA Administration",
       purpose: "Run the assessment cycles: the front line submits, ORBO and BACO challenge, residual risk is calculated from inherent ratings and control effectiveness, and sign-off is recorded.",
@@ -66,18 +55,17 @@
   }
 
   GRC.register({
-    id: "skeletons", version: "1.1.0", tab: "RCSA",
+    id: "skeletons", version: "1.2.0", tab: "RCSA",
     caps: {
-      "cap4": { primary: [4], uses: [2], preview: true },
       "cap5": { primary: [5], uses: [3, 4], preview: true }
     },
     rail: [
-      { label: "4. Controls", route: "cap4", order: 24 },
       { label: "5. RCSA cycles", route: "cap5", order: 26 }
     ],
     routes: {
       "cap3": function (el, ctx) { ctx.go("inherent"); },
-      "cap4": skeleton("cap4"), "cap5": skeleton("cap5")
+      "cap4": function (el, ctx) { ctx.go("controls"); },
+      "cap5": skeleton("cap5")
     }
   });
 })();

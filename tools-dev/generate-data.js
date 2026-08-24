@@ -642,6 +642,146 @@ var ratings = [];
   }
 })();
 
+/* ==SECTION:controls== */
+/* Capability 4: one central control inventory (the GRC is the system of
+   record), controls linked to risk instances, shared controls reused
+   across RAUs, expected-control rules on FCRM-flavored events with a
+   deliberate slice of misses, and declared-key flags kept only to
+   contrast with the derived-key math at runtime. */
+var CTL_PREV = [
+  ["Dual authorization for {K} above threshold", "manual", "per-event"],
+  ["System-enforced {K} validation at entry", "automated", "per-event"],
+  ["Pre-release checklist for {K}", "manual", "per-event"],
+  ["Access restriction on {K} functions", "automated", "quarterly"],
+  ["Segregation of duties in {K} processing", "manual", "per-event"]
+];
+var CTL_DET = [
+  ["Daily reconciliation of {K} activity", "automated", "daily"],
+  ["Supervisor review of {K} exception queue", "manual", "daily"],
+  ["Monthly QA sampling of {K} items", "manual", "monthly"],
+  ["Automated anomaly alerting on {K}", "automated", "daily"],
+  ["Quarterly access recertification for {K}", "manual", "quarterly"]
+];
+var EXPECTED_EVENTS = [
+  ["Sanctions Screening Failure", "Sanctions screening must complete before any funds release."],
+  ["BSA/AML Program Failure", "Transaction monitoring coverage is mandatory wherever AML risk applies."],
+  ["Error Resolution Failure (Reg E)", "Dispute intake logging with deadline tracking is required for Reg E scope."],
+  ["Privacy or Data Protection Violation", "Access restriction on nonpublic information is required."],
+  ["Flood Insurance Requirement Failure", "Coverage verification before closing is required in flood scope."],
+  ["Debt Collection Practice Violation (FDCPA)", "Call-time and contact-frequency enforcement is required in collections."]
+];
+var controls = [], controlLinks = [], expRules = [];
+(function buildControls() {
+  var cn = 1;
+  function ctlId() { return "CTL-" + pad(cn++, 4); }
+  var evById = {};
+  riskEvents.forEach(function (e) { evById[e.id] = e; });
+  var rauById = {};
+  raus.forEach(function (r) { rauById[r.id] = r; });
+  var confByEvent = {};
+  register.forEach(function (g) {
+    if (g.status !== "confirmed") return;
+    (confByEvent[g.eventId] = confByEvent[g.eventId] || []).push(g);
+  });
+  var sharedOwners = raus.filter(function (r) { return r.category === "shared-services"; });
+  function mk(tpl, kw, owningRauId, shared, evName) {
+    var name = tpl[0].replace("{K}", kw);
+    return {
+      id: ctlId(), name: name,
+      desc: "Applied to in-scope " + evName.toLowerCase() + " activity; exceptions are logged, escalated, and retained per procedure.",
+      owningRauId: owningRauId, shared: shared,
+      type: CTL_DET.indexOf(tpl) >= 0 ? "detective" : "preventive",
+      automation: tpl[1], frequency: tpl[2],
+      owner: person(), status: "active", created: dateBack(900),
+      declaredKey: chance(shared ? 0.6 : 0.18),
+      design: pick(["effective", "effective", "effective", "partially-effective"]),
+      perf: chance(0.03) ? "ineffective" : pick(["effective", "effective", "partially-effective"])
+    };
+  }
+  function link(c, g) { controlLinks.push({ c: c.id, r: g.rauId, e: g.eventId }); }
+  /* shared controls per event, expected rules on the named families */
+  var en = 1;
+  riskEvents.forEach(function (ev) {
+    var insts = (confByEvent[ev.id] || []);
+    if (!insts.length) return;
+    var base = ev.name.replace(/ - (Origination|Servicing|Operations|Institutional|Consumer|Commercial)$/, "");
+    var expDef = null;
+    for (var x = 0; x < EXPECTED_EVENTS.length; x++) { if (EXPECTED_EVENTS[x][0] === base) expDef = EXPECTED_EVENTS[x]; }
+    var kw = (ev.keywords || ["processing"])[0];
+    var tpl = expDef ? CTL_PREV[ri(2)] : (chance(0.6) ? CTL_PREV[ri(CTL_PREV.length)] : CTL_DET[ri(CTL_DET.length)]);
+    var sc = mk(tpl, kw, (pick(sharedOwners) || raus[0]).id, true, ev.name);
+    controls.push(sc);
+    var coverageRate = expDef ? 0.85 : 0.2;
+    insts.forEach(function (g) {
+      if (g.rauId === STORY_ID) return; /* story links are crafted below */
+      if (chance(coverageRate)) link(sc, g);
+    });
+    if (expDef) {
+      expRules.push({ id: "EXP-" + pad(en++, 2), eventId: ev.id, controlId: sc.id, note: expDef[1] });
+    }
+  });
+  /* local controls per confirmed instance; ~8% deliberate zero-control gaps */
+  raus.forEach(function (r) {
+    if (r.id === STORY_ID) return;
+    var mine = register.filter(function (g) { return g.rauId === r.id && g.status === "confirmed"; });
+    var prevLocal = null;
+    mine.forEach(function (g) {
+      if (chance(0.08)) return; /* the gap story */
+      var ev = evById[g.eventId];
+      var n = 1 + (chance(0.7) ? 1 : 0) + (chance(0.25) ? 1 : 0);
+      for (var i = 0; i < n; i++) {
+        var tpl2 = chance(0.55) ? CTL_PREV[ri(CTL_PREV.length)] : CTL_DET[ri(CTL_DET.length)];
+        var kw2 = (ev.keywords || ["processing"])[ri(Math.max(1, (ev.keywords || []).length))] || "processing";
+        var c = mk(tpl2, kw2, r.id, false, ev.name);
+        controls.push(c);
+        link(c, g);
+        if (prevLocal && chance(0.12)) link(c, prevLocal); /* reused within the RAU */
+      }
+      prevLocal = g;
+    });
+  });
+  /* story RAU: crafted control environment for the demos */
+  var story = rauById[STORY_ID];
+  if (story) {
+    var srows = register.filter(function (g) { return g.rauId === STORY_ID && g.status === "confirmed"; });
+    function srow(pfx) {
+      for (var i = 0; i < srows.length; i++) { if (evById[srows[i].eventId].name.indexOf(pfx) === 0) return srows[i]; }
+      return null;
+    }
+    function scraft(name, type, automation, frequency, declaredKey) {
+      var c = {
+        id: ctlId(), name: name,
+        desc: name + ". Documented in the escrow disbursement procedure with daily exception reporting to the operations manager.",
+        owningRauId: STORY_ID, shared: false, type: type, automation: automation, frequency: frequency,
+        owner: story.roles.owner, status: "active", created: dateBack(700), declaredKey: declaredKey,
+        design: "effective", perf: "effective"
+      };
+      controls.push(c);
+      return c;
+    }
+    var cDual = scraft("Dual authorization for escrow disbursements above threshold", "preventive", "manual", "per-event", true);
+    var cRecon = scraft("Daily escrow sub-ledger reconciliation", "detective", "automated", "daily", false);
+    var cPayee = scraft("Payee master data validation at setup", "preventive", "automated", "per-event", false);
+    var regx = srow("Mortgage Servicing"), txn = srow("Transaction Capture"), sanc = srow("Sanctions");
+    var lastOp2 = null;
+    srows.forEach(function (g) { if (evById[g.eventId].side === "operational") lastOp2 = g; });
+    if (regx) { link(cDual, regx); link(cRecon, regx); }
+    if (txn && txn !== lastOp2) { link(cRecon, txn); } /* single point of mitigation on purpose */
+    if (sanc) { link(cPayee, sanc); } /* expected sanctions screening NOT linked: coverage story */
+    srows.forEach(function (g) {
+      if (g === regx || g === txn || g === sanc) return;
+      if (g === lastOp2) return; /* the live-demo instance keeps zero controls */
+      if (chance(0.75)) link(cDual, g);
+      if (chance(0.5)) link(cRecon, g);
+    });
+  }
+})();
+/* recommended control types on head MCRs (guides the drafted skeleton) */
+var REC_TYPES = ["preventive screening", "automated validation", "detective reconciliation", "supervisory review", "records retention"];
+mcrs.forEach(function (m) {
+  if (m.head) m.recCtl = picks(REC_TYPES, 1 + ri(2));
+});
+
 /* ==SECTION:requests== */
 var requests = [];
 (function buildRequests() {
@@ -726,9 +866,12 @@ sizes.requests = writeData("requests", requests);
 sizes.metaquestions = writeData("metaQuestions", META_QS);
 sizes.rubric = writeData("rubric", [], { def: rubric });
 sizes.ratings = writeData("ratings", ratings);
+sizes.controls = writeData("controls", controls);
+sizes.controllinks = writeData("controlLinks", controlLinks);
+sizes.expectedcontrols = writeData("expectedControls", expRules);
 fs.writeFileSync(path.join(OUT, "release.js"),
   "window.GRC_DATA = window.GRC_DATA || {};\n" +
-  "window.GRC_DATA.release = {number:\"R5\", date:\"" + TODAY + "\", label:\"Capability 3: evidence-anchored inherent ratings\"};\n");
+  "window.GRC_DATA.release = {number:\"R6\", date:\"" + TODAY + "\", label:\"Capability 4: controls with derived key and expected controls\"};\n");
 
 /* ==SECTION:csv-templates== */
 function csv(name, headers, rows) {
@@ -753,9 +896,13 @@ csv("riskevents", ["id", "side", "name", "description", "qualification", "keywor
 csv("mcrs", ["id", "name", "parentEventId", "regFamily", "citation", "regulator", "publishedDate", "tags", "obligations", "prohibitions"], mcrs.slice(0, 3));
 csv("register", ["rauId", "eventId", "status", "score", "mcrIds", "by", "date", "rationale"], register.slice(0, 3));
 csv("ratings", ["rauId", "eventId", "s", "f", "ov", "note", "by", "date"], ratings.slice(0, 3));
+csv("controls", ["id", "name", "desc", "owningRauId", "shared", "type", "automation", "frequency", "owner", "declaredKey", "design", "perf", "status", "created"], controls.slice(0, 3));
+csv("controllinks", ["c", "r", "e"], controlLinks.slice(0, 3));
+csv("expectedcontrols", ["id", "eventId", "controlId", "note"], expRules.slice(0, 2));
 
 /* ==SECTION:stats== */
 console.log("orgNodes", orgNodes.length, "| services", services.length, "| raus", raus.length,
   "| events", riskEvents.length, "| mcrs", mcrs.length, "| register", register.length,
-  "| requests", requests.length, "| ratings", ratings.length, "| featured", featured.length);
+  "| requests", requests.length, "| ratings", ratings.length, "| controls", controls.length,
+  "| links", controlLinks.length, "| expected", expRules.length, "| featured", featured.length);
 Object.keys(sizes).forEach(function (k) { console.log(k, Math.round(sizes[k] / 1024) + " KB"); });

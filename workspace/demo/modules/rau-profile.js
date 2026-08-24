@@ -1,4 +1,4 @@
-/* GRC modules/rau-profile.js v1.3.0 2026-08-23 */
+/* GRC modules/rau-profile.js v1.4.0 2026-08-23 */
 /* Capability 1: the RAU profile - demographics, attributes, metadata survey
    with provenance, process map, handoffs, and the risk summary. */
 (function () {
@@ -199,8 +199,41 @@
           }
         } },
         { id: "hand", label: "Handoffs (" + (r.handoffs || []).length + ")", render: function (bd) { renderHandoffs(bd, ctx, r); } },
-        { id: "risks", label: "Risks (" + confirmed.length + ")", render: function (bd) { renderRisks(bd, ctx, r); } }
+        { id: "risks", label: "Risks (" + confirmed.length + ")", render: function (bd) { renderRisks(bd, ctx, r); } },
+        { id: "ctls", label: "Controls", render: function (bd) { renderControls(bd, ctx, r); } }
       ]
+    }));
+  }
+
+  /* ==SECTION:controls-tab== */
+  function renderControls(bd, ctx, r) {
+    var ui = ctx.ui, data = ctx.data, eng = ctx.engine.ctl;
+    var confirmed = data.regOfRau(r.id).filter(function (g) { return g.status === "confirmed"; });
+    var owned = data.controlsOwnedBy(r.id);
+    bd.appendChild(ui.el("p", { class: "g-muted", style: "font-size:12.5px" },
+      owned.length + " controls are owned by this RAU (" + owned.filter(function (c) { return c.shared; }).length +
+      " offered as shared). Each confirmed risk instance shows its mitigation below; Manage opens the recommendation flow."));
+    if (!confirmed.length) { bd.appendChild(ui.empty("No confirmed risk instances yet.")); return; }
+    bd.appendChild(ui.table({
+      cols: [
+        { key: "ev", label: "Risk instance", render: function (g) { var e = data.byId("riskEvents", g.eventId); return e ? e.name : g.eventId; } },
+        { key: "band", label: "Inherent", render: function (g) {
+          var t = data.ratingOf(r.id, g.eventId);
+          if (!t) return ui.el("span", { class: "g-muted" }, "unrated");
+          var b = ctx.engine.inherent.band(ctx.engine.inherent.fromArray(t.f)).band;
+          return ui.badge(b.charAt(0).toUpperCase() + b.slice(1), b === "low" ? "ok" : b === "moderate" ? "info" : b === "high" ? "warn" : "bad");
+        } },
+        { key: "ctls", label: "Controls", render: function (g) {
+          var cs = data.controlsOfInstance(r.id, g.eventId);
+          if (!cs.length) return ui.badge("None", "bad");
+          return ui.el("span", {}, cs.map(function (c) {
+            var dk = eng.derivedKey(c);
+            return ui.el("a", { href: "#/controls/" + c.id, class: "g-pill", style: "text-decoration:none" + (dk.key ? ";font-weight:700" : ""), title: c.type + ", " + c.automation + (dk.key ? "; derived KEY: " + dk.rules.map(function (x) { return x.id; }).join(",") : ""), onclick: function (e) { e.stopPropagation(); } }, c.name);
+          }));
+        } },
+        { key: "go", label: "", render: function () { return ui.el("button", { class: "g-btn sm" }, "Manage"); } }
+      ], rows: confirmed, page: 12,
+      onRow: function (g) { ctx.go("attach/" + r.id + "/" + g.eventId); }
     }));
   }
 
@@ -352,8 +385,8 @@
   }
 
   GRC.register({
-    id: "rau-profile", version: "1.3.0", tab: "RCSA",
-    caps: { "raus/:id": { primary: [1], uses: [2, 3] } },
+    id: "rau-profile", version: "1.4.0", tab: "RCSA",
+    caps: { "raus/:id": { primary: [1], uses: [2, 3, 4] } },
     routes: { "raus/:id": profile }
   });
 })();

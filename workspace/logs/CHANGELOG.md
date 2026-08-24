@@ -12,6 +12,53 @@ Kit: SCHEMA.md v___, CONTRACT.md v___ (changed/unchanged)
 Version matrix: (paste the Preflight versions table here)
 ---- END TEMPLATE ----
 
+== R6 - 2026-08-23 - Capability 4: controls with derived key ==
+Feedback closed: FB-020 (round R6 of the plan in docs/DEEPDIVE-C3-C5.md)
+Module changes:
+  modules/controls.js NEW 1.0.0: control inventory (filters incl. the
+    derived-vs-declared disagreement cuts), Coverage tab (expected
+    control missing as the loudest gap with an in-place Attach fix,
+    High/Critical instances with no control, single point of
+    mitigation), Derived vs declared tab (the case against the
+    checkbox), control detail (attributes, design/performance ratings
+    labeled as owner judgment until Capability 7, description lint,
+    derived-key rules, linked instances with unlink, C7/C8 test-history
+    slot), and the attach flow: three-tier recommendations (expected
+    with waive-with-note, shareable matches by attach rate, drafted
+    skeleton guided by MCR control types) plus a light create form with
+    an advisory duplicate check
+  kernel/engine.js 1.2.0 -> 1.3.0: control section (derived key rules
+    K1 sole mitigant / K2 expected / K3 concentration / K4 critical,
+    recommendations, coverage math, description lint, similarity)
+  kernel/core.js 1.4.0 -> 1.5.0: controls, controlLinks, and
+    expectedControls indexed with controlsOfInstance / linksOfControl /
+    linksOfEvent / controlsOwnedBy / expectedFor / addControl / addLink
+    / removeLink; BUILT set gains capability 4
+  modules/riskid.js -> 1.4.0: dispositioned confirmed rows gain a
+    Controls column (count, or an Attach shortcut into the flow)
+  modules/rau-profile.js -> 1.4.0: Controls tab per confirmed instance
+    with derived-key emphasis and Manage into the attach flow
+  modules/gallery.js -> 1.2.0: assign-control vignette graduated; the
+    page hands visitors to the real flow, votes still count
+  modules/skeletons.js -> 1.2.0: capability 4 skeleton retired, cap4
+    route redirects to the real module
+  modules/home.js -> 1.2.2: box 4 opens the real module; copy says
+    capabilities 1 through 4
+  modules/demo.js -> 2.2.0: walkthrough gains three capability 4 scenes
+    (attach tiers, derived vs declared, coverage); BCM demo gains the
+    coverage sweep; BACO demo gains derived key
+  index.html -> 1.4.0: three data script tags and modules/controls.js
+Data: NEW controls (5,146: shared per event plus RAU-local, design and
+  performance ratings, declared-key with deliberate disagreements),
+  controlLinks (6,366 instance links), expectedControls (12 FCRM-seeded
+  rules with ~60 deliberate misses incl. the story RAU's sanctions
+  instance); head MCRs gain recommended control types; story RAU
+  crafted: dual-auth/reconciliation/payee controls, one single-point
+  instance, the live-demo instance left with zero controls; release.js
+  R6; CSV templates for all three entities.
+Kit: unchanged (v2 regenerates after the C3-C5 rounds stabilize).
+Version matrix: see Preflight in the app.
+
 == R5 - 2026-08-23 - Capability 3: evidence-anchored inherent ratings ==
 Feedback closed: FB-019 (round R5 of the plan in docs/DEEPDIVE-C3-C5.md)
 Module changes:

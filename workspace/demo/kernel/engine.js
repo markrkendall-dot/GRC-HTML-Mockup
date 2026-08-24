@@ -1,4 +1,4 @@
-/* GRC kernel/engine.js v1.2.0 2026-08-23 */
+/* GRC kernel/engine.js v1.3.0 2026-08-23 */
 /* The applicability engine: deterministic, rubric-standardized attribute
    comparison between a RAU's metadata and Risk Event / MCR profiles.
    Same math for all 850 RAUs. Mirrors tools-dev/generate-data.js exactly
@@ -272,6 +272,123 @@
     return { peers: idx.length, median: INH.bands[med], mine: INH.bands[mine] };
   }
 
+  /* ==SECTION:controls== */
+  /* Capability 4: controls attach to risk instances. Key status is
+     DERIVED from the live risk landscape, never self-declared; the
+     declared checkbox survives only to show the disagreements. */
+  function ctlBandOf(rauId, eventId) {
+    var data = GRC.ctx.data;
+    var t = data.ratingOf(rauId, eventId);
+    if (!t) return null;
+    return inherentBand(levelsFromArray(t.f)).band;
+  }
+  function derivedKey(control) {
+    var data = GRC.ctx.data;
+    var links = data.linksOfControl(control.id);
+    var rules = [];
+    var rauSet = {};
+    var soleOnHigh = false, onCritical = false;
+    links.forEach(function (ln) {
+      rauSet[ln.r] = true;
+      var band = ctlBandOf(ln.r, ln.e);
+      if (band === "critical") onCritical = true;
+      if (band === "high" || band === "critical") {
+        if (data.controlsOfInstance(ln.r, ln.e).length === 1) soleOnHigh = true;
+      }
+    });
+    if (soleOnHigh) rules.push({ id: "K1", text: "Sole mitigant on a High or Critical instance" });
+    var expected = data.all("expectedControls").some(function (x) { return x.controlId === control.id; });
+    if (expected) rules.push({ id: "K2", text: "Expected control for a live situation" });
+    if (links.length >= 5 || Object.keys(rauSet).length >= 3) rules.push({ id: "K3", text: "Concentration: " + links.length + " instances across " + Object.keys(rauSet).length + " RAU" + (Object.keys(rauSet).length === 1 ? "" : "s") });
+    if (onCritical) rules.push({ id: "K4", text: "Mitigates a Critical instance" });
+    return { key: rules.length > 0, rules: rules };
+  }
+  /* Three-tier recommendation for attaching mitigation to an instance. */
+  function controlRecs(rau, eventId) {
+    var data = GRC.ctx.data;
+    var ev = data.byId("riskEvents", eventId);
+    var linked = {};
+    data.controlsOfInstance(rau.id, eventId).forEach(function (c) { linked[c.id] = true; });
+    var expected = [];
+    data.expectedFor(eventId).forEach(function (rule) {
+      var c = data.byId("controls", rule.controlId);
+      if (c && !linked[c.id]) expected.push({ rule: rule, control: c });
+    });
+    /* shareable: controls linked to this event on peer RAUs, by attach rate */
+    var byCtl = {};
+    (data.linksOfEvent(eventId) || []).forEach(function (ln) {
+      if (ln.r === rau.id) return;
+      (byCtl[ln.c] = byCtl[ln.c] || { n: 0, raus: {} }).n++;
+      byCtl[ln.c].raus[ln.r] = true;
+    });
+    var shared = Object.keys(byCtl).map(function (cid) {
+      var c = data.byId("controls", cid);
+      return c && c.shared && !linked[cid] ? { control: c, instances: byCtl[cid].n, raus: Object.keys(byCtl[cid].raus).length } : null;
+    }).filter(Boolean).sort(function (a, b) { return b.instances - a.instances; }).slice(0, 6);
+    /* skeleton: a directional draft from the event (and MCR guidance) */
+    var kw = (ev.keywords || [])[0] || ev.name.split(" ")[0].toLowerCase();
+    var recTypes = [];
+    if (ev.side === "compliance") {
+      data.mcrsOfEvent(eventId).slice(0, 40).forEach(function (m) {
+        (m.recCtl || []).forEach(function (t) { if (recTypes.indexOf(t) < 0) recTypes.push(t); });
+      });
+    }
+    var detective = recTypes.join(" ").indexOf("reconciliation") >= 0 || recTypes.join(" ").indexOf("review") >= 0;
+    var skeleton = {
+      name: (detective ? "Supervisor review of " : "Pre-execution validation of ") + kw + " activity",
+      type: detective ? "detective" : "preventive",
+      automation: "manual",
+      frequency: detective ? "daily" : "per-event",
+      desc: "Directional example only. " + (detective ? "A supervisor reviews " : "The system or preparer validates ") + kw +
+        " items against the procedure before " + (detective ? "end of day" : "release") +
+        ", with exceptions logged and escalated." +
+        (recTypes.length ? " MCR guidance for this event suggests: " + recTypes.join(", ") + "." : ""),
+      basis: "Drafted from the risk event profile" + (recTypes.length ? " and MCR control-type guidance" : "") + ". The business documents the real control."
+    };
+    return { expected: expected, shared: shared, skeleton: skeleton };
+  }
+  /* Advisory duplicate check for new controls (token overlap, top 3). */
+  function similarControls(name, ownRauId) {
+    var data = GRC.ctx.data;
+    var tok = String(name || "").toLowerCase().split(/[^a-z0-9]+/).filter(function (w) { return w.length > 3; });
+    if (tok.length < 2) return [];
+    var out = [];
+    data.all("controls").forEach(function (c) {
+      var ct = c.name.toLowerCase();
+      var hit = tok.filter(function (t) { return ct.indexOf(t) >= 0; }).length;
+      if (hit >= 2) out.push({ control: c, hits: hit, own: c.owningRauId === ownRauId });
+    });
+    out.sort(function (a, b) { return b.hits - a.hits; });
+    return out.slice(0, 3);
+  }
+  function descLint(control) {
+    var checks = [];
+    var name = control.name || "", d = control.desc || "";
+    checks.push({ id: "C1", text: "Name states an action or check", ok: /^(dual|daily|monthly|quarterly|system|automated|supervisor|pre-|sanctions|access|reconcil|review|screen|valid|approv|verif|monitor|recert)/i.test(name) });
+    checks.push({ id: "C2", text: "Description is specific (40+ characters)", ok: d.length >= 40 });
+    checks.push({ id: "C3", text: "Frequency is set", ok: !!control.frequency });
+    checks.push({ id: "C4", text: "Owner is named", ok: !!control.owner });
+    return checks;
+  }
+  /* Coverage math for one RAU (enterprise views iterate RAUs). */
+  function coverage(rau) {
+    var data = GRC.ctx.data;
+    var out = { expectedMissing: [], noControl: [], singlePoint: [] };
+    data.regOfRau(rau.id).forEach(function (g) {
+      if (g.status !== "confirmed") return;
+      var ctls = data.controlsOfInstance(rau.id, g.eventId);
+      var band = ctlBandOf(rau.id, g.eventId);
+      data.expectedFor(g.eventId).forEach(function (rule) {
+        if (!ctls.some(function (c) { return c.id === rule.controlId; })) {
+          out.expectedMissing.push({ g: g, rule: rule, control: data.byId("controls", rule.controlId) });
+        }
+      });
+      if (!ctls.length && (band === "high" || band === "critical")) out.noControl.push({ g: g, band: band });
+      if (ctls.length === 1) out.singlePoint.push({ g: g, band: band, control: ctls[0] });
+    });
+    return out;
+  }
+
   GRC.engine = {
     rubric: rubric, score: score, suppressedBy: suppressedBy,
     candidates: candidates, zones: zones, mcrCandidates: mcrCandidates,
@@ -280,6 +397,10 @@
       def: INH, levels: inherentLevels, band: inherentBand,
       fromArray: levelsFromArray, suggest: inherentSuggest,
       rollup: inherentOf, peerOutlier: peerOutlier
+    },
+    ctl: {
+      derivedKey: derivedKey, recs: controlRecs, similar: similarControls,
+      lint: descLint, coverage: coverage, bandOf: ctlBandOf
     }
   };
 })();

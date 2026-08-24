@@ -1,0 +1,3 @@
+id,eventId,controlId,note
+EXP-01,REV-051,CTL-0051,Transaction monitoring coverage is mandatory wherever AML risk applies.
+EXP-02,REV-052,CTL-0052,Sanctions screening must complete before any funds release.

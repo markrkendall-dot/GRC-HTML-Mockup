@@ -132,3 +132,9 @@ FB-019 | R4 | 2026-08-23 | Owner | modules/inherent.js
   Status: ACCEPTED 2026-08-23 (round R5 of the agreed plan)
   Built: 2026-08-23 inherent.js 1.0.0, engine.js 1.2.0, core.js 1.4.0, ratings data entity, integrations in rau/rau-profile/riskid/mywork/demo
   Released: R5
+
+FB-020 | R5 | 2026-08-23 | Owner | modules/controls.js
+  Ask: Build capability 4 per DEEPDIVE-C3-C5.md Revision 1: central control inventory with GRC as system of record, controls attached to risk instances, shared controls, expected controls with FCRM seeds, derived key vs the declared checkbox, three-tier recommendation flow with advisory duplicate check
+  Status: ACCEPTED 2026-08-23 (round R6 of the agreed plan)
+  Built: 2026-08-23 controls.js 1.0.0, engine.js 1.3.0, core.js 1.5.0, controls/controlLinks/expectedControls data entities, MCR recommended control types, integrations in riskid/rau-profile/gallery/skeletons/home/demo
+  Released: R6

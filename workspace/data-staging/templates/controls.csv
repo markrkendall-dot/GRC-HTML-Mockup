@@ -1,0 +1,4 @@
+id,name,desc,owningRauId,shared,type,automation,frequency,owner,declaredKey,design,perf,status,created
+CTL-0001,Automated anomaly alerting on processing error,"Applied to in-scope transaction capture or execution error activity; exceptions are logged, escalated, and retained per procedure.",RAU-0657,true,detective,automated,daily,Rowan Rhodes,true,effective,effective,active,2024-07-24
+CTL-0002,Access restriction on settlement functions,"Applied to in-scope failed or late settlement activity; exceptions are logged, escalated, and retained per procedure.",RAU-0827,true,preventive,automated,quarterly,Skyler Ibarra,false,effective,effective,active,2025-01-09
+CTL-0003,Automated anomaly alerting on unreconciled,"Applied to in-scope reconciliation failure activity; exceptions are logged, escalated, and retained per procedure.",RAU-0809,true,detective,automated,daily,Sam Bennett,true,partially-effective,partially-effective,active,2026-08-23

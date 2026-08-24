@@ -1,4 +1,4 @@
-/* GRC modules/demo.js v2.1.0 2026-08-23 */
+/* GRC modules/demo.js v2.2.0 2026-08-23 */
 /* Present: a demo picker. One full walkthrough, one order-of-operations
    story (the birth of a RAU), and one demo per role in the View-as picker,
    each following the workflow that role actually runs day to day. */
@@ -29,6 +29,12 @@
       if (e.side === "compliance" && n > bestCo) { bestCo = n; f.coEvent = e; }
     });
     f.headMcr = f.coEvent ? (data.mcrsOfEvent(f.coEvent.id)[0] || null) : null;
+    f.storyGap = null;
+    var sConf = data.regOfRau(f.story.id).filter(function (g2) { return g2.status === "confirmed"; });
+    sConf.forEach(function (g2) {
+      if (!f.storyGap && !data.controlsOfInstance(f.story.id, g2.eventId).length) f.storyGap = g2;
+    });
+    if (!f.storyGap) f.storyGap = sConf[0] || null;
     return f;
   }
 
@@ -36,7 +42,7 @@
   function walkthroughScenes(ctx) {
     var g = finders(ctx);
     var s = [
-      { route: "home", title: "One platform, ten capabilities", text: "This is a clickable design proposal for the future GRC. The map shows all ten capabilities and how they feed each other; this release builds capabilities 1 through 3 end to end. Everything you are about to see runs on data shaped like the real inventory." },
+      { route: "home", title: "One platform, ten capabilities", text: "This is a clickable design proposal for the future GRC. The map shows all ten capabilities and how they feed each other; this release builds capabilities 1 through 4 end to end. Everything you are about to see runs on data shaped like the real inventory." },
       { route: "home", title: "The lens and the trace", text: "Click capability boxes on this map to isolate a scope: pick 1 and 2 and everything not supporting them grays out; add 3 and the picture grows. As you move through the tool, the strip under the tabs names the capability behind every screen, and key actions call out which capability they belong to. What is grayed will not work until its box is built." },
       { route: "raus", title: "Capability 1: the RAU inventory", text: "A RAU is the intersection of a business and a service, created at the SubLOB level. Filter the inventory by line of business, category, or risk identification status. Every column here is a real attribute the platform maintains." },
       { route: "raus/" + g.story.id, title: "One RAU's whole story", text: "Demographics describe the unit; attributes OBLIGATE it: they drive applicability, signal matching, and scoping. Check the Metadata survey tab: every answer shows where it came from: a map step, from services, or asked directly. The Process map tab shows the handoffs that wire this RAU to its counterparties." },
@@ -79,12 +85,24 @@
         text: "Likelihood is anchored to frequency; impact is the worst credible outcome on four fact-anchored lenses. Reputational is deliberately not a scored dimension: it derives from customer reach, regulatory severity, and visibility. Subjectivity survives only in documented overrides, and the override rate itself becomes a program signal."
       },
       {
+        route: "attach/" + g.story.id + "/" + (g.storyGap ? g.storyGap.eventId : ""), title: "Capability 4: mitigation in three tiers",
+        text: "This instance has no controls yet. The system recommends in tiers: the EXPECTED control for the situation first, then shareable controls already mitigating this event on peer RAUs ranked by attach rate, then a drafted skeleton the business can document. Attach one and watch coverage recompute."
+      },
+      {
+        route: "controls-key", title: "Key status: derived, not declared",
+        text: "Four transparent rules derive key status from the live landscape: sole mitigant on a High or Critical instance, expected for a situation, concentration, or mitigating a Critical instance. The two tables here are the argument: controls declared key that derive non-key, and controls carrying real weight that nobody ever ticked. A checkbox goes stale; a rule recomputes."
+      },
+      {
+        route: "controls-coverage", title: "Coverage gaps, computed live",
+        text: "The loudest gap is an expected control that is missing where its situation is live. Below it: High and Critical instances with no control at all, and instances riding on a single point of mitigation. Fixing a gap here updates every view immediately, because it is all one dataset."
+      },
+      {
         route: "mcrlib", title: "The MCR library, published from RRCM",
         text: "Major Compliance Requirements arrive read-only from RRCM, each aligned upstream to a parent compliance risk event. A head set carries most RCSA frequency, and the library reflects that shape. Search anything."
       },
       {
-        route: "home", title: "And this is three capabilities of ten",
-        text: "Signals will feed changes into steps 1 and 2. Controls, RCSA cycles with challenge and residual, testing, monitoring, and policy governance stack on the same foundation you just walked. The release number in the banner identifies this build; quote it in your feedback."
+        route: "home", title: "And this is four capabilities of ten",
+        text: "Signals will feed changes into steps 1 and 2. RCSA cycles with challenge and residual, testing, monitoring, and policy governance stack on the same foundation you just walked. The release number in the banner identifies this build; quote it in your feedback."
       });
     return s;
   }
@@ -174,6 +192,7 @@
       { route: "pipeline", title: "The whole board, not one request", text: "BCM watches every change request its business has in flight: new units, mergers, splits, retirements, each at a named stage of the same governed pipeline. About ten at a time is normal." },
       { route: "pipeline/new", title: "Raising a request for the business", text: "BCM often files the intake on behalf of the future owner. Placement, category, services, high-level steps; the assistant analyzes uniqueness on submit and the draft autosaves while you gather details." }
     ];
+    s.push({ route: "controls-coverage", title: "Sweep the control gaps for the business", text: "BCM watches coverage the way it watches the pipeline: expected controls missing where their situation is live, High and Critical instances with nothing attached, and single points of mitigation. Each row opens the attach flow; the quick Attach fixes an expected gap in place." });
     if (g.returned) s.push({ route: "pipeline/" + g.returned.id, title: "Rework the returns", text: "Governance returned this one with comments. BCM helps the requester establish differentiation from the overlapping unit, then resubmits; it re-enters uniqueness review, not the back of the line." });
     if (g.mapping) s.push({ route: "pipeline/" + g.mapping.id + "/map", title: "Coach the map to standard", text: "Requesters know their process; BCM knows the standards. The builder's checklist shows exactly what is missing before governance will look at it, so BCM coaches to the checklist instead of guessing." });
     if (g.reshape) s.push({ route: "pipeline/" + g.reshape.id, title: "Reshaping the inventory has a preview", text: "Mergers and retirements show a live impact preview computed from real links: how many confirmed risks and handoffs move if this is approved. BCM uses it to brief the business before governance rules." });
@@ -205,7 +224,8 @@
     if (g.coEvent) s.push({ route: "events/" + g.coEvent.id, title: "The rollup under a compliance event", text: "Expand any MCR in place: obligations, prohibitions, process types, and its fit against this parent. The rewrite-candidates filter in the library collects the stragglers; this view shows them in context." });
     s.push(
       { route: "riskid/" + g.story.id, title: "MCRs ride the confirmation", text: "When the front line confirms a compliance event, the top-ranked MCRs beneath it attach to the register row automatically. BACO's future challenge starts from that suggested set, not from a blank page." },
-      { route: "cap5", title: "Where BACO challenge lands", text: "Capability 5 brings the BACO challenge on top of the register and the attached MCRs. Until then the register is building the evidence BACO will need." }
+      { route: "controls-key", title: "Key status BACO can defend", text: "Key controls stop being a checkbox: four transparent rules derive key from the live landscape, including being the expected control for a compliance situation. MCR metadata even guides the drafted skeleton when the business writes a new control. The disagreement tables are where compliance 2LOD looks first." },
+      { route: "cap5", title: "Where BACO challenge lands", text: "Capability 5 brings the BACO challenge on top of the register, the ratings, and the control mapping. Until then the register is building the evidence BACO will need." }
     );
     return s;
   }
@@ -225,7 +245,7 @@
   /* ==SECTION:catalog== */
   function catalog() {
     return [
-      { id: "walkthrough", group: "story", name: "Full walkthrough", blurb: "Capabilities 1 through 3 end to end: inventory, pipeline, workbench, ratings, libraries.", scenes: walkthroughScenes },
+      { id: "walkthrough", group: "story", name: "Full walkthrough", blurb: "Capabilities 1 through 4 end to end: inventory, pipeline, workbench, ratings, controls, libraries.", scenes: walkthroughScenes },
       { id: "birth", group: "story", name: "Birth of a RAU", blurb: "The order of operations, one gate per scene: intake, uniqueness, mapping, standards, governance, metadata, active, risk identification.", scenes: birthScenes },
       { id: "role-owner", group: "role", name: "RAU Owner", blurb: "Own the record, take the first pass at risk identification, confirm inbound handoffs.", scenes: ownerScenes },
       { id: "role-delegate", group: "role", name: "RAU Owner Delegate", blurb: "Run the day to day: queues, intakes, survey answers, profile housekeeping.", scenes: delegateScenes },
@@ -282,7 +302,7 @@
   }
 
   GRC.register({
-    id: "demo", version: "2.1.0", tab: "Home",
+    id: "demo", version: "2.2.0", tab: "Home",
     caps: { "present": null },
     routes: { "present": present }
   });

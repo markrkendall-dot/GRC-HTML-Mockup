@@ -1,4 +1,4 @@
-/* GRC kernel/core.js v1.4.0 2026-08-23 */
+/* GRC kernel/core.js v1.5.0 2026-08-23 */
 /* Kernel: module registry (tab/rail), hash router, data indexing, state,
    formatting, preflight, guided tour, reset. No dependencies, file:// safe. */
 (function () {
@@ -37,7 +37,7 @@
     9: { name: "Monitoring", needs: [1, 2, 3, 4, 5, 6] },
     10: { name: "Policy Governance", needs: [] }
   };
-  var BUILT = { 1: true, 2: true, 3: true };
+  var BUILT = { 1: true, 2: true, 3: true, 4: true };
   GRC.caps = {
     all: CAPS,
     name: function (n) { return CAPS[n] ? CAPS[n].name : "Capability " + n; },
@@ -155,7 +155,7 @@
   function indexData() {
     var raw = window.GRC_DATA || {};
     D = { entities: {}, byId: {}, ver: {} };
-    ["orgNodes", "services", "raus", "riskEvents", "mcrs", "register", "requests", "metaQuestions", "rubric", "ratings"].forEach(function (k) {
+    ["orgNodes", "services", "raus", "riskEvents", "mcrs", "register", "requests", "metaQuestions", "rubric", "ratings", "controls", "controlLinks", "expectedControls"].forEach(function (k) {
       var src = raw[k] || { version: "-", rows: [] };
       D.entities[k] = clone(src.rows || []);
       D.ver[k] = src.version || "-";
@@ -183,6 +183,19 @@
       (D.ratByRau[t.rauId] = D.ratByRau[t.rauId] || []).push(t);
       (D.ratByEvent[t.eventId] = D.ratByEvent[t.eventId] || []).push(t);
       D.ratKey[t.rauId + "|" + t.eventId] = t;
+    });
+    D.linksByCtl = {}; D.linksByInst = {}; D.linksByEvent = {}; D.ctlsOwned = {};
+    D.entities.controlLinks.forEach(function (ln) {
+      (D.linksByCtl[ln.c] = D.linksByCtl[ln.c] || []).push(ln);
+      (D.linksByInst[ln.r + "|" + ln.e] = D.linksByInst[ln.r + "|" + ln.e] || []).push(ln);
+      (D.linksByEvent[ln.e] = D.linksByEvent[ln.e] || []).push(ln);
+    });
+    D.entities.controls.forEach(function (c) {
+      (D.ctlsOwned[c.owningRauId] = D.ctlsOwned[c.owningRauId] || []).push(c);
+    });
+    D.expByEvent = {};
+    D.entities.expectedControls.forEach(function (x) {
+      if (x.eventId) (D.expByEvent[x.eventId] = D.expByEvent[x.eventId] || []).push(x);
     });
   }
 
@@ -225,6 +238,32 @@
     },
     /* Ratings join to CONFIRMED register rows at read time, so a reopened
        instance simply stops counting; if re-confirmed, its rating returns. */
+    controlsOfInstance: function (rauId, evId) {
+      return (D.linksByInst[rauId + "|" + evId] || []).map(function (ln) { return D.byId.controls[ln.c]; }).filter(Boolean);
+    },
+    linksOfControl: function (ctlId) { return D.linksByCtl[ctlId] || []; },
+    linksOfEvent: function (evId) { return D.linksByEvent[evId] || []; },
+    linksOfInstance: function (rauId, evId) { return D.linksByInst[rauId + "|" + evId] || []; },
+    controlsOwnedBy: function (rauId) { return D.ctlsOwned[rauId] || []; },
+    expectedFor: function (evId) { return D.expByEvent[evId] || []; },
+    addControl: function (c) {
+      D.entities.controls.push(c);
+      D.byId.controls[c.id] = c;
+      (D.ctlsOwned[c.owningRauId] = D.ctlsOwned[c.owningRauId] || []).push(c);
+    },
+    addLink: function (ln) {
+      D.entities.controlLinks.push(ln);
+      (D.linksByCtl[ln.c] = D.linksByCtl[ln.c] || []).push(ln);
+      (D.linksByInst[ln.r + "|" + ln.e] = D.linksByInst[ln.r + "|" + ln.e] || []).push(ln);
+      (D.linksByEvent[ln.e] = D.linksByEvent[ln.e] || []).push(ln);
+    },
+    removeLink: function (ln) {
+      function drop(arr) { var i = arr.indexOf(ln); if (i >= 0) arr.splice(i, 1); }
+      drop(D.entities.controlLinks);
+      drop(D.linksByCtl[ln.c] || []);
+      drop(D.linksByInst[ln.r + "|" + ln.e] || []);
+      drop(D.linksByEvent[ln.e] || []);
+    },
     ratingsOfRau: function (rauId) { return D.ratByRau[rauId] || []; },
     ratingsOfEvent: function (evId) { return D.ratByEvent[evId] || []; },
     ratingOf: function (rauId, evId) { return D.ratKey[rauId + "|" + evId] || null; },
@@ -479,7 +518,7 @@
     pf.className = "";
     var m = data.metrics();
     var rows = "";
-    ["orgNodes", "services", "raus", "riskEvents", "mcrs", "register", "requests", "metaQuestions", "rubric", "ratings"].forEach(function (k) {
+    ["orgNodes", "services", "raus", "riskEvents", "mcrs", "register", "requests", "metaQuestions", "rubric", "ratings", "controls", "controlLinks", "expectedControls"].forEach(function (k) {
       rows += "<tr><td>" + k + "</td><td class='num'>" + fmt.num(D.entities[k].length) + "</td><td class='g-mono'>" + D.ver[k] + "</td></tr>";
     });
     var mods = "";

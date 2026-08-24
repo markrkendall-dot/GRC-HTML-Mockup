@@ -1,4 +1,4 @@
-/* GRC modules/home.js v1.2.1 2026-08-23 */
+/* GRC modules/home.js v1.2.2 2026-08-23 */
 /* Home: the capability flow doubles as a lens. Click boxes to select a
    development scope; everything not supporting that scope grays out, and
    the readout shows what else is required and a suggested build order. */
@@ -12,7 +12,7 @@
     el.appendChild(ui.el("div", { class: "g-page-head" }, [
       ui.el("div", {}, [
         ui.el("div", { class: "g-h1" }, "RCSA program"),
-        ui.el("div", { class: "g-muted" }, "A working proposal for the future GRC. This release builds capabilities 1 and 2 end to end. Click capability boxes below to isolate a scope; everything outside its support set grays out.")]),
+        ui.el("div", { class: "g-muted" }, "A working proposal for the future GRC. This release builds capabilities 1 through 4 end to end. Click capability boxes below to isolate a scope; everything outside its support set grays out.")]),
       ui.el("div", { class: "sp" }),
       ui.el("button", { class: "g-btn g-btn--primary", onclick: function () { ctx.go("present"); } }, "Start guided demo")]));
 
@@ -64,7 +64,7 @@
       box(1, "Intake, process mapping, metadata", "raus"), arrow(),
       box(2, "Applicability of risk events and MCRs", "riskid"), arrow(),
       box(3, "Evidence-anchored ratings", "inherent"), arrow(),
-      box(4, "Controls mapped to risks", "cap4"), arrow(),
+      box(4, "Derived key, expected controls", "controls"), arrow(),
       box(5, "Cycles, challenge, residual risk", "cap5")]));
     mapCard.appendChild(ui.el("div", { style: "display:grid;grid-template-columns:1fr 1fr 2fr;gap:6px;margin-bottom:10px" }, [
       box(7, "Feeds from Control Identification", "soon/Testing-0"),
@@ -109,7 +109,7 @@
   }
 
   GRC.register({
-    id: "home", version: "1.2.1", tab: "Home",
+    id: "home", version: "1.2.2", tab: "Home",
     rail: [{ label: "Program map", route: "home", order: 10 }],
     caps: { "home": null },
     routes: { "home": home }

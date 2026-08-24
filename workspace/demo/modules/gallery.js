@@ -1,4 +1,4 @@
-/* GRC modules/gallery.js v1.1.0 2026-08-23 */
+/* GRC modules/gallery.js v1.2.0 2026-08-23 */
 /* Feature gallery: curated, concrete examples of features to ship, grouped
    by theme and complexity. Each opens a live example. Keep / Discuss / Cut
    votes are stored with feedback and included in the export, so a room can
@@ -8,17 +8,6 @@
   "use strict";
 
   /* ==SECTION:vignette-data== */
-  var CONTROL_CATALOG = [
-    { id: "CTL-9001", name: "Dual authorization for disbursements above threshold", type: "Preventive", automation: "Manual" },
-    { id: "CTL-9002", name: "Daily escrow sub-ledger reconciliation", type: "Detective", automation: "Automated" },
-    { id: "CTL-9003", name: "Payee master data validation at setup", type: "Preventive", automation: "Automated" },
-    { id: "CTL-9004", name: "Supervisor review of exception queue", type: "Detective", automation: "Manual" },
-    { id: "CTL-9005", name: "System-enforced funding cutoff times", type: "Preventive", automation: "Automated" },
-    { id: "CTL-9006", name: "Quarterly user access recertification", type: "Preventive", automation: "Manual" },
-    { id: "CTL-9007", name: "Sanctions screening before funds release", type: "Preventive", automation: "Automated" },
-    { id: "CTL-9008", name: "Monthly QA sampling of processed items", type: "Detective", automation: "Manual" }
-  ];
-  var assigned = null; /* session state for the control vignette */
 
   function findStory(data) {
     return data.all("raus").filter(function (r) { return r.name === "Escrow Administration"; })[0] || data.all("raus")[0];
@@ -56,7 +45,7 @@
       {
         theme: "Risk identification (Capability 2)", items: [
           { id: "gal-confirm", tier: "Basic", title: "Confirm a likely risk in one click", what: "The engine puts high-scoring candidates in front of the owner team; confirming a compliance event attaches its suggested MCRs automatically.", show: go("riskid/" + story.id, "Likely items confirm in a click; middle items have Resolve.") },
-          { id: "gal-assign-control", tier: "Basic", title: "Assign a new control to an existing risk instance", what: "Pick a control from the catalog and link it to a confirmed risk on a RAU. A preview of Capability 4 built on the same records.", show: go("gallery/assign-control") },
+          { id: "gal-assign-control", tier: "Basic", title: "Assign a new control to an existing risk instance", what: "Link a control to a confirmed risk on a RAU. Graduated from preview to the real Capability 4 flow: expected controls, shareable matches, drafted skeletons.", show: go("gallery/assign-control") },
           { id: "gal-why", tier: "Standard", title: "See exactly why a score is what it is", what: "Every applicability number opens into its eight-category rubric breakdown. Same math for every RAU.", show: go("riskid/" + story.id, "Open Why this score on any candidate.") },
           { id: "gal-excl", tier: "Standard", title: "Exclusions scope out whole slices of the universe", what: "A confirmed does-not-do answer in the survey suppresses matching candidates, visibly and reversibly.", show: go("riskid/" + story.id, "The suppressed panel at the top shows what the survey ruled out.") },
           { id: "gal-resolve", tier: "Advanced", title: "One answer rescores the whole stack", what: "Resolve asks a targeted question; the answer updates the RAU's metadata, so every candidate on the workbench rescores consistently.", show: go("riskid/" + story.id, "Open Resolve on an item in the middle band.") },
@@ -100,7 +89,7 @@
         drawVotes();
         grid.appendChild(ui.el("div", { class: "gal-item" }, [
           ui.el("div", { class: "g-row" }, [ui.badge(it.tier, tierKind(it.tier)),
-          it.id === "gal-assign-control" ? ui.badge("Capability 4 preview", "brand") : null,
+          it.id === "gal-assign-control" ? ui.badge("Graduated: built in R6", "ok") : null,
           it.id === "gal-regchange" ? ui.badge("Capability 6 preview", "brand") : null]),
           ui.el("div", { class: "t" }, it.title),
           ui.el("div", { class: "w" }, it.what),
@@ -111,54 +100,28 @@
   }
 
   /* ==SECTION:vignette-control== */
+  /* This vignette was the Capability 4 preview through R5. The capability
+     is now built, so the page hands visitors to the real flow instead of
+     a mock; the gallery card and its votes stay for the feature list. */
   function assignControl(el, ctx) {
-    var ui = ctx.ui, data = ctx.data, fmt = ctx.fmt;
+    var ui = ctx.ui, data = ctx.data;
     var story = findStory(data);
     var reg = data.regOfRau(story.id).filter(function (g) { return g.status === "confirmed"; });
     var row = reg[0];
-    if (!row) { el.appendChild(ui.empty("Confirm a risk on the workbench first, then return here.")); return; }
-    var ev = data.byId("riskEvents", row.eventId);
-    if (!assigned) assigned = [CONTROL_CATALOG[1]];
     el.appendChild(ui.el("div", { class: "g-page-head" }, [
       ui.el("div", {}, [
-        ui.el("div", { class: "g-row" }, [ui.el("span", { class: "g-h1" }, "Assign a control to a risk instance"), ui.badge("Capability 4 preview", "brand")]),
-        ui.el("div", { class: "g-muted" }, "The risk instance below is a confirmed applicability record from Capability 2. Capability 4 builds the control layer on the same records; this vignette shows the basic move.")]),
+        ui.el("div", { class: "g-row" }, [ui.el("span", { class: "g-h1" }, "Assign a control to a risk instance"), ui.badge("Graduated: built in R6", "ok")]),
+        ui.el("div", { class: "g-muted" }, "This gallery item started as a Capability 4 preview. The real thing now exists: a central inventory, expected controls, shareable matches, drafted skeletons, and key status derived from the risk landscape.")]),
       ui.el("div", { class: "sp" }),
       ui.el("button", { class: "g-btn", onclick: function () { ctx.go("gallery"); } }, "Back to gallery")]));
     el.appendChild(ui.card({
-      title: "The risk instance", body: ui.kv([
-        ["Risk event", ui.el("a", { href: "#/events/" + ev.id }, ev.name)],
-        ["RAU", ui.el("a", { href: "#/raus/" + story.id }, story.id + " " + story.name)],
-        ["Applicability", row.score + " (confirmed by " + row.by + ", " + fmt.date(row.date) + ")"],
-        ev.side === "compliance" && row.mcrIds ? ["MCRs attached", String(row.mcrIds.length)] : null])
+      title: "Where the preview went", body: ui.el("div", {}, [
+        ui.el("p", {}, "The basic move this vignette mocked, linking a control to a confirmed risk instance, is now the three-tier recommendation flow: the expected control first, shareable matches ranked by attach rate, then a drafted skeleton the business documents. The Keep / Discuss / Cut vote on the gallery card still counts toward the feature list."),
+        ui.el("div", { class: "g-row" }, [
+          row ? ui.el("button", { class: "g-btn g-btn--primary", onclick: function () { ctx.go("attach/" + story.id + "/" + row.eventId); } }, "Open the real attach flow on the story RAU") : null,
+          ui.el("button", { class: "g-btn", onclick: function () { ctx.go("controls"); } }, "Open the control inventory"),
+          ui.el("button", { class: "g-btn", onclick: function () { ctx.go("controls-key"); } }, "See derived vs declared key")])])
     }));
-    var body = ui.el("div");
-    function draw() {
-      body.innerHTML = "";
-      body.appendChild(ui.table({
-        cols: [
-          { key: "id", label: "Control", render: function (c) { return ui.el("span", { class: "g-mono" }, c.id); } },
-          { key: "name", label: "Name" },
-          { key: "type", label: "Type" },
-          { key: "automation", label: "Automation" },
-          { key: "x", label: "", render: function (c) { return ui.el("button", { class: "g-btn sm", onclick: function () { assigned = assigned.filter(function (a) { return a.id !== c.id; }); draw(); } }, "Unlink"); } }
-        ], rows: assigned, empty: "No controls linked yet."
-      }));
-      var remaining = CONTROL_CATALOG.filter(function (c) { return !assigned.some(function (a) { return a.id === c.id; }); });
-      var sel = ui.select({ options: remaining.map(function (c) { return { value: c.id, label: c.id + "  " + c.name }; }) });
-      body.appendChild(ui.el("div", { class: "g-row", style: "margin-top:10px" }, [
-        sel,
-        ui.el("button", { class: "g-btn g-btn--primary", onclick: function () {
-          var c = CONTROL_CATALOG.filter(function (x) { return x.id === sel.value; })[0];
-          if (!c) return;
-          assigned.push(c);
-          GRC.traceAction(4, "Assigning a control");
-          ui.toast(c.id + " linked to this risk instance. In the full build this writes the risk-to-control mapping.");
-          draw();
-        } }, "Assign control")]));
-    }
-    draw();
-    el.appendChild(ui.card({ title: "Controls linked to this risk instance", body: body }));
   }
 
   /* ==SECTION:vignette-regchange== */
@@ -206,7 +169,7 @@
   }
 
   GRC.register({
-    id: "gallery", version: "1.1.0", tab: "Home",
+    id: "gallery", version: "1.2.0", tab: "Home",
     caps: {
       "gallery": { primary: [1, 2] },
       "gallery/assign-control": { primary: [4], uses: [2], preview: true },
