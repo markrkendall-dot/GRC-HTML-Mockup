@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<!-- GRC tools/dataforge.html v1.0.0 2026-08-24 -->
+<!--
+  DATAFORGE - the CSV to data\*.js converter (runbook Part 7).
+  Standalone, offline, file:// safe. No network, no libraries, no fetch.
+  Open in Edge. Feed it one CSV export per entity; it maps your columns to
+  the schema (SCHEMA.md), maps your vocabulary to the allowed values,
+  validates (required fields, duplicate ids, dangling cross-references),
+  masks person names, and downloads a ready data\<entity>.js file plus a
+  conversion log for logs\.
+  Real data never leaves this machine: everything happens in this page.
+
+  The FORGE_SCHEMA block below is the single source of truth for the
+  expected columns; tools-dev/make-templates.js extracts it to regenerate
+  data-staging\templates\*.csv. Keep them in lockstep by editing ONLY the
+  schema block and rerunning that script.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DataForge - GRC data converter</title>
+<style>
+:root{
+  --g-banner:#b01e24; --g-banner-dk:#8f171c; --g-bg:#ffffff; --g-page:#f7f7f7;
+  --g-card:#ffffff; --g-ink:#1f2430; --g-muted:#6a7280; --g-line:#d9dde3;
+  --g-line-soft:#e9ecef; --g-accent:#2e6ea6; --g-ok:#1e7a3a; --g-warn:#a86a00;
+  --g-err:#b01e24;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--g-page);color:var(--g-ink);
+  font:14px/1.45 "Segoe UI",system-ui,sans-serif}
+.mono{font-family:Consolas,Menlo,monospace;font-size:12.5px}
+header{background:var(--g-banner);color:#fff;padding:10px 22px;
+  display:flex;align-items:baseline;gap:14px}
+header .t{font-size:19px;font-weight:600}
+header .s{font-size:12.5px;opacity:.85}
+main{max-width:1100px;margin:0 auto;padding:18px 22px 60px}
+.card{background:var(--g-card);border:1px solid var(--g-line);border-radius:6px;
+  padding:14px 18px 16px;margin:0 0 14px}
+.card.off{opacity:.45;pointer-events:none}
+h2{font-size:15px;margin:0 0 8px}
+h2 .n{display:inline-block;background:var(--g-ink);color:#fff;border-radius:50%;
+  width:20px;height:20px;line-height:20px;text-align:center;font-size:12px;
+  margin-right:8px}
+p.hint{color:var(--g-muted);font-size:12.5px;margin:4px 0 10px}
+label.lb{display:block;font-size:11px;letter-spacing:.4px;text-transform:uppercase;
+  color:var(--g-muted);margin:8px 0 3px}
+select,input[type=text],input[type=date],textarea{font:inherit;color:inherit;
+  border:1px solid var(--g-line);border-radius:4px;padding:5px 8px;background:#fff}
+textarea{width:100%}
+button{font:inherit;border:1px solid var(--g-line);border-radius:4px;
+  background:#fff;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--g-accent);color:var(--g-accent)}
+button.pri{background:var(--g-banner);border-color:var(--g-banner);color:#fff}
+button.pri:hover{background:var(--g-banner-dk);color:#fff}
+button:disabled{opacity:.45;cursor:default;pointer-events:none}
+table.g{border-collapse:collapse;width:100%;margin:6px 0;font-size:13px}
+table.g th{font-size:11px;text-transform:uppercase;letter-spacing:.4px;
+  color:var(--g-muted);text-align:left;border-bottom:1px solid var(--g-line);
+  padding:4px 8px 3px;white-space:nowrap}
+table.g td{border-bottom:1px solid var(--g-line-soft);padding:4px 8px;
+  vertical-align:top}
+.tablewrap{overflow-x:auto;border:1px solid var(--g-line-soft);border-radius:4px}
+.badge{display:inline-block;font-size:11px;border-radius:10px;padding:1px 9px;
+  border:1px solid var(--g-line);color:var(--g-muted);white-space:nowrap}
+.badge.ok{border-color:var(--g-ok);color:var(--g-ok)}
+.badge.err{border-color:var(--g-err);color:var(--g-err)}
+.badge.warn{border-color:var(--g-warn);color:var(--g-warn)}
+.req{color:var(--g-err);font-weight:600}
+.pill{display:inline-block;background:var(--g-line-soft);border-radius:10px;
+  padding:1px 9px;font-size:12px;margin:2px 3px 2px 0}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+.grow{flex:1 1 260px}
+#report{max-height:340px;overflow:auto;border:1px solid var(--g-line-soft);
+  border-radius:4px;padding:8px 12px;background:#fcfcfc}
+#report .e{color:var(--g-err)}
+#report .w{color:var(--g-warn)}
+#report div{padding:1px 0}
+.okline{color:var(--g-ok);font-weight:600}
+.note{background:#fff8e8;border:1px solid #ecd9a0;border-radius:4px;
+  padding:8px 12px;font-size:12.5px;margin:8px 0}
+</style>
+</head>
+<body>
+<header>
+  <span class="t">DataForge</span>
+  <span class="s">CSV &#8594; data\*.js converter &#183; v1.0.0 &#183; offline, nothing leaves this page</span>
+</header>
+<main>
+
+<div class="card" id="c-entity">
+  <h2><span class="n">1</span>Entity and reference data</h2>
+  <p class="hint">Pick the entity this CSV feeds. Then (recommended) load your CURRENT
+  data\*.js files as reference sets so cross-references (RAU ids, event ids, control ids)
+  can be validated. Files convert one at a time; converted output joins the reference
+  sets automatically, so a natural order is: orgnodes, services, riskevents, mcrs, raus,
+  register, ratings, controls, controllinks, expectedcontrols, affirmations, challenges.</p>
+  <div class="row">
+    <div>
+      <label class="lb">Entity</label>
+      <select id="entSel"></select>
+    </div>
+    <div>
+      <label class="lb">CSV template for this entity</label>
+      <button id="tplBtn">Download template</button>
+      <button id="tplAllBtn">Download all 14</button>
+    </div>
+    <div class="grow">
+      <label class="lb">Reference sets (pick data\*.js files, multi-select allowed)</label>
+      <input type="file" id="refFile" accept=".js" multiple>
+    </div>
+  </div>
+  <div id="entDesc" class="hint" style="margin-top:10px"></div>
+  <div id="refList" style="margin-top:4px"></div>
+</div>
+
+<div class="card off" id="c-load">
+  <h2><span class="n">2</span>Load the CSV</h2>
+  <p class="hint">Pick the export (Excel: File &gt; Save As &gt; CSV UTF-8), or paste CSV text.
+  The first row must be column headers. Quoted cells, commas and line breaks inside
+  quotes, and a UTF-8 BOM are handled.</p>
+  <div class="row">
+    <div><label class="lb">CSV file</label><input type="file" id="csvFile" accept=".csv,.txt"></div>
+    <div>
+      <label class="lb">Cell delimiter</label>
+      <select id="delimSel">
+        <option value="auto">auto-detect</option>
+        <option value=",">comma ,</option>
+        <option value=";">semicolon ;</option>
+        <option value="&#9;">tab</option>
+      </select>
+    </div>
+    <div>
+      <label class="lb">List delimiter (inside a cell)</label>
+      <input type="text" id="listDelim" value=";" size="3">
+    </div>
+    <div><label class="lb">&nbsp;</label><button id="pasteBtn">Paste text instead</button></div>
+  </div>
+  <textarea id="pasteBox" rows="6" style="display:none;margin-top:8px" placeholder="Paste CSV text here, then press Use pasted text"></textarea>
+  <div id="pasteGo" style="display:none;margin-top:6px"><button class="pri">Use pasted text</button></div>
+  <div id="loadInfo" style="margin-top:8px"></div>
+  <div id="preview"></div>
+</div>
+
+<div class="card off" id="c-map">
+  <h2><span class="n">3</span>Map your columns to the schema</h2>
+  <p class="hint">Every schema field needs a source: one of your columns, a constant
+  typed in, or - for optional fields - skip. Auto-matching has taken a first pass;
+  fix anything it guessed wrong. <span class="req">*</span> marks required fields.</p>
+  <div class="tablewrap"><table class="g" id="mapTable"></table></div>
+</div>
+
+<div class="card off" id="c-values">
+  <h2><span class="n">4</span>Map your vocabulary</h2>
+  <p class="hint">These fields allow fixed values only. Your data uses words the schema
+  does not know; map each to an allowed value (or fix the source and reload).</p>
+  <div id="valMaps"></div>
+</div>
+
+<div class="card off" id="c-mask">
+  <h2><span class="n">5</span>Masking</h2>
+  <p class="hint">Person-name fields are replaced with stable pseudonyms
+  (Owner 001, Assessor 014, ...) before export - the same source name always gets the
+  same pseudonym within a field, so patterns survive but identities do not. Uncheck to
+  keep a field as-is (WORKSHEET.md W6).</p>
+  <div id="maskList"></div>
+</div>
+
+<div class="card off" id="c-validate">
+  <h2><span class="n">6</span>Validate</h2>
+  <p class="hint">Checks: required fields, id format and duplicates, allowed values,
+  numbers and ranges, dates, duplicate keys, and dangling cross-references against the
+  loaded reference sets. Errors block export; warnings do not. This is the only gate -
+  the app itself assumes clean data.</p>
+  <button class="pri" id="valBtn">Run validation</button>
+  <span id="valSummary" style="margin-left:10px"></span>
+  <div id="report" style="display:none;margin-top:10px" class="mono"></div>
+</div>
+
+<div class="card off" id="c-export">
+  <h2><span class="n">7</span>Export</h2>
+  <p class="hint">Downloads data\<span id="outName" class="mono">?.js</span> in the exact
+  shipped format, plus a conversion log for logs\. Back up the old file, drop this one
+  into demo\data\, refresh the app, open Preflight, spot-check one record.</p>
+  <div class="row">
+    <div><label class="lb">Version stamp</label><input type="date" id="verDate"></div>
+    <div><label class="lb">&nbsp;</label><button class="pri" id="expBtn" disabled>Download data file</button></div>
+    <div><label class="lb">&nbsp;</label><button id="logBtn" disabled>Download conversion log</button></div>
+    <div id="expOverride" style="display:none"><label class="lb">&nbsp;</label>
+      <label><input type="checkbox" id="expAnyway"> export despite errors (not recommended)</label></div>
+  </div>
+  <div id="expInfo" style="margin-top:8px"></div>
+</div>
+
+<div class="card">
+  <h2>Not handled here</h2>
+  <p class="hint" style="margin-bottom:0">
+  <b>rubric.js</b> and <b>metaquestions.js</b> usually keep the shipped versions until real
+  standards land (metaQuestions CAN be imported above if yours exist).
+  <b>release.js</b> is hand-edited at release time (runbook Part 6).
+  RAU <b>process maps, survey answers, and handoffs</b> are built inside the app
+  (map builder / survey), not imported: converted RAUs start with none.
+  <b>register / ratings / controls / links / affirmations / challenges</b> are history -
+  import them if you have it; otherwise ship them with <span class="mono">rows: []</span>
+  and let the tool fill them live.</p>
+</div>
+
+</main>
+<script>
+"use strict";
+/* ============================================================ */
+/* ==FORGE-SCHEMA-BEGIN== (extracted by tools-dev/make-templates.js) */
+var FORGE_SCHEMA = {
+  "orgNodes": {
+    "file": "orgnodes.js", "label": "Org nodes (WF > LOB > SubLOB)",
+    "desc": "The org tree. One root (level enterprise, blank parentId), LOBs under it, SubLOBs under LOBs. RAUs attach at SubLOB.",
+    "idPrefix": "ORG-", "pad": 4,
+    "fields": [
+      {"c": "id", "p": "id", "req": 1, "kind": "id"},
+      {"c": "level", "p": "level", "req": 1, "kind": "str", "en": ["enterprise", "lob", "sublob"]},
+      {"c": "parentId", "p": "parentId", "kind": "str", "fk": "orgNodes", "nullBlank": 1},
+      {"c": "name", "p": "name", "req": 1, "kind": "str"}
+    ],
+    "example": [
+      ["ORG-0001", "enterprise", "", "Enterprise"],
+      ["ORG-0002", "lob", "ORG-0001", "Consumer & Small Business Banking"],
+      ["ORG-0003", "sublob", "ORG-0002", "Branch Banking"]
+    ]
+  },
+  "services": {
+    "file": "services.js", "label": "Services catalog",
+    "desc": "The enterprise services tree, three levels. RAUs pick level-3 leaves.",
+    "idPrefix": "SVC-", "pad": 4,
+    "fields": [
+      {"c": "id", "p": "id", "req": 1, "kind": "id"},
+      {"c": "parentId", "p": "parentId", "kind": "str", "fk": "services", "nullBlank": 1},
+      {"c": "level", "p": "level", "req": 1, "kind": "int", "min": 1, "max": 3},
+      {"c": "name", "p": "name", "req": 1, "kind": "str"}
+    ],
+    "example": [
+      ["SVC-0001", "", "1", "Payments Services"],
+      ["SVC-0002", "SVC-0001", "2", "Wire Services"],
+      ["SVC-0003", "SVC-0002", "3", "Outbound Wire Execution"]
+    ]
+  },
+  "riskEvents": {
+    "file": "riskevents.js", "label": "Risk event library",
+    "desc": "The standardized event library (both sides). errClass/sevClass/enfFlag/visClass drive Capability 3 suggestions (ENGINE.md); if your library lacks them, 3 / 3 / false / 1 are neutral defaults.",
+    "idPrefix": "REV-", "pad": 3,
+    "fields": [
+      {"c": "id", "p": "id", "req": 1, "kind": "id"},
+      {"c": "side", "p": "side", "req": 1, "kind": "str", "en": ["operational", "compliance"]},
+      {"c": "name", "p": "name", "req": 1, "kind": "str"},
+      {"c": "description", "p": "description", "kind": "str", "dflt": ""},
+      {"c": "qualification", "p": "qualification", "kind": "str", "dflt": ""},
+      {"c": "keywords", "p": "keywords", "kind": "list", "dflt": []},
+      {"c": "tags", "p": "tags", "kind": "list", "dflt": []},
+      {"c": "excludedBy", "p": "excludedBy", "kind": "list", "dflt": []},
+      {"c": "errClass", "p": "errClass", "kind": "int", "min": 1, "max": 5, "dflt": 3},
+      {"c": "sevClass", "p": "sevClass", "kind": "int", "min": 1, "max": 5, "dflt": 3},
+      {"c": "enfFlag", "p": "enfFlag", "kind": "bool", "dflt": false},
+      {"c": "visClass", "p": "visClass", "kind": "int", "min": 1, "max": 3, "dflt": 1}
+    ],
+    "example": [
+      ["REV-001", "operational", "Transaction Capture or Execution Error", "The risk of transaction capture or execution error arising in day-to-day processing.", "Qualifies when the event originates in the RAU's own process execution, systems, people, or third parties.", "processing error;misdirected payment;data entry", "proc:payment-execution;vol:high-volume", "", "4", "3", "false", "1"]
+    ]
+  },
+  "mcrs": {
+    "file": "mcrs.js", "label": "MCRs (from RRCM)",
+    "desc": "Regulatory requirements published from RRCM, read-only in the tool. head=true marks your 80/20 set; tail rows may leave regulator, publishedDate, summary, obligations, prohibitions, recCtl blank.",
+    "idPrefix": "MCR-", "pad": 4,
+    "fields": [
+      {"c": "id", "p": "id", "req": 1, "kind": "id"},
+      {"c": "name", "p": "name", "req": 1, "kind": "str"},
+      {"c": "parentEventId", "p": "parentEventId", "req": 1, "kind": "str", "fk": "riskEvents"},
+      {"c": "regFamily", "p": "regFamily", "req": 1, "kind": "str"},
+      {"c": "citation", "p": "citation", "req": 1, "kind": "str"},
+      {"c": "regulator", "p": "regulator", "kind": "str", "omitBlank": 1},
+      {"c": "head", "p": "head", "kind": "bool", "dflt": false, "omitFalse": 1},
+      {"c": "publishedDate", "p": "publishedDate", "kind": "date", "omitBlank": 1},
+      {"c": "tags", "p": "tags", "kind": "list", "dflt": []},
+      {"c": "summary", "p": "summary", "kind": "str", "omitBlank": 1},
+      {"c": "obligations", "p": "obligations", "kind": "list", "omitEmpty": 1},
+      {"c": "prohibitions", "p": "prohibitions", "kind": "list", "omitEmpty": 1},
+      {"c": "recCtl", "p": "recCtl", "kind": "list", "omitEmpty": 1}
+    ],
+    "example": [
+      ["MCR-0001", "BSA/AML 31 CFR 1020.2 - Escalate periodic statements", "REV-051", "BSA/AML", "31 CFR 1020.2", "FinCEN", "true", "2026-07-28", "proc:customer-onboarding;data:pii", "Requires escalation of periodic statements.", "Disclose rate change notices;Escalate identification records", "Do not share nonpublic information without notice", "monitoring;screening"]
+    ]
+  },
+  "raus": {
+    "file": "raus.js", "label": "RAUs (the inventory)",
+    "desc": "One row per Risk Assessable Unit. Process maps, survey answers, and handoffs are built inside the app, not imported. tags/excl feed the applicability engine (namespaced: proc: prod: cust: data: mm: jur: ch: vol:).",
+    "idPrefix": "RAU-", "pad": 4,
+    "fixed": {"map": null, "metaAnswers": null, "handoffs": []},
+    "fields": [
+      {"c": "id", "p": "id", "req": 1, "kind": "id"},
+      {"c": "name", "p": "name", "req": 1, "kind": "str"},
+      {"c": "subLobId", "p": "subLobId", "req": 1, "kind": "str", "fk": "orgNodes", "fkLevel": "sublob"},
+      {"c": "category", "p": "category", "req": 1, "kind": "str", "en": ["business-service", "shared-services", "enterprise"]},
+      {"c": "stage", "p": "stage", "kind": "str", "dflt": "active"},
+      {"c": "description", "p": "description", "kind": "str", "dflt": ""},
+      {"c": "serviceIds", "p": "serviceIds", "kind": "list", "fk": "services", "fkLevel": 3, "dflt": []},
+      {"c": "owner", "p": "roles.owner", "kind": "str", "mask": "Owner", "dflt": ""},
+      {"c": "delegate", "p": "roles.delegate", "kind": "str", "mask": "Delegate", "dflt": ""},
+      {"c": "bcmContact", "p": "roles.bcmContact", "kind": "str", "mask": "BCM Contact", "dflt": ""},
+      {"c": "orbo", "p": "roles.orbo", "kind": "str", "mask": "ORBO", "dflt": ""},
+      {"c": "baco", "p": "roles.baco", "kind": "str", "mask": "BACO", "dflt": ""},
+      {"c": "fte", "p": "fte", "kind": "num", "dflt": 0},
+      {"c": "locations", "p": "locations", "kind": "num", "dflt": 0},
+      {"c": "annualVolume", "p": "annualVolume", "kind": "num", "dflt": 0},
+      {"c": "priorLosses12m", "p": "priorLosses12m", "kind": "num", "dflt": 0},
+      {"c": "changeLevel", "p": "changeLevel", "kind": "str", "en": ["low", "medium", "high"], "dflt": "low"},
+      {"c": "tags", "p": "meta.tags", "kind": "list", "dflt": []},
+      {"c": "excl", "p": "meta.excl", "kind": "list", "dflt": []},
+      {"c": "riskIdStatus", "p": "riskIdStatus", "kind": "str", "en": ["not-started", "in-progress", "complete"], "dflt": "not-started"},
+      {"c": "lastRcsaDate", "p": "lastRcsaDate", "kind": "date", "dflt": ""},
+      {"c": "profileUpdated", "p": "profileUpdated", "kind": "date", "dflt": ""},
+      {"c": "map_phases", "p": "mapSummary.phases", "kind": "int", "min": 0, "max": 99, "group": "mapSummary"},
+      {"c": "map_steps", "p": "mapSummary.steps", "kind": "int", "min": 0, "max": 999, "group": "mapSummary"},
+      {"c": "map_handoffs", "p": "mapSummary.handoffs", "kind": "int", "min": 0, "max": 99, "group": "mapSummary"}
+    ],
+    "groups": {"mapSummary": {"allOrNone": 1, "elseNull": 1}},
+    "example": [
+      ["RAU-0001", "Customer Correspondence", "ORG-0003", "business-service", "active", "Customer correspondence handling for Branch Banking.", "SVC-0011;SVC-0038", "Riley Delgado", "Dana Yates", "Logan Zeller", "Avery Tran", "Jesse Grant", "147", "9", "540000", "0", "low", "proc:complaint-handling;cust:consumer;data:pii;mm:no-money-movement;jur:us-domestic;ch:back-office;vol:high-volume", "custody;credit-decisioning", "not-started", "2025-10-15", "2026-06-01", "4", "20", "3"]
+    ]
+  },
+  "register": {
+    "file": "register.js", "label": "Register (risk-ID dispositions)",
+    "desc": "One row per RAU x event disposition. A confirmed row IS a risk instance. score is the applicability score 0-100 at disposition time.",
+    "unique": [["rauId", "eventId"]],
+    "fields": [
+      {"c": "rauId", "p": "rauId", "req": 1, "kind": "str", "fk": "raus"},
+      {"c": "eventId", "p": "eventId", "req": 1, "kind": "str", "fk": "riskEvents"},
+      {"c": "status", "p": "status", "req": 1, "kind": "str", "en": ["confirmed", "rejected"]},
+      {"c": "score", "p": "score", "req": 1, "kind": "int", "min": 0, "max": 100},
+      {"c": "mcrIds", "p": "mcrIds", "kind": "list", "fk": "mcrs", "omitEmpty": 1},
+      {"c": "by", "p": "by", "req": 1, "kind": "str", "mask": "Assessor"},
+      {"c": "date", "p": "date", "req": 1, "kind": "date"},
+      {"c": "rationale", "p": "rationale", "kind": "str", "omitBlank": 1}
+    ],
+    "example": [
+      ["RAU-0002", "REV-007", "confirmed", "40", "", "Reese Tran", "2026-01-26", "Resolved via applicability questions."]
+    ]
+  },
+  "ratings": {
+    "file": "ratings.js", "label": "Inherent ratings",
+    "desc": "One row per rated risk instance. s and f are five levels each - likelihood, financial, customer, regulatory, operational - as a semicolon list (1-5). ov=1 means the final differs from the suggestion and note is then required. The band is never stored; the engine computes it.",
+    "unique": [["rauId", "eventId"]],
+    "crossWarn": "confirmedPair",
+    "fields": [
+      {"c": "rauId", "p": "rauId", "req": 1, "kind": "str", "fk": "raus"},
+      {"c": "eventId", "p": "eventId", "req": 1, "kind": "str", "fk": "riskEvents"},
+      {"c": "s", "p": "s", "req": 1, "kind": "numlist", "len": 5, "min": 1, "max": 5},
+      {"c": "f", "p": "f", "req": 1, "kind": "numlist", "len": 5, "min": 1, "max": 5},
+      {"c": "ov", "p": "ov", "req": 1, "kind": "int", "min": 0, "max": 1},
+      {"c": "note", "p": "note", "kind": "str", "omitBlank": 1, "reqIf": {"field": "ov", "eq": 1}},
+      {"c": "by", "p": "by", "req": 1, "kind": "str", "mask": "Assessor"},
+      {"c": "date", "p": "date", "req": 1, "kind": "date"}
+    ],
+    "example": [
+      ["RAU-0002", "REV-016", "3;2;1;1;1", "3;2;1;1;1", "0", "", "Reese Tran", "2026-03-22"]
+    ]
+  },
+  "controls": {
+    "file": "controls.js", "label": "Controls",
+    "desc": "The control inventory. design and perf are the two test dimensions the engine combines; declaredKey is legacy contrast only - key status is DERIVED, never declared (ENGINE.md).",
+    "idPrefix": "CTL-", "pad": 4,
+    "fields": [
+      {"c": "id", "p": "id", "req": 1, "kind": "id"},
+      {"c": "name", "p": "name", "req": 1, "kind": "str"},
+      {"c": "desc", "p": "desc", "kind": "str", "dflt": ""},
+      {"c": "owningRauId", "p": "owningRauId", "req": 1, "kind": "str", "fk": "raus"},
+      {"c": "shared", "p": "shared", "kind": "bool", "dflt": false},
+      {"c": "type", "p": "type", "req": 1, "kind": "str", "en": ["preventive", "detective", "corrective"]},
+      {"c": "automation", "p": "automation", "req": 1, "kind": "str", "en": ["manual", "automated", "it-dependent"]},
+      {"c": "frequency", "p": "frequency", "kind": "str", "dflt": ""},
+      {"c": "owner", "p": "owner", "kind": "str", "mask": "Control Owner", "dflt": ""},
+      {"c": "status", "p": "status", "kind": "str", "dflt": "active"},
+      {"c": "created", "p": "created", "kind": "date", "dflt": ""},
+      {"c": "declaredKey", "p": "declaredKey", "kind": "bool", "dflt": false},
+      {"c": "design", "p": "design", "req": 1, "kind": "str", "en": ["effective", "partially-effective", "ineffective"]},
+      {"c": "perf", "p": "perf", "req": 1, "kind": "str", "en": ["effective", "partially-effective", "ineffective"]}
+    ],
+    "example": [
+      ["CTL-0001", "Automated anomaly alerting on processing error", "Applied to in-scope activity; exceptions are logged and escalated.", "RAU-0657", "true", "detective", "automated", "daily", "Rowan Rhodes", "active", "2024-07-24", "false", "effective", "effective"]
+    ]
+  },
+  "controlLinks": {
+    "file": "controllinks.js", "label": "Control links",
+    "desc": "Many-to-many: control c mitigates the risk instance (RAU r, event e). One row per link.",
+    "unique": [["c", "r", "e"]],
+    "crossWarn": "confirmedLink",
+    "fields": [
+      {"c": "c", "p": "c", "req": 1, "kind": "str", "fk": "controls"},
+      {"c": "r", "p": "r", "req": 1, "kind": "str", "fk": "raus"},
+      {"c": "e", "p": "e", "req": 1, "kind": "str", "fk": "riskEvents"}
+    ],
+    "example": [
+      ["CTL-0001", "RAU-0005", "REV-001"]
+    ]
+  },
+  "expectedControls": {
+    "file": "expectedcontrols.js", "label": "Expected controls",
+    "desc": "Policy rules: when this event is live on a RAU, that control is expected. Small, curated list.",
+    "idPrefix": "EXP-", "pad": 2,
+    "fields": [
+      {"c": "id", "p": "id", "req": 1, "kind": "id"},
+      {"c": "eventId", "p": "eventId", "req": 1, "kind": "str", "fk": "riskEvents"},
+      {"c": "controlId", "p": "controlId", "req": 1, "kind": "str", "fk": "controls"},
+      {"c": "note", "p": "note", "kind": "str", "dflt": ""}
+    ],
+    "example": [
+      ["EXP-01", "REV-051", "CTL-0051", "Transaction monitoring coverage is mandatory wherever AML risk applies."]
+    ]
+  },
+  "affirmations": {
+    "file": "affirmations.js", "label": "Affirmations",
+    "desc": "The living-record anchor: one row per RAU that has affirmed, with the risk-profile snapshot at that moment (counts of high/moderate/low residual lines). prior_* columns are the previous snapshot (optional, all four or none). Pending changes accrue in-app.",
+    "unique": [["rauId"]],
+    "fixed": {"pending": []},
+    "fields": [
+      {"c": "rauId", "p": "rauId", "req": 1, "kind": "str", "fk": "raus"},
+      {"c": "date", "p": "date", "req": 1, "kind": "date"},
+      {"c": "by", "p": "by", "req": 1, "kind": "str", "mask": "Affirmer"},
+      {"c": "snapshot_high", "p": "snapshot.high", "req": 1, "kind": "int", "min": 0, "max": 999},
+      {"c": "snapshot_moderate", "p": "snapshot.moderate", "req": 1, "kind": "int", "min": 0, "max": 999},
+      {"c": "snapshot_low", "p": "snapshot.low", "req": 1, "kind": "int", "min": 0, "max": 999},
+      {"c": "snapshot_lines", "p": "snapshot.lines", "req": 1, "kind": "int", "min": 0, "max": 999},
+      {"c": "prior_high", "p": "prior.high", "kind": "int", "min": 0, "max": 999, "group": "prior"},
+      {"c": "prior_moderate", "p": "prior.moderate", "kind": "int", "min": 0, "max": 999, "group": "prior"},
+      {"c": "prior_low", "p": "prior.low", "kind": "int", "min": 0, "max": 999, "group": "prior"},
+      {"c": "prior_lines", "p": "prior.lines", "kind": "int", "min": 0, "max": 999, "group": "prior"}
+    ],
+    "groups": {"prior": {"allOrNone": 1, "elseOmit": 1}},
+    "example": [
+      ["RAU-0002", "2025-10-15", "Reese Tran", "2", "1", "3", "6", "1", "2", "3", "6"]
+    ]
+  },
+  "challenges": {
+    "file": "challenges.js", "label": "Challenges (2LOD)",
+    "desc": "Second-line challenges. by is the ROLE string (kept); byName is the person (masked). eventId/controlId apply per kind.",
+    "idPrefix": "CH-", "pad": 3,
+    "fields": [
+      {"c": "id", "p": "id", "req": 1, "kind": "id"},
+      {"c": "rauId", "p": "rauId", "req": 1, "kind": "str", "fk": "raus"},
+      {"c": "kind", "p": "kind", "req": 1, "kind": "str", "en": ["rating", "env", "control", "instance", "line"]},
+      {"c": "eventId", "p": "eventId", "kind": "str", "fk": "riskEvents", "omitBlank": 1},
+      {"c": "controlId", "p": "controlId", "kind": "str", "fk": "controls", "omitBlank": 1},
+      {"c": "what", "p": "what", "req": 1, "kind": "str"},
+      {"c": "should", "p": "should", "req": 1, "kind": "str"},
+      {"c": "by", "p": "by", "req": 1, "kind": "str"},
+      {"c": "byName", "p": "byName", "req": 1, "kind": "str", "mask": "Challenger"},
+      {"c": "date", "p": "date", "req": 1, "kind": "date"},
+      {"c": "state", "p": "state", "req": 1, "kind": "str", "en": ["open", "responded", "upheld", "withdrawn"]},
+      {"c": "response", "p": "response", "kind": "str", "omitBlank": 1},
+      {"c": "respondedBy", "p": "respondedBy", "kind": "str", "mask": "Responder", "omitBlank": 1},
+      {"c": "respondedDate", "p": "respondedDate", "kind": "date", "omitBlank": 1},
+      {"c": "resolvedDate", "p": "resolvedDate", "kind": "date", "omitBlank": 1}
+    ],
+    "example": [
+      ["CH-001", "RAU-0041", "rating", "REV-077", "", "The customer-lens override sits above the LOB peer pattern.", "Revert to the evidence-based level or attach the analysis.", "BACO (Compliance Risk)", "Morgan Lee", "2026-07-02", "open", "", "", "", ""]
+    ]
+  },
+  "requests": {
+    "file": "requests.js", "label": "RAU change requests",
+    "desc": "The intake pipeline (new / merge / split / retire). Uniqueness-review working papers are built in-app; imported requests start without them.",
+    "idPrefix": "RCR-", "pad": 4,
+    "fixed": {"uniqueness": null},
+    "fields": [
+      {"c": "id", "p": "id", "req": 1, "kind": "id"},
+      {"c": "type", "p": "type", "req": 1, "kind": "str", "en": ["new", "merge", "split", "retire"]},
+      {"c": "stage", "p": "stage", "req": 1, "kind": "str", "en": ["draft-intake", "uniqueness-review", "process-mapping", "standards-check", "pending-governance", "metadata-creation", "returned-for-refinement", "declined", "approved"]},
+      {"c": "proposedName", "p": "proposedName", "req": 1, "kind": "str"},
+      {"c": "subLobId", "p": "subLobId", "req": 1, "kind": "str", "fk": "orgNodes", "fkLevel": "sublob"},
+      {"c": "category", "p": "category", "req": 1, "kind": "str", "en": ["business-service", "shared-services", "enterprise"]},
+      {"c": "requester", "p": "requester", "req": 1, "kind": "str", "mask": "Requester"},
+      {"c": "submitted", "p": "submitted", "req": 1, "kind": "date"},
+      {"c": "serviceIds", "p": "serviceIds", "kind": "list", "fk": "services", "fkLevel": 3, "dflt": []},
+      {"c": "description", "p": "description", "kind": "str", "dflt": ""},
+      {"c": "bullets", "p": "bullets", "kind": "list", "dflt": []},
+      {"c": "assistant", "p": "assistant", "kind": "list", "dflt": []},
+      {"c": "note", "p": "note", "kind": "str", "omitBlank": 1},
+      {"c": "targetRauIds", "p": "targetRauIds", "kind": "list", "fk": "raus", "omitEmpty": 1}
+    ],
+    "example": [
+      ["RCR-0007", "new", "uniqueness-review", "Escrow Disbursement Processing", "ORG-0013", "business-service", "T. Whitfield (RAU Owner designate)", "2026-08-11", "SVC-0019;SVC-0020", "Processes disbursements from escrow accounts.", "Disburses tax and insurance;Reconciles escrow ledgers", "", "", ""]
+    ]
+  },
+  "metaQuestions": {
+    "file": "metaquestions.js", "label": "Metadata survey questions",
+    "desc": "The standardized survey. excl questions confirm the RAU does NOT do a thing (the survey's exclusion topics); tag questions add an applicability tag on yes. Fill exactly one of excl / tag per row, or neither.",
+    "fields": [
+      {"c": "id", "p": "id", "req": 1, "kind": "id"},
+      {"c": "section", "p": "section", "req": 1, "kind": "str"},
+      {"c": "text", "p": "text", "req": 1, "kind": "str"},
+      {"c": "excl", "p": "excl", "kind": "str", "omitBlank": 1},
+      {"c": "tag", "p": "tag", "kind": "str", "omitBlank": 1}
+    ],
+    "example": [
+      ["Q01", "Trading & Markets", "Confirm this RAU does NOT conduct trading or market-making activity.", "trading", ""],
+      ["Q09", "Money Movement", "Does this RAU initiate outbound wires?", "", "mm:wire-out"]
+    ]
+  }
+};
+/* ==FORGE-SCHEMA-END== */
+
+/* ============================================================ */
+/* ==SECTION:state== */
+var S = {
+  entity: null,      /* schema key */
+  refRows: {},       /* entity -> rows[] from loaded reference files / session exports */
+  refSrc: {},        /* entity -> "file" | "session" */
+  csvName: "",
+  headers: [],
+  rows: [],          /* array of arrays (cells) */
+  colMap: {},        /* field.c -> {src:"col",i} | {src:"const",v} | {src:"skip"} */
+  valMap: {},        /* field.c -> {sourceValue: mappedValue} */
+  maskOn: {},        /* field.c -> bool */
+  built: null,       /* built rows after validate */
+  valres: null,      /* {errors:[],warns:[]} */
+  maskTables: {},    /* field.c -> {source: pseudonym} */
+  exported: false
+};
+
+function $(id) { return document.getElementById(id); }
+function el(tag, attrs, kids) {
+  var n = document.createElement(tag);
+  if (attrs) { Object.keys(attrs).forEach(function (k) {
+    if (k === "class") n.className = attrs[k];
+    else if (k === "text") n.textContent = attrs[k];
+    else n.setAttribute(k, attrs[k]);
+  }); }
+  (kids || []).forEach(function (c) {
+    n.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+  });
+  return n;
+}
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function today() {
+  var d = new Date();
+  var m = d.getMonth() + 1, dd = d.getDate();
+  return d.getFullYear() + "-" + (m < 10 ? "0" : "") + m + "-" + (dd < 10 ? "0" : "") + dd;
+}
+function download(name, text) {
+  var blob = new Blob([text], { type: "application/octet-stream" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+}
+
+/* ==SECTION:csv== */
+/* RFC4180-style parser: quotes, embedded delimiters/newlines, "" escapes,
+   CRLF/CR/LF, UTF-8 BOM. Returns {headers, rows, delim}. */
+function sniffDelim(line) {
+  var best = ",", bestN = -1, cands = [",", ";", "\t"];
+  for (var i = 0; i < cands.length; i++) {
+    var n = 0, q = false;
+    for (var j = 0; j < line.length; j++) {
+      var ch = line[j];
+      if (ch === '"') q = !q;
+      else if (!q && ch === cands[i]) n++;
+    }
+    if (n > bestN) { bestN = n; best = cands[i]; }
+  }
+  return best;
+}
+function parseCsv(text, delim) {
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  var firstNL = text.indexOf("\n");
+  var firstLine = firstNL < 0 ? text : text.slice(0, firstNL);
+  var d = (delim === "auto" || !delim) ? sniffDelim(firstLine) : delim;
+  var rows = [], row = [], cell = "", q = false, i = 0, ch;
+  while (i < text.length) {
+    ch = text[i];
+    if (q) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { cell += '"'; i += 2; continue; }
+        q = false; i++; continue;
+      }
+      cell += ch; i++; continue;
+    }
+    if (ch === '"') { q = true; i++; continue; }
+    if (ch === d) { row.push(cell); cell = ""; i++; continue; }
+    if (ch === "\r") { if (text[i + 1] === "\n") i++; row.push(cell); cell = ""; rows.push(row); row = []; i++; continue; }
+    if (ch === "\n") { row.push(cell); cell = ""; rows.push(row); row = []; i++; continue; }
+    cell += ch; i++;
+  }
+  if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+  /* drop fully-empty trailing rows */
+  while (rows.length && rows[rows.length - 1].every(function (c) { return c.trim() === ""; })) rows.pop();
+  if (!rows.length) return { headers: [], rows: [], delim: d };
+  var headers = rows[0].map(function (h) { return h.trim(); });
+  return { headers: headers, rows: rows.slice(1), delim: d };
+}
+
+/* ==SECTION:reference sets== */
+function absorbDataFile(text, srcLabel) {
+  var w = {};
+  try {
+    (new Function("window", text))(w);
+  } catch (e) { return "PARSE FAILED: " + e.message; }
+  var gd = w.GRC_DATA || {};
+  var got = [];
+  Object.keys(gd).forEach(function (k) {
+    if (gd[k] && Object.prototype.toString.call(gd[k].rows) === "[object Array]") {
+      S.refRows[k] = gd[k].rows;
+      S.refSrc[k] = srcLabel;
+      got.push(k + " (" + gd[k].rows.length + ")");
+    }
+  });
+  return got.length ? got.join(", ") : "no entity payload found";
+}
+function refIds(entity) {
+  var set = {};
+  (S.refRows[entity] || []).forEach(function (r) { if (r.id) set[r.id] = r; });
+  return set;
+}
+function renderRefs() {
+  var host = $("refList");
+  host.innerHTML = "";
+  var ks = Object.keys(S.refRows).sort();
+  if (!ks.length) {
+    host.appendChild(el("span", { class: "badge", text: "no reference sets loaded - cross-reference checks will be skipped (warnings)" }));
+    return;
+  }
+  ks.forEach(function (k) {
+    host.appendChild(el("span", { class: "pill", text: k + " " + S.refRows[k].length + " [" + S.refSrc[k] + "]" }));
+  });
+}
+
+/* ==SECTION:step gating== */
+function setOn(id, on) {
+  var c = $(id);
+  if (on) c.classList.remove("off"); else c.classList.add("off");
+}
+function resetFrom(step) {
+  if (step <= 2) { S.headers = []; S.rows = []; $("loadInfo").innerHTML = ""; $("preview").innerHTML = ""; }
+  if (step <= 3) { S.colMap = {}; }
+  if (step <= 4) { S.valMap = {}; }
+  if (step <= 6) {
+    S.built = null; S.valres = null; S.maskTables = {}; S.exported = false;
+    $("valSummary").innerHTML = ""; $("report").style.display = "none"; $("report").innerHTML = "";
+    $("expBtn").disabled = true; $("logBtn").disabled = true;
+    $("expOverride").style.display = "none"; $("expAnyway").checked = false;
+    $("expInfo").innerHTML = "";
+  }
+  setOn("c-load", !!S.entity);
+  setOn("c-map", S.headers.length > 0);
+  setOn("c-values", S.headers.length > 0);
+  setOn("c-mask", S.headers.length > 0);
+  setOn("c-validate", S.headers.length > 0);
+  setOn("c-export", S.headers.length > 0);
+}
+
+/* ==SECTION:entity picker== */
+function schema() { return FORGE_SCHEMA[S.entity]; }
+function initEntities() {
+  var sel = $("entSel");
+  Object.keys(FORGE_SCHEMA).forEach(function (k) {
+    sel.appendChild(el("option", { value: k, text: FORGE_SCHEMA[k].label + "  -  data\\" + FORGE_SCHEMA[k].file }));
+  });
+  sel.onchange = pickEntity;
+  pickEntity();
+}
+function pickEntity() {
+  S.entity = $("entSel").value;
+  var sc = schema();
+  var need = sc.fields.filter(function (f) { return f.req; }).map(function (f) { return f.c; });
+  $("entDesc").innerHTML = esc(sc.desc) +
+    "<br>Required columns: <span class='mono'>" + esc(need.join(", ")) + "</span>" +
+    " &#183; full column set is in the template.";
+  $("outName").textContent = sc.file;
+  resetFrom(2);
+}
+
+/* ==SECTION:templates== */
+function csvCell(v) {
+  var s = String(v);
+  if (s.indexOf('"') >= 0 || s.indexOf(",") >= 0 || s.indexOf("\n") >= 0 || s.indexOf("\r") >= 0) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+function templateCsv(key) {
+  var sc = FORGE_SCHEMA[key];
+  var lines = [sc.fields.map(function (f) { return f.c; }).join(",")];
+  (sc.example || []).forEach(function (row) {
+    lines.push(row.map(csvCell).join(","));
+  });
+  return lines.join("\r\n") + "\r\n";
+}
+function tplName(key) { return FORGE_SCHEMA[key].file.replace(/\.js$/, "") + ".csv"; }
+
+/* ==SECTION:column mapping== */
+function normName(s) { return String(s).toLowerCase().replace(/[^a-z0-9]/g, ""); }
+var ALIASES = {
+  "title": "name", "description": "desc", "descr": "desc",
+  "rau": "rauId", "rauid": "rauId", "event": "eventId", "control": "controlId",
+  "parent": "parentId", "org": "subLobId", "sublob": "subLobId"
+};
+function autoMap() {
+  var sc = schema();
+  S.colMap = {};
+  var normed = S.headers.map(normName);
+  sc.fields.forEach(function (f) {
+    var want = normName(f.c), i = normed.indexOf(want);
+    if (i < 0 && f.p) i = normed.indexOf(normName(f.p.split(".").pop()));
+    if (i < 0) {
+      for (var h = 0; h < normed.length; h++) {
+        if (ALIASES[normed[h]] === f.c) { i = h; break; }
+      }
+    }
+    S.colMap[f.c] = i >= 0 ? { src: "col", i: i } : { src: "skip" };
+  });
+}
+function renderMap() {
+  var sc = schema(), t = $("mapTable");
+  t.innerHTML = "";
+  t.appendChild(el("tr", {}, [
+    el("th", { text: "Schema field" }), el("th", { text: "Type" }),
+    el("th", { text: "Source" }), el("th", { text: "Constant / notes" })
+  ]));
+  sc.fields.forEach(function (f) {
+    var kindTxt = f.kind + (f.en ? " (" + f.en.join(" | ") + ")" : "") +
+      (f.fk ? " -> " + f.fk : "") + (f.len ? " x" + f.len : "") +
+      (f.min !== undefined && f.kind !== "numlist" ? " " + f.min + "-" + f.max : "");
+    var sel = el("select");
+    sel.appendChild(el("option", { value: "skip", text: f.req ? "-- required, pick a source --" : "(skip" + (f.dflt !== undefined ? ", default " + JSON.stringify(f.dflt) : "") + ")" }));
+    sel.appendChild(el("option", { value: "const", text: "constant value:" }));
+    S.headers.forEach(function (h, i) {
+      sel.appendChild(el("option", { value: "c" + i, text: h }));
+    });
+    var m = S.colMap[f.c];
+    sel.value = m.src === "col" ? "c" + m.i : m.src;
+    var constIn = el("input", { type: "text", size: "18" });
+    constIn.style.display = m.src === "const" ? "" : "none";
+    if (m.src === "const") constIn.value = m.v || "";
+    sel.onchange = function () {
+      if (sel.value === "skip") S.colMap[f.c] = { src: "skip" };
+      else if (sel.value === "const") S.colMap[f.c] = { src: "const", v: constIn.value };
+      else S.colMap[f.c] = { src: "col", i: parseInt(sel.value.slice(1), 10) };
+      constIn.style.display = sel.value === "const" ? "" : "none";
+      resetFrom(4); renderValues(); renderMask();
+    };
+    constIn.oninput = function () { S.colMap[f.c] = { src: "const", v: constIn.value }; resetFrom(6); };
+    var noteTd = el("td", {}, [constIn]);
+    if (f.mask) noteTd.appendChild(el("span", { class: "badge", text: "maskable", style: "margin-left:6px" }));
+    t.appendChild(el("tr", {}, [
+      el("td", {}, [el("span", { class: "mono", text: f.c }), f.req ? el("span", { class: "req", text: " *" }) : el("span")]),
+      el("td", { class: "mono", text: kindTxt }),
+      el("td", {}, [sel]),
+      noteTd
+    ]));
+  });
+}
+
+/* ==SECTION:raw cell access== */
+function rawCell(rowArr, f) {
+  var m = S.colMap[f.c];
+  if (!m || m.src === "skip") return null;               /* unmapped */
+  if (m.src === "const") return String(m.v == null ? "" : m.v);
+  var v = rowArr[m.i];
+  return (v === undefined || v === null) ? "" : String(v).trim();
+}
+
+/* ==SECTION:value mapping== */
+function distinctUnknown(f) {
+  var out = {}, map = S.valMap[f.c] || {};
+  S.rows.forEach(function (r) {
+    var v = rawCell(r, f);
+    if (v === null || v === "") return;
+    var mapped = map.hasOwnProperty(v) ? map[v] : v;
+    if (f.en.indexOf(mapped) < 0) out[v] = (out[v] || 0) + 1;
+  });
+  return out;
+}
+function autoValueMap(f) {
+  var map = S.valMap[f.c] = S.valMap[f.c] || {};
+  var unknown = distinctUnknown(f);
+  Object.keys(unknown).forEach(function (v) {
+    var n = normName(v);
+    for (var i = 0; i < f.en.length; i++) {
+      if (normName(f.en[i]) === n) { map[v] = f.en[i]; return; }
+    }
+  });
+}
+function renderValues() {
+  var host = $("valMaps");
+  host.innerHTML = "";
+  var sc = schema(), any = false;
+  sc.fields.forEach(function (f) {
+    if (!f.en) return;
+    if (!S.colMap[f.c] || S.colMap[f.c].src === "skip") return;
+    autoValueMap(f);
+    var unknown = distinctUnknown(f);
+    var keys = Object.keys(unknown);
+    if (!keys.length) return;
+    any = true;
+    var box = el("div", { style: "margin-bottom:10px" });
+    box.appendChild(el("div", { class: "lb", text: f.c + " - unmapped values" }));
+    keys.sort().forEach(function (v) {
+      var sel = el("select");
+      sel.appendChild(el("option", { value: "", text: "-- map to --" }));
+      f.en.forEach(function (o) { sel.appendChild(el("option", { value: o, text: o })); });
+      sel.onchange = function () {
+        S.valMap[f.c][v] = sel.value;
+        resetFrom(6);
+      };
+      box.appendChild(el("div", {}, [
+        el("span", { class: "mono", text: v + "  (" + unknown[v] + " rows)  " }), sel
+      ]));
+    });
+    host.appendChild(box);
+  });
+  if (!any) host.appendChild(el("p", { class: "hint", text: "Nothing to map - every value in the fixed-vocabulary fields is already allowed (or the field is skipped)." }));
+}
+
+/* ==SECTION:masking== */
+function renderMask() {
+  var host = $("maskList");
+  host.innerHTML = "";
+  var sc = schema(), any = false;
+  sc.fields.forEach(function (f) {
+    if (!f.mask) return;
+    if (!S.colMap[f.c] || S.colMap[f.c].src === "skip") return;
+    any = true;
+    if (S.maskOn[f.c] === undefined) S.maskOn[f.c] = true;
+    var cb = el("input", { type: "checkbox" });
+    cb.checked = S.maskOn[f.c];
+    cb.onchange = function () { S.maskOn[f.c] = cb.checked; resetFrom(6); };
+    host.appendChild(el("label", { style: "display:inline-block;margin:2px 16px 2px 0" }, [
+      cb, " " + f.c + "  →  " + f.mask + " NNN"
+    ]));
+  });
+  if (!any) host.appendChild(el("p", { class: "hint", text: "This entity has no person-name fields mapped." }));
+}
+function pad3(n) { return (n < 10 ? "00" : n < 100 ? "0" : "") + n; }
+function maskValue(f, v) {
+  if (v === "" || v === null) return v;
+  var t = S.maskTables[f.c] = S.maskTables[f.c] || { map: {}, n: 0 };
+  if (!t.map.hasOwnProperty(v)) { t.n++; t.map[v] = f.mask + " " + pad3(t.n); }
+  return t.map[v];
+}
+
+/* ==SECTION:build + validate== */
+function setPath(obj, path, val) {
+  var parts = path.split("."), o = obj;
+  for (var i = 0; i < parts.length - 1; i++) {
+    if (!o[parts[i]]) o[parts[i]] = {};
+    o = o[parts[i]];
+  }
+  o[parts[parts.length - 1]] = val;
+}
+function parseBool(v) {
+  var n = normName(v);
+  if (["true", "yes", "y", "1", "x"].indexOf(n) >= 0) return true;
+  if (["false", "no", "n", "0", ""].indexOf(n) >= 0) return false;
+  return null;
+}
+var DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+function nextAutoId(sc, used) {
+  var max = 0;
+  function scan(id) {
+    if (typeof id === "string" && id.indexOf(sc.idPrefix) === 0) {
+      var n = parseInt(id.slice(sc.idPrefix.length), 10);
+      if (!isNaN(n) && n > max) max = n;
+    }
+  }
+  Object.keys(used).forEach(scan);
+  (S.refRows[S.entity] || []).forEach(function (r) { scan(r.id); });
+  var n = max + 1, s = String(n);
+  while (s.length < sc.pad) s = "0" + s;
+  return sc.idPrefix + s;
+}
+function validate() {
+  var sc = schema();
+  var errors = [], warns = [];
+  var rows = [];
+  S.maskTables = {};
+  var usedIds = {};
+  var uniqueSeen = {};
+  (sc.unique || []).forEach(function (u) { uniqueSeen[u.join("+")] = {}; });
+  var refWarned = {};
+  function fkOk(f, id) {
+    var ent = f.fk;
+    if (!S.refRows[ent]) {
+      if (!refWarned[ent]) {
+        refWarned[ent] = 1;
+        warns.push("cross-references to " + ent + " NOT checked - load data\\" +
+          (FORGE_SCHEMA[ent] ? FORGE_SCHEMA[ent].file : ent) + " as a reference set (step 1) to check them");
+      }
+      return true;
+    }
+    var row = refIds(ent)[id];
+    if (!row) return false;
+    if (f.fkLevel !== undefined && row.level !== f.fkLevel) {
+      warns.push("row {R}: " + f.c + " " + id + " is not level " + f.fkLevel + " in " + ent + " (got " + row.level + ")");
+    }
+    return true;
+  }
+  var listDelim = $("listDelim").value || ";";
+  S.rows.forEach(function (rowArr, ri) {
+    var rn = ri + 2; /* 1-based + header row */
+    var out = {};
+    var rowRaw = {};   /* field.c -> raw string for conditional checks */
+    var groupState = {}; /* group name -> {set:n, total:n} */
+    /* fixed fields first */
+    if (sc.fixed) Object.keys(sc.fixed).forEach(function (k) {
+      out[k] = JSON.parse(JSON.stringify(sc.fixed[k]));
+    });
+    sc.fields.forEach(function (f) {
+      var raw = rawCell(rowArr, f);
+      if (raw !== null && f.en) {
+        var vm = S.valMap[f.c] || {};
+        if (raw !== "" && vm.hasOwnProperty(raw)) raw = vm[raw];
+      }
+      rowRaw[f.c] = raw;
+      var blank = (raw === null || raw === "");
+      if (f.group) {
+        var g = groupState[f.group] = groupState[f.group] || { set: 0, total: 0 };
+        g.total++;
+        if (!blank) g.set++;
+      }
+      if (blank) {
+        if (f.kind === "id" && sc.idPrefix) {
+          var auto = nextAutoId(sc, usedIds);
+          out[f.p] = auto; rowRaw[f.c] = auto;
+          usedIds[auto] = rn;
+          return;
+        }
+        if (f.req) { errors.push("row " + rn + ": required field " + f.c + " is blank/unmapped"); return; }
+        if (f.omitBlank || f.omitEmpty || f.group) return;
+        if (f.dflt !== undefined) { setPath(out, f.p, JSON.parse(JSON.stringify(f.dflt))); return; }
+        if (f.nullBlank) { setPath(out, f.p, null); return; }
+        setPath(out, f.p, "");
+        return;
+      }
+      var val = raw;
+      switch (f.kind) {
+        case "id":
+          if (usedIds[val] !== undefined) errors.push("row " + rn + ": duplicate id " + val + " (also row " + usedIds[val] + ")");
+          usedIds[val] = rn;
+          out[f.p] = val;
+          return;
+        case "int": case "num":
+          var n = Number(val);
+          if (isNaN(n)) { errors.push("row " + rn + ": " + f.c + " is not a number: " + val); return; }
+          if (f.kind === "int" && n !== Math.round(n)) { errors.push("row " + rn + ": " + f.c + " must be a whole number: " + val); return; }
+          if (f.min !== undefined && (n < f.min || n > f.max)) { errors.push("row " + rn + ": " + f.c + " out of range " + f.min + "-" + f.max + ": " + val); return; }
+          val = n; break;
+        case "bool":
+          var b = parseBool(val);
+          if (b === null) { errors.push("row " + rn + ": " + f.c + " is not true/false: " + val); return; }
+          if (b === false && f.omitFalse) return;
+          val = b; break;
+        case "date":
+          if (!DATE_RE.test(val)) { errors.push("row " + rn + ": " + f.c + " must be YYYY-MM-DD: " + val); return; }
+          break;
+        case "list":
+          var arr = val.split(listDelim).map(function (x) { return x.trim(); }).filter(function (x) { return x !== ""; });
+          if (f.fk) arr.forEach(function (id) {
+            if (!fkOk(f, id)) errors.push("row " + rn + ": " + f.c + " references missing " + f.fk + " id " + id);
+          });
+          if (!arr.length && f.omitEmpty) return;
+          val = arr; break;
+        case "numlist":
+          var nums = val.split(listDelim).map(function (x) { return Number(x.trim()); });
+          if (nums.length !== f.len) { errors.push("row " + rn + ": " + f.c + " needs exactly " + f.len + " numbers: " + raw); return; }
+          for (var z = 0; z < nums.length; z++) {
+            if (isNaN(nums[z]) || nums[z] !== Math.round(nums[z]) || nums[z] < f.min || nums[z] > f.max) {
+              errors.push("row " + rn + ": " + f.c + "[" + (z + 1) + "] must be a whole number " + f.min + "-" + f.max + ": " + raw); return;
+            }
+          }
+          val = nums; break;
+        default: /* str */
+          if (f.en && f.en.indexOf(val) < 0) {
+            errors.push("row " + rn + ": " + f.c + " value not allowed: " + val + " (map it in step 4)");
+            return;
+          }
+          if (f.fk && !fkOk(f, val)) {
+            errors.push("row " + rn + ": " + f.c + " references missing " + f.fk + " id " + val);
+            return;
+          }
+      }
+      if (f.mask && S.maskOn[f.c] && typeof val === "string") val = maskValue(f, val);
+      var errsBefore = errors.length;
+      if (f.p.indexOf(".") >= 0) setPath(out, f.p, val); else out[f.p] = val;
+      void errsBefore;
+    });
+    /* conditional requireds */
+    sc.fields.forEach(function (f) {
+      if (!f.reqIf) return;
+      var trigger = rowRaw[f.reqIf.field];
+      if (String(trigger) === String(f.reqIf.eq) && (rowRaw[f.c] === null || rowRaw[f.c] === "")) {
+        errors.push("row " + rn + ": " + f.c + " is required when " + f.reqIf.field + " = " + f.reqIf.eq);
+      }
+    });
+    /* group all-or-none */
+    if (sc.groups) Object.keys(sc.groups).forEach(function (g) {
+      var st = groupState[g], rule = sc.groups[g];
+      var set = st ? st.set : 0, total = st ? st.total : 0;
+      if (set === 0) {
+        if (rule.elseNull) {
+          var first = null;
+          sc.fields.forEach(function (f) { if (f.group === g && !first) first = f.p.split(".")[0]; });
+          if (first) out[first] = null;
+        }
+        return;
+      }
+      if (set < total) {
+        errors.push("row " + rn + ": " + g + " columns must be all filled or all blank (" + set + " of " + total + " filled)");
+      }
+    });
+    /* unique keys */
+    (sc.unique || []).forEach(function (u) {
+      var key = u.map(function (c) { return rowRaw[c]; }).join("|");
+      var seen = uniqueSeen[u.join("+")];
+      if (seen[key] !== undefined) errors.push("row " + rn + ": duplicate " + u.join("+") + " (" + key + ") - also row " + seen[key]);
+      else seen[key] = rn;
+    });
+    rows.push(out);
+  });
+  /* cross-entity warnings */
+  if (sc.crossWarn && S.refRows.register) {
+    var confirmed = {};
+    S.refRows.register.forEach(function (g) { if (g.status === "confirmed") confirmed[g.rauId + "|" + g.eventId] = 1; });
+    rows.forEach(function (r, i) {
+      var pair = sc.crossWarn === "confirmedPair" ? r.rauId + "|" + r.eventId : r.r + "|" + r.e;
+      if (!confirmed[pair]) warns.push("row " + (i + 2) + ": no CONFIRMED register row for " + pair.replace("|", " x ") + " - this row will sit dormant until the instance is confirmed");
+    });
+  } else if (sc.crossWarn && !S.refRows.register) {
+    warns.push("register not loaded as a reference set - confirmed-instance checks skipped");
+  }
+  if (S.entity === "orgNodes") {
+    var roots = rows.filter(function (r) { return r.level === "enterprise"; }).length;
+    if (roots !== 1) warns.push("expected exactly 1 enterprise root, found " + roots);
+  }
+  S.built = rows;
+  S.valres = { errors: errors, warns: warns };
+}
+function runValidation() {
+  validate();
+  var v = S.valres;
+  var rep = $("report");
+  rep.style.display = "";
+  rep.innerHTML = "";
+  var CAP = 250;
+  v.errors.slice(0, CAP).forEach(function (m) { rep.appendChild(el("div", { class: "e", text: "ERROR  " + m })); });
+  if (v.errors.length > CAP) rep.appendChild(el("div", { class: "e", text: "... and " + (v.errors.length - CAP) + " more errors (full list in the conversion log)" }));
+  v.warns.slice(0, CAP).forEach(function (m) { rep.appendChild(el("div", { class: "w", text: "warn   " + m })); });
+  if (v.warns.length > CAP) rep.appendChild(el("div", { class: "w", text: "... and " + (v.warns.length - CAP) + " more warnings" }));
+  if (!v.errors.length && !v.warns.length) rep.appendChild(el("div", { class: "okline", text: "Clean. " + S.built.length + " rows ready." }));
+  var sm = $("valSummary");
+  sm.innerHTML = "";
+  sm.appendChild(el("span", { class: "badge " + (v.errors.length ? "err" : "ok"), text: v.errors.length + " errors" }));
+  sm.appendChild(document.createTextNode(" "));
+  sm.appendChild(el("span", { class: "badge " + (v.warns.length ? "warn" : "ok"), text: v.warns.length + " warnings" }));
+  sm.appendChild(document.createTextNode(" " + S.built.length + " rows"));
+  $("expOverride").style.display = v.errors.length ? "" : "none";
+  syncExport();
+}
+function syncExport() {
+  var ok = S.valres && (!S.valres.errors.length || $("expAnyway").checked);
+  $("expBtn").disabled = !ok;
+  $("logBtn").disabled = !S.valres;
+}
+
+/* ==SECTION:export== */
+function exportFile() {
+  var sc = schema();
+  var payload = { version: $("verDate").value || today(), rows: S.built };
+  var body = "window.GRC_DATA = window.GRC_DATA || {};\n" +
+    "window.GRC_DATA." + S.entity + " = " + JSON.stringify(payload) + ";\n";
+  /* self-check: the emitted JSON must parse back */
+  var check = body.slice(body.indexOf("= {", body.indexOf(S.entity)) + 2);
+  JSON.parse(check.slice(0, check.lastIndexOf(";")));
+  download(sc.file, body);
+  /* converted output becomes a session reference set */
+  S.refRows[S.entity] = S.built;
+  S.refSrc[S.entity] = "session";
+  renderRefs();
+  S.exported = true;
+  $("expInfo").innerHTML = "<span class='okline'>Exported " + esc(sc.file) + " - " +
+    S.built.length + " rows, version " + esc(payload.version) + ".</span> " +
+    "Move it to demo\\data\\" + esc(sc.file) + " (back up the old file first), refresh the app, open Preflight.";
+}
+function conversionLog() {
+  var sc = schema(), v = S.valres;
+  var L = [];
+  L.push("# DataForge conversion log - " + S.entity);
+  L.push("");
+  L.push("- Date: " + today());
+  L.push("- Source file: " + (S.csvName || "(pasted text)"));
+  L.push("- Source rows: " + S.rows.length + "  |  output rows: " + (S.built ? S.built.length : 0));
+  L.push("- Output: data\\" + sc.file + "  version " + ($("verDate").value || today()));
+  L.push("- Errors: " + v.errors.length + "  |  warnings: " + v.warns.length + (S.exported ? "  |  EXPORTED" : "  |  not exported"));
+  L.push("");
+  L.push("## Column map");
+  L.push("");
+  L.push("| Schema field | Source |");
+  L.push("|---|---|");
+  sc.fields.forEach(function (f) {
+    var m = S.colMap[f.c], src;
+    if (!m || m.src === "skip") src = f.req ? "(NOT MAPPED)" : "(skipped" + (f.dflt !== undefined ? ", default " + JSON.stringify(f.dflt) : "") + ")";
+    else if (m.src === "const") src = "constant: " + m.v;
+    else src = "column: " + S.headers[m.i];
+    L.push("| " + f.c + (f.req ? " *" : "") + " | " + src + " |");
+  });
+  var vmKeys = Object.keys(S.valMap).filter(function (k) { return Object.keys(S.valMap[k]).length; });
+  if (vmKeys.length) {
+    L.push("");
+    L.push("## Value maps");
+    vmKeys.forEach(function (k) {
+      L.push("");
+      L.push("- " + k + ":");
+      Object.keys(S.valMap[k]).forEach(function (src) {
+        L.push("  - \"" + src + "\" -> " + S.valMap[k][src]);
+      });
+    });
+  }
+  var mk = Object.keys(S.maskTables);
+  L.push("");
+  L.push("## Masking");
+  if (!mk.length) L.push("- none applied");
+  mk.forEach(function (k) {
+    L.push("- " + k + ": " + Object.keys(S.maskTables[k].map).length + " distinct values replaced (stable pseudonyms; mapping NOT recorded here by design)");
+  });
+  L.push("");
+  L.push("## Validation");
+  L.push("");
+  if (!v.errors.length && !v.warns.length) L.push("Clean.");
+  v.errors.forEach(function (m) { L.push("- ERROR " + m); });
+  v.warns.forEach(function (m) { L.push("- warn " + m); });
+  L.push("");
+  return L.join("\n");
+}
+
+/* ==SECTION:wiring== */
+function afterLoad(text, name) {
+  S.csvName = name;
+  var d = $("delimSel").value;
+  var parsed = parseCsv(text, d);
+  S.headers = parsed.headers;
+  S.rows = parsed.rows;
+  if (!S.headers.length) { $("loadInfo").innerHTML = "<span class='badge err'>could not read any rows</span>"; return; }
+  var dn = parsed.delim === "\t" ? "tab" : parsed.delim;
+  $("loadInfo").innerHTML = "<span class='badge ok'>" + S.rows.length + " data rows</span> " +
+    "<span class='badge'>" + S.headers.length + " columns</span> " +
+    "<span class='badge'>delimiter: " + esc(dn) + "</span> " + esc(name || "");
+  var pv = $("preview");
+  pv.innerHTML = "";
+  var wrap = el("div", { class: "tablewrap", style: "margin-top:8px" });
+  var t = el("table", { class: "g" });
+  t.appendChild(el("tr", {}, S.headers.map(function (h) { return el("th", { text: h }); })));
+  S.rows.slice(0, 5).forEach(function (r) {
+    t.appendChild(el("tr", {}, S.headers.map(function (_, i) {
+      var v = r[i] === undefined ? "" : String(r[i]);
+      return el("td", { text: v.length > 60 ? v.slice(0, 57) + "..." : v });
+    })));
+  });
+  wrap.appendChild(t);
+  pv.appendChild(wrap);
+  resetFrom(3);
+  autoMap(); renderMap(); renderValues(); renderMask();
+}
+function init() {
+  initEntities();
+  renderRefs();
+  $("verDate").value = today();
+  $("tplBtn").onclick = function () { download(tplName(S.entity), templateCsv(S.entity)); };
+  $("tplAllBtn").onclick = function () {
+    var keys = Object.keys(FORGE_SCHEMA);
+    keys.forEach(function (k, i) {
+      setTimeout(function () { download(tplName(k), templateCsv(k)); }, i * 350);
+    });
+  };
+  $("refFile").onchange = function (ev) {
+    var files = Array.prototype.slice.call(ev.target.files || []);
+    files.forEach(function (f) {
+      var r = new FileReader();
+      r.onload = function () {
+        absorbDataFile(String(r.result), "file");
+        renderRefs();
+        resetFrom(6);
+      };
+      r.readAsText(f);
+    });
+    ev.target.value = "";
+  };
+  $("csvFile").onchange = function (ev) {
+    var f = ev.target.files[0];
+    if (!f) return;
+    var r = new FileReader();
+    r.onload = function () { afterLoad(String(r.result), f.name); };
+    r.readAsText(f);
+    ev.target.value = "";
+  };
+  $("delimSel").onchange = function () { $("loadInfo").innerHTML = "<span class='badge'>re-pick or re-paste the file to re-read with the new delimiter</span>"; };
+  $("pasteBtn").onclick = function () {
+    $("pasteBox").style.display = ""; $("pasteGo").style.display = "";
+  };
+  $("pasteGo").firstElementChild.onclick = function () { afterLoad($("pasteBox").value, ""); };
+  $("valBtn").onclick = runValidation;
+  $("expAnyway").onchange = syncExport;
+  $("expBtn").onclick = exportFile;
+  $("logBtn").onclick = function () { download("dataforge-log-" + S.entity + "-" + today() + ".md", conversionLog()); };
+  resetFrom(2);
+}
+init();
+</script>
+</body>
+</html>
