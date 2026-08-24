@@ -87,7 +87,7 @@ const body = [];
 /* ===== COVER ===== */
 body.push(new Paragraph({ spacing: { before: 2400, after: 200 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: "GRC MOCKUP", font: BODY, size: 64, bold: true, color: RED })] }));
 body.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 120 }, children: [new TextRun({ text: "Operating Runbook, version 2", font: BODY, size: 34 })] }));
-body.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 120 }, children: [new TextRun({ text: "As built through release R9: capabilities 1 through 5, nine demos, the feedback loop, and the work list", font: BODY, size: 22, color: GRAY })] }));
+body.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 120 }, children: [new TextRun({ text: "As built through release R10: capabilities 1 through 5, nine demos, the feedback loop, the work list, and the DataForge real-data pipeline", font: BODY, size: 22, color: GRAY })] }));
 body.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 0 }, children: [new TextRun({ text: "2026-08-24. Supersedes runbook v1 (planning phase) entirely.", font: BODY, size: 20, color: GRAY })] }));
 body.push(pageBreak());
 
@@ -99,16 +99,17 @@ body.push(pageBreak());
 /* ===== PART 0 ===== */
 body.push(h1("Part 0. Read this first (especially if you remember nothing)"));
 body.push(p("This binder assumes total amnesia. If you have forgotten everything: you built a clickable HTML mockup of your bank's future GRC platform (Governance, Risk and Compliance, the RCSA tool) to drive design decisions with stakeholders. It is not software to ship; it is an argument you can click. It runs entirely from local files in a browser, on synthetic data shaped like the real inventory, and every screen exists to settle a design question in a meeting room."));
-body.push(p("The build happened OUTSIDE the firewall with a capable AI assistant across nine releases (R1 through R9). Inside the firewall you have only Microsoft 365 Copilot chat, which accepts up to 20 attached files, refuses .js and .py attachments (use .md mirrors), and degrades on files near 100 KB. Everything about this project is engineered around those constraints: small files, .md contract cards, one file per session, versions on everything."));
+body.push(p("The build happened OUTSIDE the firewall with a capable AI assistant across ten releases (R1 through R10). Inside the firewall you have only Microsoft 365 Copilot chat, which accepts up to 20 attached files, refuses .js and .py attachments (use .md mirrors), and degrades on files near 100 KB. Everything about this project is engineered around those constraints: small files, .md contract cards, one file per session, versions on everything. The one job that needs no Copilot at all is data: DataForge (demo\\tools\\dataforge.html) converts your CSV exports into data files entirely in the browser."));
 body.push(h2("What exists right now"));
 body.push(bullet("Capabilities 1 through 5, built end to end: RAU inventory and pipeline, risk identification, evidence-anchored inherent ratings, controls with derived key status, and the living RCSA with annual affirmation, challenge, and residual risk."));
 body.push(bullet("Nine guided demos behind the Present button, including one demo per role and the One-risk-front-to-back money path."));
 body.push(bullet("A feedback pill on every page that records the page and file with each item, and a My-list work cart that collects tasks as you browse."));
 body.push(bullet("Synthetic data at true scale: 850 RAUs, 90 risk events, 8,000 MCRs, about 2,900 confirmed risk instances, 5,100 controls, 375 affirmation records."));
+body.push(bullet("DataForge (demo\\tools\\dataforge.html): the real-data pipeline. Load a CSV export, map your columns to the schema, validate (with a dangling-reference report), mask people names, download a ready data file. Offline like the app; has a one-click self-test."));
 body.push(bullet("Capabilities 6 through 10 are recognized on the home map but not built; the trace strip and the lens keep that honest on every screen."));
 body.push(h2("The sixty-second start"));
 body.push(num("Unpack the workspace ZIP (this folder) somewhere writable, keeping the layout."));
-body.push(num("Open demo\\index.html in Edge. The red banner shows the release number (R9)."));
+body.push(num("Open demo\\index.html in Edge. The red banner shows the release number (R10)."));
 body.push(num("Click Present (guided demo) in the left rail and start the Full walkthrough."));
 body.push(num("When someone reacts to anything, click the red feedback pill, bottom left."));
 body.push(p("Everything else in this book is detail on those four steps."));
@@ -118,6 +119,7 @@ body.push(h1("Part 1. What you are holding: the workspace"));
 body.push(table([2400, 6800], [
   ["Folder", "What it is"],
   ["demo\\", "THE APP. index.html plus kernel\\ (4 files), modules\\ (14 files), data\\ (16 files). Open index.html; there is no install and no network."],
+  ["demo\\tools\\", "DataForge (dataforge.html): the CSV-to-data-file converter for real data. Standalone page, offline, never loaded by the app itself."],
   ["kit\\", "The firewall kit v2: the .md cards you attach to Copilot sessions. Start with KIT-README.md."],
   ["kit\\cards\\", "One TASK card per kind of job: edit a module, run a feedback round, swap real data, add a module, plus the per-item FB template."],
   ["data-staging\\", "Where raw CSV exports land before conversion. templates\\ holds one CSV per entity with the exact expected columns."],
@@ -193,16 +195,22 @@ body.push(bullet("Releases: R<n>, shown in the banner from data\\release.js. Bum
 body.push(bullet("Files: every file's first line is /* GRC <path> v<X.Y.Z> <date> */. Minor bump for behavior, patch for copy. Copilot bumps it as part of the EDIT output."));
 body.push(bullet("The truth table: the in-app Preflight version matrix is live; kit\\MODULES.md is its paper copy; CHANGELOG.md is the history."));
 body.push(bullet("Feedback: FB numbers are permanent; states one-way; the register is append-only."));
-body.push(bullet("Data: each entity file carries a version date; the generator stamps them together. Real-data swaps set their own dates."));
+body.push(bullet("Data: each entity file carries a version date; the generator stamps them together and DataForge stamps the export date automatically on real-data conversions."));
 body.push(bullet("Frozen copies: releases\\R<n>\\ is never edited after the copy. If R7 had a bug, R8 fixes it; history stays honest."));
 
 /* ===== PART 7 ===== */
-body.push(h1("Part 7. Swapping in real data"));
-body.push(p("The app reads only data\\*.js; real data replaces synthetic one file at a time with the same names and shapes. The complete procedure, entity notes, and the empty-history option are in kit\\cards\\TASK-REAL-DATA.md; the short version:"));
-body.push(num("Export to CSV per entity into data-staging\\, matching templates\\ columns."));
-body.push(num("One Copilot session per entity converts CSV to the data file (prompt on the card)."));
-body.push(num("Ship register, ratings, controls, links, affirmations, challenges EMPTY unless importing history; the tool fills them live."));
-body.push(num("After each swap: Preflight, then walk one record end to end."));
+body.push(h1("Part 7. Swapping in real data: DataForge"));
+body.push(p("The app reads only data\\*.js; real data replaces synthetic one file at a time with the same names and shapes, and DataForge (demo\\tools\\dataforge.html) does the converting - no Copilot, nothing leaves the machine. The complete procedure, entity notes, and the empty-history option are in kit\\cards\\TASK-REAL-DATA.md; the shape of it:"));
+body.push(num("Export one CSV per entity from your source systems into data-staging\\ (Excel: Save As, CSV UTF-8). templates\\ shows the expected columns per entity; your headers do not need to match."));
+body.push(num("Open DataForge in Edge and click Run self-test once: all green means the tool survived the crossing intact."));
+body.push(num("Per entity, in the order data-staging\\README.txt lists: pick the entity, load the CSV, map your columns (this is WORKSHEET W3 on screen), Validate, read the report (errors block export; dangling-reference warnings are informational - a handful is normal), optionally Mask people names, Download."));
+body.push(num("Back up the old file to backup\\, save the download over demo\\data\\<entity>.js, refresh the app, Preflight, walk one record end to end."));
+body.push(num("Not importing history? Use the Empty history files panel: register, ratings, controls, links, expected controls, affirmations, challenges, and requests ship as valid empty files and the tool fills them live."));
+body.push(...[
+  bullet("Masking replaces every distinct name with a stable pseudonym (Person 001, ...) consistently across entities in the sitting. Copy the mask map from its panel and keep it INSIDE the firewall; it never ships."),
+  bullet("Each finished conversion becomes the cross-check reference for the next one, so convert parents before children. Resuming another day: Import a converted data\\*.js brings finished files back into the working set."),
+  bullet("Copilot fallback: if the tool is somehow unavailable, TASK-REAL-DATA.md carries the one-entity-per-session conversion prompt. It gets no validation and no masking; treat it as the spare tire.")
+]);
 body.push(p("Nothing else changes: every derived number recomputes. If the MATH must change to fit your fields, that is an engine session plus the generator mirror (kit\\ENGINE.md explains), not a data session."));
 
 /* ===== PART 8 ===== */
@@ -276,7 +284,7 @@ const doc = new Document({
   styles: { default: { document: { run: { font: BODY, size: 22 } } } },
   sections: [{
     properties: { page: { size: { width: 12240, height: 15840 }, margin: { top: 1080, bottom: 1080, left: 1240, right: 1240 } } },
-    headers: { default: new Header({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: "GRC Mockup Runbook v2 (R9)", font: BODY, size: 16, color: GRAY })] })] }) },
+    headers: { default: new Header({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: "GRC Mockup Runbook v2 (R10)", font: BODY, size: 16, color: GRAY })] })] }) },
     footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ children: [PageNumber.CURRENT], font: BODY, size: 16, color: GRAY })] })] }) },
     children: body
   }]

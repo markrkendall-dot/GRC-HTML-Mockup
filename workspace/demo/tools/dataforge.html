@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<!-- GRC tools/dataforge.html v1.0.0 2026-08-24 -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DataForge - GRC Mockup data pipeline</title>
+<style>
+:root { --red:#B01E24; --ink:#20262f; --mut:#6a7280; --line:#d9dde3; --bg:#f4f5f7; --ok:#1c7c3c; --warn:#a66a00; --bad:#b01e24; }
+* { box-sizing:border-box; }
+body { margin:0; font:14px/1.45 "Segoe UI", Arial, sans-serif; color:var(--ink); background:var(--bg); }
+.banner { background:var(--red); color:#fff; padding:10px 18px; display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+.banner b { font-size:19px; letter-spacing:.4px; }
+.banner .sub { opacity:.85; font-size:13px; }
+.banner .chip { margin-left:auto; background:rgba(255,255,255,.15); border-radius:12px; padding:2px 10px; font-size:12px; }
+.wrap { display:flex; gap:16px; padding:16px 18px 40px; align-items:flex-start; max-width:1400px; margin:0 auto; }
+.main { flex:1 1 640px; min-width:0; }
+.rail { flex:0 0 340px; position:sticky; top:10px; }
+@media (max-width:980px){ .wrap{flex-direction:column;} .rail{position:static; width:100%; flex:auto;} }
+.card { background:#fff; border:1px solid var(--line); border-radius:8px; margin-bottom:14px; }
+.card > .hd { padding:9px 14px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; }
+.card > .hd .stepno { background:var(--ink); color:#fff; border-radius:50%; width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; font-size:12px; flex:0 0 22px; }
+.card.off > .hd .stepno { background:#c3c8cf; }
+.card > .hd b { font-size:15px; }
+.card > .hd .st { margin-left:auto; font-size:12px; color:var(--mut); }
+.card > .bd { padding:12px 14px; }
+.card.off > .bd { display:none; }
+.muted { color:var(--mut); }
+.small { font-size:12px; }
+.mono { font-family:Consolas, "Courier New", monospace; font-size:12px; }
+button { font:inherit; border:1px solid var(--line); background:#fff; border-radius:6px; padding:5px 12px; cursor:pointer; }
+button:hover { background:#f0f1f3; }
+button.primary { background:var(--red); border-color:var(--red); color:#fff; }
+button.primary:hover { background:#8f181d; }
+button:disabled { opacity:.45; cursor:not-allowed; }
+select, input[type=text] { font:inherit; border:1px solid var(--line); border-radius:5px; padding:4px 7px; background:#fff; max-width:100%; }
+textarea { width:100%; min-height:110px; font-family:Consolas, monospace; font-size:12px; border:1px solid var(--line); border-radius:6px; padding:8px; }
+table.grid { border-collapse:collapse; width:100%; font-size:13px; }
+table.grid th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--mut); padding:5px 8px; border-bottom:2px solid var(--line); }
+table.grid td { padding:5px 8px; border-bottom:1px solid #eceef1; vertical-align:top; }
+table.grid tr:last-child td { border-bottom:0; }
+.tablewrap { overflow-x:auto; }
+.badge { display:inline-block; border-radius:10px; padding:1px 8px; font-size:11px; background:#e7e9ec; color:#444; white-space:nowrap; }
+.badge.ok { background:#e0f0e5; color:var(--ok); }
+.badge.warn { background:#f7ecd8; color:var(--warn); }
+.badge.bad { background:#f6dfe0; color:var(--bad); }
+.badge.brand { background:var(--red); color:#fff; }
+.egrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:8px; }
+.etile { border:1px solid var(--line); border-radius:7px; padding:8px 10px; cursor:pointer; background:#fff; }
+.etile:hover { border-color:#9aa1ab; }
+.etile.sel { border-color:var(--red); box-shadow:0 0 0 1px var(--red); }
+.etile b { display:block; font-size:13px; }
+.etile .small { display:block; margin-top:2px; }
+.drop { border:2px dashed var(--line); border-radius:8px; padding:14px; text-align:center; color:var(--mut); margin:8px 0; }
+.drop.over { border-color:var(--red); color:var(--red); background:#fdf7f7; }
+.report div.line { padding:3px 6px; border-left:3px solid var(--line); margin:3px 0; font-size:13px; }
+.report div.err { border-color:var(--bad); background:#fbf1f1; }
+.report div.wrn { border-color:var(--warn); background:#fbf6ec; }
+.report div.inf { border-color:#7d97b5; background:#f2f6fa; }
+.kv { display:grid; grid-template-columns:auto 1fr; gap:2px 14px; font-size:13px; }
+.kv .k { color:var(--mut); }
+pre.out { background:#f2f4f6; border:1px solid var(--line); border-radius:6px; padding:8px; font-size:11px; max-height:260px; overflow:auto; white-space:pre-wrap; word-break:break-all; }
+.row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:6px 0; }
+.hr { border-top:1px solid var(--line); margin:10px 0; }
+label.ck { display:flex; gap:6px; align-items:baseline; cursor:pointer; }
+.railnote { font-size:12px; color:var(--mut); margin:6px 0 0; }
+</style>
+</head>
+<body>
+<div class="banner"><b>DataForge</b><span class="sub">CSV in, data\*.js out - the real-data pipeline, entirely on this machine</span><span class="chip" id="refchip">reference data: loading...</span></div>
+<div class="wrap">
+<div class="main">
+
+<div class="card" id="c-entity">
+  <div class="hd"><span class="stepno">1</span><b>Pick the entity</b><span class="st" id="st-entity"></span></div>
+  <div class="bd">
+    <p class="small muted" style="margin-top:0">Convert in this order so cross-references validate against fresh data:
+    <span class="mono">orgnodes, services, raus, riskevents, mcrs, metaquestions</span>, then any history you are importing
+    (<span class="mono">register, ratings, controls, controllinks, expectedcontrols, affirmations, challenges, requests</span>).
+    Files convert one at a time; each finished conversion becomes the reference for the next.</p>
+    <div class="egrid" id="egrid"></div>
+    <p class="small muted" id="enote" style="margin-bottom:0"></p>
+  </div>
+</div>
+
+<div class="card off" id="c-load">
+  <div class="hd"><span class="stepno">2</span><b>Load the CSV</b><span class="st" id="st-load"></span></div>
+  <div class="bd">
+    <div class="row">
+      <input type="file" id="file" accept=".csv,.txt">
+      <span class="muted small">or paste below, or drop a file on the dashed box</span>
+      <span style="flex:1"></span>
+      <label class="ck small">list delimiter inside a cell
+        <select id="listdelim"><option value=";">semicolon ;</option><option value="|">pipe |</option><option value="/">slash /</option></select>
+      </label>
+    </div>
+    <div class="drop" id="drop">drop a .csv file here</div>
+    <textarea id="paste" placeholder="...or paste CSV text (first line = headers) and click Use pasted text"></textarea>
+    <div class="row"><button id="usepaste">Use pasted text</button><span class="small muted" id="loadinfo"></span></div>
+    <p class="small muted" style="margin-bottom:0">Expected columns for this entity (the template in data-staging\templates\ shows them with example rows): <span class="mono" id="expcols"></span>. Your headers do NOT need to match - step 3 remaps them.</p>
+  </div>
+</div>
+
+<div class="card off" id="c-map">
+  <div class="hd"><span class="stepno">3</span><b>Map columns to fields</b><span class="st" id="st-map"></span></div>
+  <div class="bd">
+    <p class="small muted" style="margin-top:0">This is WORKSHEET.md W3, live. Every schema field needs a source: one of your columns, a constant, or the default. Matching headers were mapped automatically.</p>
+    <div class="tablewrap"><table class="grid" id="maptable"></table></div>
+    <div class="row"><span class="small muted" id="ignoredcols"></span></div>
+    <div class="row"><button class="primary" id="dovalidate">Validate</button><span class="small muted">Nothing is written until step 5.</span></div>
+  </div>
+</div>
+
+<div class="card off" id="c-validate">
+  <div class="hd"><span class="stepno">4</span><b>Validation report</b><span class="st" id="st-validate"></span></div>
+  <div class="bd">
+    <div class="kv" id="vstats"></div>
+    <div class="hr"></div>
+    <div class="report" id="vreport"></div>
+    <div class="hr"></div>
+    <div class="small muted">Errors block export (missing required values, duplicate keys, bad vocabulary). Warnings do not: a handful of dangling references is normal in real exports - fix the worst, ship the rest. Preview of row 1 as it will be written:</div>
+    <pre class="out" id="vpreview"></pre>
+  </div>
+</div>
+
+<div class="card off" id="c-export">
+  <div class="hd"><span class="stepno">5</span><b>Mask and export</b><span class="st" id="st-export"></span></div>
+  <div class="bd">
+    <div class="row" id="maskrow">
+      <label class="ck"><input type="checkbox" id="mask" checked> Mask people names</label>
+      <span class="small muted" id="maskinfo">replaces names in person fields with stable pseudonyms (Person 001...); the same name gets the same pseudonym across every entity you export in this session</span>
+    </div>
+    <div class="row">
+      <label class="ck"><input type="checkbox" id="override"> Export despite errors (know what you are doing)</label>
+    </div>
+    <div class="kv" id="xstats"></div>
+    <div class="row">
+      <button class="primary" id="download">Download <span class="mono" id="dlname">file.js</span></button>
+      <button id="showout">Show full output</button>
+      <span class="small muted">Save it into demo\data\ over the old file (back the old one up first: copy to backup\&lt;date&gt;-&lt;name&gt;). Then open the app and check Preflight.</span>
+    </div>
+    <pre class="out" id="xout" hidden></pre>
+  </div>
+</div>
+
+</div>
+<div class="rail">
+
+<div class="card">
+  <div class="hd"><b>Working set</b><span class="st" id="wsst"></span></div>
+  <div class="bd">
+    <div class="tablewrap"><table class="grid" id="wstable"></table></div>
+    <p class="railnote">The working set starts as whatever sits in demo\data\ next to this tool. Converting or importing an entity replaces it here (in memory only), so later conversions cross-check against the fresh rows.</p>
+    <div class="row"><input type="file" id="importjs" accept=".js" hidden><button id="importbtn">Import a converted data\*.js</button></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="hd"><b>Empty history files</b></div>
+  <div class="bd">
+    <p class="small muted" style="margin-top:0">Starting the RCSA fresh on real inventory? Ship the history entities EMPTY and let the tool fill them live (TASK-REAL-DATA.md). Downloads a valid <span class="mono">rows: []</span> file.</p>
+    <div class="row" id="emptybtns"></div>
+    <div class="row"><button id="emptyall">Download all eight empty files</button><span class="small muted">Edge may ask permission for multiple downloads.</span></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="hd"><b>Mask map</b><span class="st" id="maskcount"></span></div>
+  <div class="bd">
+    <p class="small muted" style="margin-top:0">Name-to-pseudonym pairs used so far. KEEP THIS INSIDE THE FIREWALL - it is the reverse key to the masking.</p>
+    <div class="row"><button id="copymask">Copy map</button><button id="clearmask">Clear map</button></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="hd"><b>Self-test</b><span class="st" id="selftestst"></span></div>
+  <div class="bd">
+    <p class="small muted" style="margin-top:0">Proves the tool survived the crossing: parser, folding, validation, masking, and the output wrapper, against built-in fixtures.</p>
+    <div class="row"><button id="selftest">Run self-test</button></div>
+    <div class="report" id="selftestout"></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="hd"><b>Not handled here</b></div>
+  <div class="bd small muted">
+    <b class="mono">rubric.js</b> and <b class="mono">metaquestions.js</b> usually keep their shipped versions until your real standards land (a SCHEMA session changes them). <b class="mono">release.js</b> is hand-edited at release time (runbook Part 6) - two lines, bump the number. Synthetic data is generated outside the firewall by tools-dev\generate-data.js; this tool never regenerates it.
+  </div>
+</div>
+
+</div>
+</div>
+
+<script src="../data/release.js"></script>
+<script src="../data/orgnodes.js"></script>
+<script src="../data/services.js"></script>
+<script src="../data/raus.js"></script>
+<script src="../data/riskevents.js"></script>
+<script src="../data/mcrs.js"></script>
+<script src="../data/register.js"></script>
+<script src="../data/requests.js"></script>
+<script src="../data/metaquestions.js"></script>
+<script src="../data/rubric.js"></script>
+<script src="../data/ratings.js"></script>
+<script src="../data/controls.js"></script>
+<script src="../data/controllinks.js"></script>
+<script src="../data/expectedcontrols.js"></script>
+<script src="../data/affirmations.js"></script>
+<script src="../data/challenges.js"></script>
+<script>
+/* GRC tools/dataforge.html v1.0.0 2026-08-24 (script) */
+(function () {
+  "use strict";
+  /* ==SECTION:specs== */
+  /* Field spec keys: f schema field, c template column (default f), r required,
+     t type (str int bool date list numlist), e enum, min max, fk ref entity,
+     m person field (maskable), d default (value or function), n empty->null,
+     o omit when empty. Fold order = fields order unless a shape() overrides. */
+  function today() {
+    var d = new Date();
+    return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+  }
+  var CATEGORIES = ["business-service", "shared-services", "enterprise"];
+  var EFF = ["effective", "partially-effective", "ineffective"];
+  var SPECS = [
+    { key: "orgNodes", file: "orgnodes.js", label: "Org nodes", kind: "core", idp: /^ORG-\d{3,}$/, unique: ["id"],
+      note: "The WF > LOB > SubLOB hierarchy. RAUs attach at sublob level.",
+      fields: [
+        { f: "id", r: 1 }, { f: "level", r: 1, e: ["enterprise", "lob", "sublob"] },
+        { f: "parentId", fk: "orgNodes", n: 1 }, { f: "name", r: 1 }] },
+    { key: "services", file: "services.js", label: "Services", kind: "core", idp: /^SVC-\d{3,}$/, unique: ["id"],
+      note: "The enterprise services catalog tree; RAUs pick level-3 leaves.",
+      fields: [
+        { f: "id", r: 1 }, { f: "parentId", fk: "services", n: 1 },
+        { f: "level", r: 1, t: "int", min: 1, max: 3 }, { f: "name", r: 1 }] },
+    { key: "raus", file: "raus.js", label: "RAUs", kind: "core", idp: /^RAU-\d{3,}$/, unique: ["id"],
+      note: "The inventory. Roles fold into roles{}, tags and excl into meta{}. Map, survey answers, and handoffs start empty; the app builds them.",
+      fields: [
+        { f: "id", r: 1 }, { f: "name", r: 1 },
+        { f: "subLobId", r: 1, fk: "orgNodes", fkLevel: "sublob" },
+        { f: "category", r: 1, e: CATEGORIES },
+        { f: "stage", d: "active" },
+        { f: "description", d: "" },
+        { f: "serviceIds", t: "list", fk: "services", d: [] },
+        { f: "owner", c: "owner", r: 1, m: 1 },
+        { f: "delegate", m: 1, d: "" }, { f: "bcmContact", m: 1, d: "" },
+        { f: "orbo", m: 1, d: "" }, { f: "baco", m: 1, d: "" },
+        { f: "fte", t: "int", d: 0 }, { f: "locations", t: "int", d: 1 },
+        { f: "annualVolume", t: "int", d: 0 }, { f: "priorLosses12m", t: "int", d: 0 },
+        { f: "changeLevel", e: ["low", "medium", "high"], d: "low" },
+        { f: "tags", t: "list", d: [] }, { f: "excl", t: "list", d: [] },
+        { f: "riskIdStatus", e: ["not-started", "in-progress", "complete"], d: "not-started" },
+        { f: "lastRcsaDate", t: "date", n: 1 }, { f: "profileUpdated", t: "date", d: today }],
+      shape: function (v) {
+        return { id: v.id, name: v.name, subLobId: v.subLobId, category: v.category, stage: v.stage,
+          description: v.description, serviceIds: v.serviceIds,
+          roles: { owner: v.owner, delegate: v.delegate, bcmContact: v.bcmContact, orbo: v.orbo, baco: v.baco },
+          fte: v.fte, locations: v.locations, annualVolume: v.annualVolume, priorLosses12m: v.priorLosses12m,
+          changeLevel: v.changeLevel, meta: { tags: v.tags, excl: v.excl },
+          riskIdStatus: v.riskIdStatus, lastRcsaDate: v.lastRcsaDate, profileUpdated: v.profileUpdated,
+          mapSummary: null, map: null, metaAnswers: null, handoffs: [] };
+      } },
+    { key: "riskEvents", file: "riskevents.js", label: "Risk events", kind: "core", idp: /^REV-\d{3,}$/, unique: ["id"],
+      note: "The event library. errClass/sevClass/enfFlag/visClass drive rating suggestions (ENGINE.md); 3/3/false/1 are neutral defaults.",
+      fields: [
+        { f: "id", r: 1 }, { f: "side", r: 1, e: ["operational", "compliance"] },
+        { f: "name", r: 1 }, { f: "description", d: "" }, { f: "qualification", d: "" },
+        { f: "keywords", t: "list", d: [] }, { f: "tags", t: "list", d: [] },
+        { f: "excludedBy", t: "list", d: [] },
+        { f: "errClass", t: "int", min: 1, max: 5, d: 3 }, { f: "sevClass", t: "int", min: 1, max: 5, d: 3 },
+        { f: "enfFlag", t: "bool", d: false }, { f: "visClass", t: "int", min: 1, max: 3, d: 1 }] },
+    { key: "mcrs", file: "mcrs.js", label: "MCRs", kind: "core", idp: /^MCR-\d{3,}$/, unique: ["id"],
+      note: "RRCM publication. head=true rows (your 80/20 set) keep every field; tail rows are written lean (id, name, parentEventId, regFamily, citation, tags) to hold the file size down. If no head column is mapped, a row with obligations or a summary counts as head.",
+      fields: [
+        { f: "id", r: 1 }, { f: "name", r: 1 },
+        { f: "parentEventId", r: 1, fk: "riskEvents" },
+        { f: "regFamily", r: 1 }, { f: "citation", d: "" }, { f: "regulator", d: "" },
+        { f: "head", t: "bool", d: null }, { f: "publishedDate", t: "date", d: "" },
+        { f: "tags", t: "list", d: [] }, { f: "summary", d: "" },
+        { f: "obligations", t: "list", d: [] }, { f: "prohibitions", t: "list", d: [] },
+        { f: "recCtl", t: "list", d: [] }],
+      shape: function (v) {
+        var head = v.head === null ? (v.obligations.length > 0 || v.summary !== "") : v.head;
+        if (!head) return { id: v.id, name: v.name, parentEventId: v.parentEventId, regFamily: v.regFamily, citation: v.citation, tags: v.tags };
+        return { id: v.id, name: v.name, parentEventId: v.parentEventId, regFamily: v.regFamily, citation: v.citation,
+          regulator: v.regulator, head: true, publishedDate: v.publishedDate, tags: v.tags, summary: v.summary,
+          obligations: v.obligations, prohibitions: v.prohibitions, recCtl: v.recCtl };
+      } },
+    { key: "metaQuestions", file: "metaquestions.js", label: "Meta questions", kind: "core", idp: /^Q\d{2,}$/, unique: ["id"],
+      note: "The standardized survey. Each row carries EITHER excl (a does-not-do confirmation token) OR tag (the metadata tag a yes sets). Usually keep the shipped file until your real standards land.",
+      fields: [
+        { f: "id", r: 1 }, { f: "section", r: 1 }, { f: "text", r: 1 },
+        { f: "excl", o: 1, d: "" }, { f: "tag", o: 1, d: "" }] },
+    { key: "register", file: "register.js", label: "Register (instances)", kind: "history", unique: ["rauId", "eventId"],
+      note: "Risk instance dispositions. HISTORY: ship empty unless importing past dispositions.",
+      fields: [
+        { f: "rauId", r: 1, fk: "raus" }, { f: "eventId", r: 1, fk: "riskEvents" },
+        { f: "status", r: 1, e: ["confirmed", "rejected"] },
+        { f: "score", r: 1, t: "int", min: 0, max: 100 },
+        { f: "by", r: 1, m: 1 }, { f: "date", r: 1, t: "date" },
+        { f: "rationale", o: 1, d: "" }, { f: "mcrIds", t: "list", fk: "mcrs", d: [], o: 1 }] },
+    { key: "ratings", file: "ratings.js", label: "Inherent ratings", kind: "history", unique: ["rauId", "eventId"],
+      note: "One per rated instance. s and f are the five suggested/final levels L;fin;cust;reg;ops, each 1-5. HISTORY: ship empty unless importing.",
+      fields: [
+        { f: "rauId", r: 1, fk: "raus" }, { f: "eventId", r: 1, fk: "riskEvents" },
+        { f: "s", r: 1, t: "numlist", len: 5, min: 1, max: 5 },
+        { f: "f", r: 1, t: "numlist", len: 5, min: 1, max: 5 },
+        { f: "ov", t: "int", min: 0, max: 1, d: 0 },
+        { f: "note", o: 1, d: "" }, { f: "by", r: 1, m: 1 }, { f: "date", r: 1, t: "date" }] },
+    { key: "controls", file: "controls.js", label: "Controls", kind: "history", idp: /^CTL-\d{3,}$/, unique: ["id"],
+      note: "The central inventory. design/perf are the two effectiveness ratings; key status is DERIVED, declaredKey is legacy contrast only. HISTORY: ship empty to build the inventory live.",
+      fields: [
+        { f: "id", r: 1 }, { f: "name", r: 1 }, { f: "desc", d: "" },
+        { f: "owningRauId", r: 1, fk: "raus" }, { f: "shared", t: "bool", d: false },
+        { f: "type", r: 1, e: ["preventive", "detective", "corrective"] },
+        { f: "automation", r: 1, e: ["manual", "automated", "it-dependent"] },
+        { f: "frequency", d: "" }, { f: "owner", m: 1, d: "" },
+        { f: "status", d: "active" }, { f: "created", t: "date", d: today },
+        { f: "declaredKey", t: "bool", d: false },
+        { f: "design", r: 1, e: EFF }, { f: "perf", r: 1, e: EFF }] },
+    { key: "controlLinks", file: "controllinks.js", label: "Control links", kind: "history", unique: ["c", "r", "e"],
+      note: "Control-to-instance mapping: c control, r RAU, e event. HISTORY: ship empty unless importing.",
+      fields: [
+        { f: "c", r: 1, fk: "controls" }, { f: "r", r: 1, fk: "raus" }, { f: "e", r: 1, fk: "riskEvents" }] },
+    { key: "expectedControls", file: "expectedcontrols.js", label: "Expected controls", kind: "history", idp: /^EXP-\d{2,}$/, unique: ["id"],
+      note: "When the event is live on a RAU, that control is expected; misses are the loudest gap.",
+      fields: [
+        { f: "id", r: 1 }, { f: "eventId", r: 1, fk: "riskEvents" },
+        { f: "controlId", r: 1, fk: "controls" }, { f: "note", d: "" }] },
+    { key: "affirmations", file: "affirmations.js", label: "Affirmations", kind: "history", unique: ["rauId"],
+      note: "Last affirmation signature per RAU with its snapshot counts. The pending change queue always imports empty; the app fills it. HISTORY: ship empty to start the living record fresh.",
+      fields: [
+        { f: "rauId", r: 1, fk: "raus" }, { f: "date", r: 1, t: "date" }, { f: "by", r: 1, m: 1 },
+        { f: "snapHigh", c: "snapHigh", r: 1, t: "int", min: 0 }, { f: "snapModerate", r: 1, t: "int", min: 0 },
+        { f: "snapLow", r: 1, t: "int", min: 0 }, { f: "snapLines", r: 1, t: "int", min: 0 },
+        { f: "priorHigh", t: "int", min: 0, n: 1 }, { f: "priorModerate", t: "int", min: 0, n: 1 },
+        { f: "priorLow", t: "int", min: 0, n: 1 }, { f: "priorLines", t: "int", min: 0, n: 1 }],
+      shape: function (v) {
+        var row = { rauId: v.rauId, date: v.date, by: v.by,
+          snapshot: { high: v.snapHigh, moderate: v.snapModerate, low: v.snapLow, lines: v.snapLines }, pending: [] };
+        if (v.priorHigh !== null && v.priorModerate !== null && v.priorLow !== null && v.priorLines !== null) {
+          row.prior = { high: v.priorHigh, moderate: v.priorModerate, low: v.priorLow, lines: v.priorLines };
+        }
+        return row;
+      } },
+    { key: "challenges", file: "challenges.js", label: "Challenges", kind: "history", idp: /^CH-\d{3,}$/, unique: ["id"],
+      note: "Second-line challenge records. by is the ROLE STRING (e.g. ORBO (Operational Risk)); byName is the person. HISTORY: ship empty unless importing.",
+      fields: [
+        { f: "id", r: 1 }, { f: "rauId", r: 1, fk: "raus" },
+        { f: "kind", r: 1, e: ["rating", "env", "control", "instance", "line"] },
+        { f: "eventId", fk: "riskEvents", o: 1, d: "" }, { f: "controlId", fk: "controls", o: 1, d: "" },
+        { f: "what", r: 1 }, { f: "should", r: 1 },
+        { f: "by", r: 1 }, { f: "byName", r: 1, m: 1 }, { f: "date", r: 1, t: "date" },
+        { f: "state", r: 1, e: ["open", "responded", "upheld", "withdrawn"] },
+        { f: "response", o: 1, d: "" }, { f: "respondedBy", m: 1, o: 1, d: "" },
+        { f: "respondedDate", t: "date", o: 1, d: "" }, { f: "resolvedDate", t: "date", o: 1, d: "" }] },
+    { key: "requests", file: "requests.js", label: "RAU requests", kind: "history", idp: /^RCR-\d{3,}$/, unique: ["id"],
+      note: "The RAU change pipeline. Imports carry the flat fields; assistant transcript and uniqueness analysis start empty and the app builds them. Usually ship empty and let intake create requests live.",
+      fields: [
+        { f: "id", r: 1 }, { f: "type", r: 1, e: ["new", "merge", "split", "retire"] },
+        { f: "stage", r: 1, e: ["draft-intake", "uniqueness-review", "process-mapping", "standards-check", "pending-governance", "metadata-creation", "returned-for-refinement", "declined", "approved"] },
+        { f: "proposedName", r: 1 }, { f: "subLobId", r: 1, fk: "orgNodes", fkLevel: "sublob" },
+        { f: "category", r: 1, e: CATEGORIES }, { f: "requester", r: 1, m: 1 },
+        { f: "submitted", r: 1, t: "date" }, { f: "note", o: 1, d: "" },
+        { f: "serviceIds", t: "list", fk: "services", d: [] },
+        { f: "description", d: "" }, { f: "bullets", t: "list", d: [] },
+        { f: "targetRauIds", t: "list", fk: "raus", d: [], o: 1 }],
+      shape: function (v) {
+        var row = { id: v.id, type: v.type, stage: v.stage, proposedName: v.proposedName, subLobId: v.subLobId,
+          category: v.category, requester: v.requester, submitted: v.submitted };
+        if (v.note !== "") row.note = v.note;
+        row.serviceIds = v.serviceIds; row.description = v.description; row.bullets = v.bullets;
+        row.assistant = []; row.uniqueness = null;
+        if (v.targetRauIds.length) row.targetRauIds = v.targetRauIds;
+        return row;
+      } }
+  ];
+  var BY_KEY = {};
+  SPECS.forEach(function (s) { BY_KEY[s.key] = s; s.fields.forEach(function (fd) { if (!fd.c) fd.c = fd.f; }); });
+
+  /* ==SECTION:csv-parse== */
+  function parseCsv(text) {
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    var rows = [], row = [], cell = "", inQ = false, i = 0, ch;
+    while (i < text.length) {
+      ch = text[i];
+      if (inQ) {
+        if (ch === "\"") {
+          if (text[i + 1] === "\"") { cell += "\""; i += 2; continue; }
+          inQ = false; i++; continue;
+        }
+        cell += ch; i++; continue;
+      }
+      if (ch === "\"") { inQ = true; i++; continue; }
+      if (ch === ",") { row.push(cell); cell = ""; i++; continue; }
+      if (ch === "\r") { i++; continue; }
+      if (ch === "\n") { row.push(cell); rows.push(row); row = []; cell = ""; i++; continue; }
+      cell += ch; i++;
+    }
+    if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+    while (rows.length && rows[rows.length - 1].every(function (c) { return c === ""; })) rows.pop();
+    if (!rows.length) return { headers: [], rows: [] };
+    var headers = rows[0].map(function (h) { return h.trim(); });
+    return { headers: headers, rows: rows.slice(1) };
+  }
+
+  /* ==SECTION:clean== */
+  var CLEANMAP = { "\u2018": "'", "\u2019": "'", "\u201A": "'", "\u201C": "\"", "\u201D": "\"", "\u2013": "-", "\u2014": "-", "\u2212": "-", "\u2026": "...", "\u00A0": " ", "\u2022": "-", "\u00B7": "-" };
+  var cleanStats = null;
+  function cleanText(s) {
+    var out = "", i, ch, code, had = false;
+    s = s.normalize ? s.normalize("NFD").replace(/[\u0300-\u036F]/g, "") : s;
+    for (i = 0; i < s.length; i++) {
+      ch = s[i]; code = s.charCodeAt(i);
+      if (code < 128) { out += ch; continue; }
+      had = true;
+      if (CLEANMAP[ch] !== undefined) { out += CLEANMAP[ch]; cleanStats.mapped++; }
+      else { out += "?"; cleanStats.lost++; if (cleanStats.samples.indexOf(ch) < 0 && cleanStats.samples.length < 8) cleanStats.samples.push(ch); }
+    }
+    if (had) cleanStats.cells++;
+    return out;
+  }
+  function normDate(s) {
+    s = s.trim();
+    if (s === "") return "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    var m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (m) { cleanStats.dates++; return m[3] + "-" + ("0" + m[1]).slice(-2) + "-" + ("0" + m[2]).slice(-2); }
+    m = s.match(/^(\d{4})[\/](\d{1,2})[\/](\d{1,2})$/);
+    if (m) { cleanStats.dates++; return m[1] + "-" + ("0" + m[2]).slice(-2) + "-" + ("0" + m[3]).slice(-2); }
+    return s;
+  }
+  function parseBool(s, def) {
+    var v = String(s).trim().toLowerCase();
+    if (v === "") return def;
+    if (["true", "yes", "y", "1", "x"].indexOf(v) >= 0) return true;
+    if (["false", "no", "n", "0"].indexOf(v) >= 0) return false;
+    return null;
+  }
+  function parseIntSafe(s) {
+    var v = String(s).replace(/[$,\s]/g, "");
+    if (v === "") return null;
+    if (!/^-?\d+(\.\d+)?$/.test(v)) return NaN;
+    return Math.round(Number(v));
+  }
+  function normHeader(h) { return String(h).toLowerCase().replace(/[^a-z0-9]/g, ""); }
+
+  /* ==SECTION:state== */
+  var working = {};          /* key -> {rows, version, source} */
+  var sel = null;            /* selected spec */
+  var csv = null;            /* {headers, rows} */
+  var mapping = {};          /* field -> {src:"col"|"const"|"def", val} */
+  var result = null;         /* {rows, report, ok} */
+  var maskMap = {};          /* name -> pseudonym */
+  function store(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
+  function load(k) { try { var s = localStorage.getItem(k); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+  function initWorking() {
+    var raw = window.GRC_DATA || {};
+    var n = 0;
+    SPECS.forEach(function (s) {
+      var src = raw[s.key];
+      if (src && src.rows) { working[s.key] = { rows: src.rows, version: src.version || "-", source: "shipped" }; n++; }
+      else working[s.key] = { rows: [], version: "-", source: "missing" };
+    });
+    var chip = document.getElementById("refchip");
+    if (n === SPECS.length) chip.textContent = "reference data: " + n + " entities from demo\\data\\" + (raw.release ? " (" + raw.release.number + ")" : "");
+    else if (n > 0) chip.textContent = "reference data: only " + n + " of " + SPECS.length + " entities loaded - cross-checks partial";
+    else chip.textContent = "reference data: none found - cross-checks limited to this file";
+    var mm = load("grc-dataforge-mask");
+    if (mm && typeof mm === "object") maskMap = mm;
+  }
+  function refIds(key, level) {
+    var rows = (working[key] || {}).rows || [], set = {};
+    rows.forEach(function (r) {
+      var id = key === "controlLinks" ? null : r.id || r.rauId;
+      if (!id) return;
+      if (level && r.level !== level) return;
+      set[id] = r;
+    });
+    return set;
+  }
+
+  /* ==SECTION:ui-helpers== */
+  function el(tag, attrs, kids) {
+    var e = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      if (k === "class") e.className = attrs[k];
+      else if (k === "html") e.innerHTML = attrs[k];
+      else if (k.indexOf("on") === 0) e[k] = attrs[k];
+      else e.setAttribute(k, attrs[k]);
+    });
+    (kids || []).forEach(function (c) { e.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+    return e;
+  }
+  function setStep(id, on, status) {
+    var c = document.getElementById(id);
+    c.className = "card" + (on ? "" : " off");
+    if (status !== undefined) c.querySelector(".st").textContent = status;
+  }
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+
+  /* ==SECTION:step-entity== */
+  function renderEntities() {
+    var g = document.getElementById("egrid");
+    g.innerHTML = "";
+    SPECS.forEach(function (s) {
+      var w = working[s.key];
+      var t = el("div", { class: "etile" + (sel === s ? " sel" : ""), onclick: function () { pickEntity(s); } }, [
+        el("b", {}, [s.label]),
+        el("span", { class: "small muted mono" }, [s.file]),
+        el("span", { class: "small" }, [])
+      ]);
+      var chip = t.lastChild;
+      chip.appendChild(el("span", { class: "badge" + (s.kind === "core" ? " brand" : "") }, [s.kind === "core" ? "core" : "history"]));
+      chip.appendChild(document.createTextNode(" " + w.rows.length + " rows (" + w.source + ")"));
+      g.appendChild(t);
+    });
+  }
+  function pickEntity(s) {
+    sel = s; csv = null; mapping = {}; result = null;
+    document.getElementById("enote").textContent = s.note;
+    document.getElementById("st-entity").textContent = s.label + " -> data\\" + s.file;
+    document.getElementById("expcols").textContent = s.fields.map(function (f) { return f.c; }).join(", ");
+    document.getElementById("file").value = "";
+    document.getElementById("paste").value = "";
+    document.getElementById("loadinfo").textContent = "";
+    renderEntities();
+    setStep("c-load", true, "");
+    setStep("c-map", false, ""); setStep("c-validate", false, ""); setStep("c-export", false, "");
+  }
+
+  /* ==SECTION:step-load== */
+  function acceptCsv(text, name) {
+    if (!sel) return;
+    var p = parseCsv(text);
+    if (!p.headers.length || !p.rows.length) {
+      document.getElementById("loadinfo").textContent = "No data rows found - is the first line the header row?";
+      return;
+    }
+    csv = p; result = null;
+    document.getElementById("loadinfo").textContent = (name ? name + ": " : "") + p.rows.length + " data rows, " + p.headers.length + " columns.";
+    document.getElementById("st-load").textContent = p.rows.length + " rows";
+    autoMap();
+    renderMap();
+    setStep("c-map", true, "");
+    setStep("c-validate", false, ""); setStep("c-export", false, "");
+  }
+  function readFile(f) {
+    var r = new FileReader();
+    r.onload = function () { acceptCsv(String(r.result), f.name); };
+    r.readAsText(f);
+  }
+  document.getElementById("file").addEventListener("change", function (ev) {
+    if (ev.target.files && ev.target.files[0]) readFile(ev.target.files[0]);
+  });
+  document.getElementById("usepaste").onclick = function () {
+    acceptCsv(document.getElementById("paste").value, null);
+  };
+  var drop = document.getElementById("drop");
+  ["dragenter", "dragover"].forEach(function (evn) {
+    drop.addEventListener(evn, function (ev) { ev.preventDefault(); drop.className = "drop over"; });
+  });
+  drop.addEventListener("dragleave", function () { drop.className = "drop"; });
+  drop.addEventListener("drop", function (ev) {
+    ev.preventDefault(); drop.className = "drop";
+    if (ev.dataTransfer.files && ev.dataTransfer.files[0]) readFile(ev.dataTransfer.files[0]);
+  });
+
+  /* ==SECTION:step-map== */
+  function autoMap() {
+    mapping = {};
+    var byNorm = {};
+    csv.headers.forEach(function (h, i) { byNorm[normHeader(h)] = i; });
+    var saved = load("grc-dataforge-map-" + sel.key) || {};
+    sel.fields.forEach(function (fd) {
+      var hit = byNorm[normHeader(fd.c)];
+      if (hit === undefined) hit = byNorm[normHeader(fd.f)];
+      if (hit !== undefined) { mapping[fd.f] = { src: "col", val: hit }; return; }
+      var sv = saved[fd.f];
+      if (sv && sv.src === "col" && csv.headers.indexOf(sv.val) >= 0) { mapping[fd.f] = { src: "col", val: csv.headers.indexOf(sv.val) }; return; }
+      if (sv && sv.src === "const") { mapping[fd.f] = { src: "const", val: sv.val }; return; }
+      mapping[fd.f] = { src: "def", val: null };
+    });
+  }
+  function saveMapping() {
+    var out = {};
+    sel.fields.forEach(function (fd) {
+      var m = mapping[fd.f];
+      if (m.src === "col") out[fd.f] = { src: "col", val: csv.headers[m.val] };
+      else if (m.src === "const") out[fd.f] = { src: "const", val: m.val };
+    });
+    store("grc-dataforge-map-" + sel.key, out);
+  }
+  function typeHint(fd) {
+    var t = fd.t || "str";
+    if (t === "list") t = "list (" + document.getElementById("listdelim").value + " separated)";
+    if (t === "numlist") t = "5 numbers (" + document.getElementById("listdelim").value + " separated)";
+    if (fd.e) t = fd.e.join(" | ");
+    if (t === "date") t = "date YYYY-MM-DD";
+    return t;
+  }
+  function renderMap() {
+    var tb = document.getElementById("maptable");
+    tb.innerHTML = "";
+    tb.appendChild(el("tr", {}, ["Schema field", "Type", "Source", "Constant", "Row 1 value"].map(function (h) { return el("th", {}, [h]); })));
+    sel.fields.forEach(function (fd) {
+      var m = mapping[fd.f];
+      var selEl = el("select", {
+        onchange: function () {
+          var v = selEl.value;
+          if (v === "const") mapping[fd.f] = { src: "const", val: constEl.value };
+          else if (v === "def") mapping[fd.f] = { src: "def", val: null };
+          else mapping[fd.f] = { src: "col", val: Number(v) };
+          result = null; setStep("c-validate", false, ""); setStep("c-export", false, "");
+          renderMap();
+        }
+      }, []);
+      csv.headers.forEach(function (h, i) {
+        selEl.appendChild(el("option", { value: String(i) }, ["column: " + h]));
+      });
+      selEl.appendChild(el("option", { value: "const" }, ["(constant value)"]));
+      selEl.appendChild(el("option", { value: "def" }, [fd.r ? "(unmapped - REQUIRED)" : "(use default)"]));
+      selEl.value = m.src === "col" ? String(m.val) : m.src === "const" ? "const" : "def";
+      var constEl = el("input", {
+        type: "text", value: m.src === "const" ? String(m.val) : "",
+        oninput: function () { if (mapping[fd.f].src === "const") { mapping[fd.f].val = constEl.value; result = null; } }
+      }, []);
+      constEl.style.width = "110px";
+      if (m.src !== "const") constEl.disabled = true;
+      var sample = "";
+      if (m.src === "col" && csv.rows[0]) sample = csv.rows[0][m.val] || "";
+      else if (m.src === "const") sample = String(m.val);
+      else sample = fd.r ? "" : "(default: " + JSON.stringify(typeof fd.d === "function" ? fd.d() : (fd.d === undefined ? null : fd.d)) + ")";
+      var missReq = fd.r && m.src === "def";
+      tb.appendChild(el("tr", {}, [
+        el("td", {}, [el("span", { class: "mono" }, [fd.f]), fd.r ? el("span", { class: "badge bad", style: "margin-left:6px" }, ["required"]) : el("span", {}, []), fd.m ? el("span", { class: "badge warn", style: "margin-left:6px" }, ["person"]) : el("span", {}, [])]),
+        el("td", { class: "small muted" }, [typeHint(fd)]),
+        el("td", {}, [selEl]),
+        el("td", {}, [constEl]),
+        el("td", { class: "small mono", style: missReq ? "color:var(--bad)" : "" }, [missReq ? "MAP THIS FIELD" : sample.slice(0, 60)])
+      ]));
+    });
+    var used = {};
+    sel.fields.forEach(function (fd) { var m = mapping[fd.f]; if (m.src === "col") used[m.val] = 1; });
+    var ignored = csv.headers.filter(function (h, i) { return !used[i]; });
+    document.getElementById("ignoredcols").textContent = ignored.length ? "Ignored columns (fine): " + ignored.join(", ") : "";
+  }
+
+  /* ==SECTION:fold-validate== */
+  function cellValue(fd, row) {
+    var m = mapping[fd.f];
+    if (m.src === "col") return row[m.val] === undefined ? "" : row[m.val];
+    if (m.src === "const") return String(m.val);
+    return "";
+  }
+  function convert() {
+    cleanStats = { cells: 0, mapped: 0, lost: 0, dates: 0, samples: [] };
+    var errs = [], warns = [], infos = [];
+    var delim = document.getElementById("listdelim").value;
+    var seen = {}, rows = [], typedRows = [];
+    var E = function (rn, msg) { errs.push({ row: rn, msg: msg }); };
+    var W = function (rn, msg) { warns.push({ row: rn, msg: msg }); };
+    csv.rows.forEach(function (raw, idx) {
+      var rn = idx + 2; /* header is line 1 */
+      var v = {}, bad = false;
+      sel.fields.forEach(function (fd) {
+        var s = cleanText(String(cellValue(fd, raw))).trim();
+        var t = fd.t || "str";
+        if (s === "") {
+          if (fd.r) { E(rn, "missing required " + fd.f); bad = true; v[fd.f] = null; return; }
+          var d = typeof fd.d === "function" ? fd.d() : fd.d;
+          v[fd.f] = fd.n ? null : (d === undefined ? null : d);
+          return;
+        }
+        if (t === "int") {
+          var n = parseIntSafe(s);
+          if (n === null || isNaN(n)) { E(rn, fd.f + " is not a number: \"" + s.slice(0, 30) + "\""); bad = true; v[fd.f] = null; return; }
+          if (fd.min !== undefined && n < fd.min || fd.max !== undefined && n > fd.max) W(rn, fd.f + " out of range " + (fd.min !== undefined ? fd.min : "") + "-" + (fd.max !== undefined ? fd.max : "") + ": " + n);
+          v[fd.f] = n; return;
+        }
+        if (t === "bool") {
+          var b = parseBool(s, typeof fd.d === "function" ? fd.d() : fd.d);
+          if (b === null) { E(rn, fd.f + " is not true/false: \"" + s.slice(0, 30) + "\""); bad = true; v[fd.f] = false; return; }
+          v[fd.f] = b; return;
+        }
+        if (t === "date") {
+          var ds = normDate(s);
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(ds)) W(rn, fd.f + " is not a date (YYYY-MM-DD): \"" + s.slice(0, 30) + "\"");
+          v[fd.f] = ds; return;
+        }
+        if (t === "list") {
+          v[fd.f] = s.split(delim).map(function (x) { return x.trim(); }).filter(function (x) { return x !== ""; });
+          return;
+        }
+        if (t === "numlist") {
+          var parts = s.split(delim).map(function (x) { return parseIntSafe(x); });
+          if (parts.some(function (n) { return n === null || isNaN(n); })) { E(rn, fd.f + " has non-numeric levels: \"" + s.slice(0, 30) + "\""); bad = true; v[fd.f] = []; return; }
+          if (fd.len && parts.length !== fd.len) { E(rn, fd.f + " needs exactly " + fd.len + " levels, got " + parts.length); bad = true; }
+          parts.forEach(function (n) { if (fd.min !== undefined && (n < fd.min || n > fd.max)) W(rn, fd.f + " level out of range 1-5: " + n); });
+          v[fd.f] = parts; return;
+        }
+        if (fd.e && fd.e.indexOf(s) < 0) {
+          var lc = s.toLowerCase().replace(/\s+/g, "-");
+          if (fd.e.indexOf(lc) >= 0) { v[fd.f] = lc; W(rn, fd.f + " normalized \"" + s + "\" to \"" + lc + "\""); return; }
+          E(rn, fd.f + " not in vocabulary (" + fd.e.join(", ") + "): \"" + s.slice(0, 30) + "\""); bad = true; v[fd.f] = s; return;
+        }
+        v[fd.f] = s;
+      });
+      /* uniqueness */
+      var ukey = sel.unique.map(function (k) { return v[k]; }).join("|");
+      if (seen[ukey] !== undefined) { E(rn, "duplicate " + sel.unique.join("+") + " (" + ukey + "), first at row " + seen[ukey]); bad = true; }
+      else seen[ukey] = rn;
+      if (sel.idp && v.id && !sel.idp.test(v.id)) W(rn, "id \"" + v.id + "\" does not match the usual pattern " + String(sel.idp));
+      typedRows.push({ rn: rn, v: v, bad: bad });
+    });
+    /* foreign keys - against working set, with THIS conversion standing in for itself */
+    var self = {};
+    typedRows.forEach(function (tr) { if (tr.v.id) self[tr.v.id] = tr.v; });
+    function fkSet(key, level) {
+      if (key === sel.key) {
+        if (!level) return self;
+        var out = {}; Object.keys(self).forEach(function (id) { if (self[id].level === level) out[id] = self[id]; });
+        return out;
+      }
+      return refIds(key, level);
+    }
+    var fkMiss = {};
+    typedRows.forEach(function (tr) {
+      sel.fields.forEach(function (fd) {
+        if (!fd.fk) return;
+        var set = fkSet(fd.fk, fd.fkLevel);
+        var vals = (fd.t === "list") ? tr.v[fd.f] : (tr.v[fd.f] ? [tr.v[fd.f]] : []);
+        vals.forEach(function (id) {
+          if (!set[id]) {
+            var k = fd.f + " -> " + fd.fk + (fd.fkLevel ? " (" + fd.fkLevel + ")" : "");
+            (fkMiss[k] = fkMiss[k] || []).push({ rn: tr.rn, id: id });
+          }
+        });
+      });
+    });
+    Object.keys(fkMiss).forEach(function (k) {
+      var list = fkMiss[k];
+      var sample = list.slice(0, 5).map(function (x) { return x.id + " (row " + x.rn + ")"; }).join(", ");
+      warns.push({ row: 0, msg: "dangling " + k + ": " + list.length + " reference(s) not found, e.g. " + sample });
+    });
+    /* entity-specific checks */
+    extraChecks(typedRows, E, W, infos);
+    /* fold */
+    typedRows.forEach(function (tr) {
+      rows.push(sel.shape ? sel.shape(tr.v) : foldDefault(tr.v));
+    });
+    if (cleanStats.mapped || cleanStats.lost) {
+      infos.push("Non-ASCII cleanup: " + cleanStats.mapped + " character(s) normalized (smart quotes, dashes, accents)" + (cleanStats.lost ? ", " + cleanStats.lost + " replaced with \"?\" (" + cleanStats.samples.join(" ") + ") - fix these at the source if they matter" : "") + ".");
+    }
+    if (cleanStats.dates) infos.push(cleanStats.dates + " date(s) normalized from M/D/YYYY to YYYY-MM-DD.");
+    return { rows: rows, errors: errs, warnings: warns, infos: infos };
+  }
+  function foldDefault(v) {
+    var row = {};
+    sel.fields.forEach(function (fd) {
+      var val = v[fd.f];
+      if (fd.o && (val === "" || val === null || (Array.isArray(val) && !val.length))) return;
+      row[fd.f] = val;
+    });
+    return row;
+  }
+  function extraChecks(typedRows, E, W, infos) {
+    var k = sel.key;
+    if (k === "orgNodes") {
+      var byId = {}; typedRows.forEach(function (t) { byId[t.v.id] = t.v; });
+      typedRows.forEach(function (t) {
+        var v = t.v;
+        if (v.level === "enterprise" && v.parentId) W(t.rn, "enterprise node has a parent");
+        if (v.level !== "enterprise" && !v.parentId) E(t.rn, v.level + " node needs a parentId");
+        var p = v.parentId && byId[v.parentId];
+        if (p && v.level === "lob" && p.level !== "enterprise") W(t.rn, "lob parent is " + p.level + ", expected enterprise");
+        if (p && v.level === "sublob" && p.level !== "lob") W(t.rn, "sublob parent is " + p.level + ", expected lob");
+      });
+    }
+    if (k === "services") {
+      var sById = {}; typedRows.forEach(function (t) { sById[t.v.id] = t.v; });
+      typedRows.forEach(function (t) {
+        var v = t.v;
+        if (v.level === 1 && v.parentId) W(t.rn, "level-1 service has a parent");
+        if (v.level > 1 && !v.parentId) E(t.rn, "level-" + v.level + " service needs a parentId");
+        var p = v.parentId && sById[v.parentId];
+        if (p && p.level !== v.level - 1) W(t.rn, "level-" + v.level + " parent is level-" + p.level);
+      });
+    }
+    if (k === "raus") {
+      var svc = refIds("services");
+      var nonLeaf = 0;
+      typedRows.forEach(function (t) {
+        t.v.serviceIds.forEach(function (id) { var s = svc[id]; if (s && s.level !== 3) nonLeaf++; });
+        if (t.v.stage !== "active") W(t.rn, "stage \"" + t.v.stage + "\" - shipped RAUs are active; pipeline stages live in requests");
+      });
+      if (nonLeaf) W(0, nonLeaf + " serviceIds point at level-1/2 services; RAUs normally pick level-3 leaves.");
+    }
+    if (k === "riskEvents") {
+      var excl = {};
+      (working.metaQuestions.rows || []).forEach(function (q) { if (q.excl) excl[q.excl] = 1; });
+      var unknown = {};
+      typedRows.forEach(function (t) { t.v.excludedBy.forEach(function (x) { if (!excl[x]) unknown[x] = 1; }); });
+      var u = Object.keys(unknown);
+      if (u.length) W(0, "excludedBy tokens not present on any meta question: " + u.slice(0, 6).join(", ") + (u.length > 6 ? " ..." : ""));
+    }
+    if (k === "mcrs") {
+      var evs = refIds("riskEvents"), op = 0, inferred = 0;
+      typedRows.forEach(function (t) {
+        var e = evs[t.v.parentEventId];
+        if (e && e.side === "operational") op++;
+        if (t.v.head === null) inferred++;
+      });
+      if (op) W(0, op + " MCR(s) attach to OPERATIONAL parent events; MCRs normally hang off compliance events.");
+      if (inferred === typedRows.length && typedRows.length) infos.push("No head column mapped: head=true inferred where a row has obligations or a summary (" + typedRows.filter(function (t) { return t.v.obligations.length > 0 || t.v.summary !== ""; }).length + " of " + typedRows.length + ").");
+    }
+    if (k === "metaQuestions") {
+      typedRows.forEach(function (t) {
+        if (t.v.excl && t.v.tag) W(t.rn, "carries both excl and tag; use one");
+        if (!t.v.excl && !t.v.tag) W(t.rn, "carries neither excl nor tag; it will not affect scoring");
+      });
+    }
+    if (k === "ratings") {
+      typedRows.forEach(function (t) {
+        if (t.v.ov === 1 && (!t.v.note || t.v.note === "")) E(t.rn, "override (ov=1) requires a note with the rationale");
+      });
+      warnUnconfirmed(typedRows, W, function (v) { return [v.rauId, v.eventId]; }, "rating(s)");
+    }
+    if (k === "controlLinks") {
+      warnUnconfirmed(typedRows, W, function (v) { return [v.r, v.e]; }, "link(s)");
+    }
+    if (k === "challenges") {
+      typedRows.forEach(function (t) {
+        if (t.v.kind === "control" && !t.v.controlId) W(t.rn, "control challenge without a controlId");
+        if (t.v.state !== "open" && !t.v.response) W(t.rn, "state " + t.v.state + " but no response text");
+      });
+    }
+    if (k === "affirmations") {
+      typedRows.forEach(function (t) {
+        var pr = [t.v.priorHigh, t.v.priorModerate, t.v.priorLow, t.v.priorLines];
+        var some = pr.some(function (x) { return x !== null; }), all = pr.every(function (x) { return x !== null; });
+        if (some && !all) W(t.rn, "partial prior snapshot ignored (need all four prior columns)");
+      });
+    }
+    if (k === "requests") {
+      typedRows.forEach(function (t) {
+        if (t.v.type !== "new" && !t.v.targetRauIds.length) W(t.rn, t.v.type + " request without targetRauIds shows reduced detail in intake");
+      });
+    }
+  }
+  function warnUnconfirmed(typedRows, W, pick, what) {
+    var conf = {};
+    (working.register.rows || []).forEach(function (g) { if (g.status === "confirmed") conf[g.rauId + "|" + g.eventId] = 1; });
+    if (!Object.keys(conf).length) { W(0, "register in the working set has no confirmed instances; if you are shipping register empty, imported " + what + " stay dormant until instances are confirmed in the app."); return; }
+    var n = 0;
+    typedRows.forEach(function (t) { var p = pick(t.v); if (!conf[p[0] + "|" + p[1]]) n++; });
+    if (n) W(0, n + " " + what + " have no CONFIRMED register instance; they stay dormant until the instance is confirmed (this is by design, not data loss).");
+  }
+
+  /* ==SECTION:step-validate== */
+  document.getElementById("dovalidate").onclick = function () {
+    if (!sel || !csv) return;
+    saveMapping();
+    result = convert();
+    result.ok = result.errors.length === 0;
+    var vs = document.getElementById("vstats");
+    vs.innerHTML = "";
+    [["Entity", sel.label + " -> data\\" + sel.file],
+     ["Rows in", String(csv.rows.length)],
+     ["Rows out", String(result.rows.length)],
+     ["Errors", String(result.errors.length)],
+     ["Warnings", String(result.warnings.length)],
+     ["Cross-checked against", SPECS.filter(function (s) { return s.key !== sel.key && working[s.key].source !== "missing"; }).map(function (s) { return s.key + " (" + working[s.key].source + ")"; }).slice(0, 6).join(", ") + "..."]
+    ].forEach(function (p) {
+      vs.appendChild(el("div", { class: "k" }, [p[0]]));
+      vs.appendChild(el("div", {}, [p[1]]));
+    });
+    var rep = document.getElementById("vreport");
+    rep.innerHTML = "";
+    if (!result.errors.length && !result.warnings.length) rep.appendChild(el("div", { class: "line inf" }, ["Clean. No errors, no warnings."]));
+    groupLines(rep, result.errors, "err", "ERROR");
+    groupLines(rep, result.warnings, "wrn", "warning");
+    result.infos.forEach(function (m) { rep.appendChild(el("div", { class: "line inf" }, [m])); });
+    document.getElementById("vpreview").textContent = result.rows.length ? JSON.stringify(result.rows[0], null, 1) : "(no rows)";
+    setStep("c-validate", true, result.errors.length ? result.errors.length + " errors" : "clean");
+    var maskable = sel.fields.some(function (f) { return f.m; });
+    document.getElementById("maskrow").style.display = maskable ? "" : "none";
+    renderExport();
+    setStep("c-export", true, "");
+  };
+  function groupLines(rep, list, cls, label) {
+    var byMsg = {};
+    list.forEach(function (e) {
+      var key = e.msg.replace(/"[^"]*"/g, "\"...\"").replace(/\d+/g, "#");
+      (byMsg[key] = byMsg[key] || []).push(e);
+    });
+    Object.keys(byMsg).forEach(function (key) {
+      var g = byMsg[key];
+      var shown = g.slice(0, 6).map(function (e) { return e.row ? "row " + e.row + ": " + e.msg : e.msg; });
+      var more = g.length > 6 ? " ... and " + (g.length - 6) + " more like this" : "";
+      rep.appendChild(el("div", { class: "line " + cls, html: "<b>" + label + (g.length > 1 ? " x" + g.length : "") + "</b> " + esc(shown.join(" | ")) + esc(more) }));
+    });
+  }
+
+  /* ==SECTION:mask== */
+  function maskValue(name) {
+    if (maskMap[name]) return maskMap[name];
+    var next = Object.keys(maskMap).length + 1;
+    var pseudo = "Person " + ("00" + next).slice(-3);
+    maskMap[name] = pseudo;
+    return pseudo;
+  }
+  function applyMask(rows) {
+    var fields = sel.fields.filter(function (f) { return f.m; });
+    if (!fields.length) return rows;
+    /* deterministic: collect unseen names, assign in sorted order first */
+    var unseen = {};
+    rows.forEach(function (row) {
+      fields.forEach(function (fd) {
+        var val = pickMasked(row, fd);
+        if (val && !maskMap[val]) unseen[val] = 1;
+      });
+    });
+    Object.keys(unseen).sort().forEach(maskValue);
+    var out = JSON.parse(JSON.stringify(rows));
+    out.forEach(function (row) {
+      fields.forEach(function (fd) { setMasked(row, fd); });
+    });
+    store("grc-dataforge-mask", maskMap);
+    renderMaskCount();
+    return out;
+  }
+  function pickMasked(row, fd) {
+    if (sel.key === "raus") return row.roles[fd.f];
+    return row[fd.f];
+  }
+  function setMasked(row, fd) {
+    if (sel.key === "raus") { if (row.roles[fd.f]) row.roles[fd.f] = maskMap[row.roles[fd.f]] || row.roles[fd.f]; return; }
+    if (row[fd.f]) row[fd.f] = maskMap[row[fd.f]] || row[fd.f];
+  }
+  function renderMaskCount() {
+    document.getElementById("maskcount").textContent = Object.keys(maskMap).length + " names";
+  }
+  document.getElementById("copymask").onclick = function () {
+    var lines = Object.keys(maskMap).sort().map(function (n) { return n + "\t" + maskMap[n]; });
+    var ta = document.createElement("textarea");
+    ta.value = lines.join("\n") || "(empty)";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch (e) { }
+    document.body.removeChild(ta);
+    document.getElementById("copymask").textContent = "Copied " + lines.length + " pairs";
+    setTimeout(function () { document.getElementById("copymask").textContent = "Copy map"; }, 1500);
+  };
+  document.getElementById("clearmask").onclick = function () {
+    maskMap = {}; store("grc-dataforge-mask", maskMap); renderMaskCount();
+  };
+
+  /* ==SECTION:step-export== */
+  function buildOutput(rows) {
+    var payload = { version: today(), rows: rows };
+    return "window.GRC_DATA = window.GRC_DATA || {};\n" +
+      "window.GRC_DATA." + sel.key + " = " + JSON.stringify(payload) + ";\n";
+  }
+  function renderExport() {
+    var doMask = document.getElementById("mask").checked;
+    var rows = result ? (doMask ? applyMask(result.rows) : result.rows) : [];
+    var js = result ? buildOutput(rows) : "";
+    var xs = document.getElementById("xstats");
+    xs.innerHTML = "";
+    var kb = Math.round(js.length / 1024);
+    [["File", "data\\" + sel.file], ["Version stamp", today()], ["Rows", String(rows.length)],
+     ["Size", kb + " KB" + (js.length > 3000000 ? " - OVER 3 MB: consider trimming (see TASK-REAL-DATA.md)" : "")]
+    ].forEach(function (p) {
+      xs.appendChild(el("div", { class: "k" }, [p[0]]));
+      xs.appendChild(el("div", {}, [p[1]]));
+    });
+    document.getElementById("dlname").textContent = sel.file;
+    var can = result && (result.ok || document.getElementById("override").checked);
+    document.getElementById("download").disabled = !can;
+    document.getElementById("st-export").textContent = can ? "" : "blocked by errors";
+    document.getElementById("xout").hidden = true;
+  }
+  document.getElementById("mask").onchange = renderExport;
+  document.getElementById("override").onchange = renderExport;
+  function currentOutput() {
+    var doMask = document.getElementById("mask").checked && document.getElementById("maskrow").style.display !== "none";
+    var rows = doMask ? applyMask(result.rows) : result.rows;
+    return { rows: rows, js: buildOutput(rows) };
+  }
+  function downloadText(name, text) {
+    var blob = new Blob([text], { type: "text/javascript" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); document.body.removeChild(a); }, 400);
+  }
+  document.getElementById("download").onclick = function () {
+    if (!result) return;
+    var out = currentOutput();
+    downloadText(sel.file, out.js);
+    working[sel.key] = { rows: out.rows, version: today(), source: "converted" };
+    renderWorking(); renderEntities();
+    setStep("c-export", true, "exported " + today());
+  };
+  document.getElementById("showout").onclick = function () {
+    if (!result) return;
+    var pre = document.getElementById("xout");
+    pre.hidden = !pre.hidden;
+    if (!pre.hidden) pre.textContent = currentOutput().js;
+  };
+
+  /* ==SECTION:rail== */
+  function renderWorking() {
+    var tb = document.getElementById("wstable");
+    tb.innerHTML = "";
+    tb.appendChild(el("tr", {}, ["Entity", "Rows", "Source"].map(function (h) { return el("th", {}, [h]); })));
+    SPECS.forEach(function (s) {
+      var w = working[s.key];
+      tb.appendChild(el("tr", {}, [
+        el("td", { class: "mono" }, [s.key]),
+        el("td", {}, [String(w.rows.length)]),
+        el("td", {}, [el("span", { class: "badge " + (w.source === "converted" ? "ok" : w.source === "imported" ? "ok" : w.source === "missing" ? "bad" : "") }, [w.source + (w.version !== "-" ? " " + w.version : "")])])
+      ]));
+    });
+    document.getElementById("wsst").textContent = "";
+  }
+  document.getElementById("importbtn").onclick = function () { document.getElementById("importjs").click(); };
+  document.getElementById("importjs").addEventListener("change", function (ev) {
+    var f = ev.target.files && ev.target.files[0];
+    if (!f) return;
+    var r = new FileReader();
+    r.onload = function () {
+      var text = String(r.result);
+      var m = text.match(/window\.GRC_DATA\.(\w+)\s*=\s*(\{[\s\S]*\});/);
+      if (!m) { alert("Not a data file: expected the window.GRC_DATA.<entity> wrapper."); return; }
+      var key = m[1];
+      if (!BY_KEY[key]) { alert("Unknown entity \"" + key + "\"."); return; }
+      var payload;
+      try { payload = JSON.parse(m[2]); } catch (e) { alert("Could not parse the JSON payload: " + e.message); return; }
+      working[key] = { rows: payload.rows || [], version: payload.version || "-", source: "imported" };
+      renderWorking(); renderEntities();
+    };
+    r.readAsText(f);
+    ev.target.value = "";
+  });
+  function renderEmptyButtons() {
+    var box = document.getElementById("emptybtns");
+    SPECS.filter(function (s) { return s.kind === "history"; }).forEach(function (s) {
+      box.appendChild(el("button", {
+        onclick: function () {
+          downloadText(s.file, "window.GRC_DATA = window.GRC_DATA || {};\nwindow.GRC_DATA." + s.key + " = " + JSON.stringify({ version: today(), rows: [] }) + ";\n");
+        }
+      }, [s.file]));
+    });
+  }
+  document.getElementById("emptyall").onclick = function () {
+    var hist = SPECS.filter(function (s) { return s.kind === "history"; });
+    hist.forEach(function (s, i) {
+      setTimeout(function () {
+        downloadText(s.file, "window.GRC_DATA = window.GRC_DATA || {};\nwindow.GRC_DATA." + s.key + " = " + JSON.stringify({ version: today(), rows: [] }) + ";\n");
+      }, i * 350);
+    });
+  };
+
+  /* ==SECTION:selftest== */
+  function runSelfTest() {
+    var out = [], savedSel = sel, savedCsv = csv, savedMapping = mapping, savedMask = maskMap, savedDelim = document.getElementById("listdelim").value;
+    function T(name, fn) {
+      try { fn(); out.push({ ok: true, name: name }); }
+      catch (e) { out.push({ ok: false, name: name, msg: e.message }); }
+    }
+    function eq(a, b, what) {
+      var ja = JSON.stringify(a), jb = JSON.stringify(b);
+      if (ja !== jb) throw new Error(what + ": got " + ja.slice(0, 120) + " expected " + jb.slice(0, 120));
+    }
+    T("CSV parser: quotes, embedded commas and newlines, CRLF, BOM", function () {
+      var p = parseCsv("\uFEFFa,b,c\r\n1,\"x, y\",\"line1\nline2\"\r\n2,\"he said \"\"hi\"\"\",z\r\n");
+      eq(p.headers, ["a", "b", "c"], "headers");
+      eq(p.rows[0], ["1", "x, y", "line1\nline2"], "row1");
+      eq(p.rows[1][1], "he said \"hi\"", "escaped quotes");
+    });
+    T("Cleanup: smart quotes, dashes, accents; date normalization", function () {
+      cleanStats = { cells: 0, mapped: 0, lost: 0, dates: 0, samples: [] };
+      eq(cleanText("\u201Chi\u201D \u2013 caf\u00E9"), "\"hi\" - cafe", "clean");
+      eq(normDate("8/24/2026"), "2026-08-24", "date");
+      eq(normDate("2026-08-24"), "2026-08-24", "iso passthrough");
+    });
+    T("RAU folding: roles and meta nesting, defaults, empty map", function () {
+      sel = BY_KEY.raus;
+      csv = parseCsv("id,name,subLobId,category,description,serviceIds,owner,delegate,bcmContact,orbo,baco,fte,annualVolume,changeLevel,tags,excl\nRAU-9001,Test Unit,ORG-0003,business-service,A test.,SVC-0003;SVC-0004,Pat One,,,,,12,5000,low,proc:x;data:pii,trading\n");
+      autoMap();
+      var r = convert();
+      if (r.errors.length) throw new Error("unexpected errors: " + r.errors[0].msg);
+      var row = r.rows[0];
+      eq(row.roles.owner, "Pat One", "roles.owner");
+      eq(row.meta, { tags: ["proc:x", "data:pii"], excl: ["trading"] }, "meta");
+      eq(row.map, null, "map null");
+      eq(row.handoffs, [], "handoffs");
+      eq(row.stage, "active", "stage default");
+      eq(row.locations, 1, "locations default");
+    });
+    T("Ratings: five levels split, override needs a note", function () {
+      sel = BY_KEY.ratings;
+      csv = parseCsv("rauId,eventId,s,f,ov,note,by,date\nRAU-0001,REV-001,3;2;1;1;1,3;2;1;1;1,0,,Pat One,2026-01-05\nRAU-0001,REV-002,3;2;1;1;1,4;2;1;1;1,1,,Pat One,2026-01-06\n");
+      autoMap();
+      var r = convert();
+      eq(r.rows[0].s, [3, 2, 1, 1, 1], "s levels");
+      if (!r.errors.some(function (e) { return e.msg.indexOf("requires a note") >= 0; })) throw new Error("missing override-note error");
+    });
+    T("MCR head inference and lean tail rows", function () {
+      sel = BY_KEY.mcrs;
+      csv = parseCsv("id,name,parentEventId,regFamily,citation,regulator,publishedDate,tags,obligations,prohibitions\nMCR-9001,Head row,REV-051,BSA/AML,31 CFR 1,X,2026-01-01,t:a,Do the thing,Never the other\nMCR-9002,Tail row,REV-051,BSA/AML,31 CFR 2,,,,,\n");
+      autoMap();
+      var r = convert();
+      eq(r.rows[0].head, true, "head inferred");
+      eq(Object.keys(r.rows[1]), ["id", "name", "parentEventId", "regFamily", "citation", "tags"], "tail lean");
+    });
+    T("Duplicate key detection", function () {
+      sel = BY_KEY.orgNodes;
+      csv = parseCsv("id,level,parentId,name\nORG-9001,lob,,A\nORG-9001,lob,,B\n");
+      autoMap();
+      var r = convert();
+      if (!r.errors.some(function (e) { return e.msg.indexOf("duplicate") >= 0; })) throw new Error("duplicate not caught");
+    });
+    T("Masking: deterministic, stable across entities", function () {
+      maskMap = {};
+      sel = BY_KEY.controls;
+      var rows = [{ id: "CTL-9001", owner: "Zed Zulu" }, { id: "CTL-9002", owner: "Ann Alpha" }];
+      var masked = applyMask(rows);
+      eq(masked[0].owner, "Person 002", "sorted assignment z");
+      eq(masked[1].owner, "Person 001", "sorted assignment a");
+      var again = applyMask(rows);
+      eq(again[0].owner, "Person 002", "stable on rerun");
+    });
+    T("Output wrapper matches the contract exactly", function () {
+      sel = BY_KEY.register;
+      var js = buildOutput([]);
+      if (js.indexOf("window.GRC_DATA = window.GRC_DATA || {};\nwindow.GRC_DATA.register = {\"version\":\"") !== 0) throw new Error("wrapper drifted: " + js.slice(0, 80));
+      if (js.slice(-3) !== ";\n" && js.slice(-2) !== ";\n") throw new Error("missing trailing semicolon+newline");
+    });
+    sel = savedSel; csv = savedCsv; mapping = savedMapping; maskMap = savedMask;
+    document.getElementById("listdelim").value = savedDelim;
+    store("grc-dataforge-mask", maskMap); renderMaskCount();
+    var box = document.getElementById("selftestout");
+    box.innerHTML = "";
+    var fails = 0;
+    out.forEach(function (t) {
+      if (!t.ok) fails++;
+      box.appendChild(el("div", { class: "line " + (t.ok ? "inf" : "err") }, [(t.ok ? "PASS  " : "FAIL  ") + t.name + (t.ok ? "" : " - " + t.msg)]));
+    });
+    document.getElementById("selftestst").textContent = fails ? fails + " FAILED" : "all " + out.length + " passed";
+    return fails === 0;
+  }
+  document.getElementById("selftest").onclick = runSelfTest;
+  window.GRC_DATAFORGE_TEST = runSelfTest;
+
+  /* ==SECTION:boot== */
+  initWorking();
+  renderEntities();
+  renderWorking();
+  renderEmptyButtons();
+  renderMaskCount();
+})();
+</script>
+</body>
+</html>

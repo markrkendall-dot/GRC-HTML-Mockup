@@ -1,0 +1,5 @@
+id,section,text,excl,tag
+Q01,Trading & Markets,Confirm this RAU does NOT conduct trading or market-making activity.,trading,
+Q02,Trading & Markets,Confirm this RAU does NOT handle municipal securities activity.,municipal-securities,
+Q03,Money Movement,Does this RAU initiate outbound wires on customer instruction?,,mm:wire-out
+Q04,Money Movement,Does this RAU originate ACH entries?,,mm:ach-origination

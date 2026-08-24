@@ -1,10 +1,13 @@
 GRC MOCKUP WORKSPACE
 ====================
+Fresh off the boat? SHIP-MANIFEST.txt (next to this file) is the arrival
+checklist: verify the crossing, boot the app, self-test the data tool.
+
 This folder IS the working structure. Unpack it as C:\GRC (or your
 Documents folder if C:\ is locked down) and keep the layout exactly:
 
   demo\            THE APP - open demo\index.html in Edge. It ships
-                   PRE-BUILT through release R9: capabilities 1-5 end to
+                   PRE-BUILT through release R10: capabilities 1-5 end to
                    end (RAU inventory and pipeline, risk identification,
                    inherent ratings, controls with derived key, the
                    living RCSA with affirmation, challenge and residual)
@@ -15,7 +18,10 @@ Documents folder if C:\ is locked down) and keep the layout exactly:
     modules\       one .js per capability               (edit via Copilot)
     data\          one .js per entity - YOUR REAL DATA REPLACES THESE
                    (same filenames; see data-staging\README.txt)
-    tools\         (dataforge.html arrives in a later phase)
+    tools\         dataforge.html - the real-data pipeline: open it in
+                   Edge, load a CSV, map, validate, mask, export a ready
+                   data\*.js file. Works offline like the app. Run its
+                   Self-test button once after unpacking.
   kit\             the .md files you attach to Copilot sessions (v2,
                    matches the as-built app; start at KIT-README.md)
     cards\         one TASK card per kind of job + the FB template

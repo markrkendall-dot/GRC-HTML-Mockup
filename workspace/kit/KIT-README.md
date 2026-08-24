@@ -23,7 +23,9 @@ WORKSHEET.md  your org-specific decisions (names, thresholds). Fill in
 cards\        one TASK card per kind of job:
   TASK-EDIT-MODULE.md      change one file (the everyday session)
   TASK-FEEDBACK-ROUND.md   run a whole feedback round, release to release
-  TASK-REAL-DATA.md        swap real data into data\
+  TASK-REAL-DATA.md        swap real data into data\ (via the DataForge
+                           tool, demo\tools\dataforge.html; Copilot only
+                           as fallback)
   TASK-NEW-MODULE.md       add a new capability module
   TASK-FB-TEMPLATE.md      the per-feedback-item card you fill out
 

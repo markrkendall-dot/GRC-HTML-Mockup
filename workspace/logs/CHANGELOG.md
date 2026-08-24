@@ -12,6 +12,49 @@ Kit: SCHEMA.md v___, CONTRACT.md v___ (changed/unchanged)
 Version matrix: (paste the Preflight versions table here)
 ---- END TEMPLATE ----
 
+== R10 - 2026-08-24 - DataForge: the real-data pipeline ==
+Feedback closed: none - plan-driven build (the PLAN.md P2 "DataForge
+converter" deliverable, deferred until the capability build stabilized).
+Module changes:
+  tools/dataforge.html NEW 1.0.0: standalone CSV-to-data\*.js converter
+    at demo\tools\, offline on file:// like the app. Five steps: pick
+    entity, load CSV (file pick, paste, or drop), map columns to schema
+    fields (auto-mapped when headers match the templates; W3 live),
+    validate (required fields, duplicate keys, vocabulary, ranges,
+    id patterns, cross-entity dangling references checked against the
+    live working set, entity-specific rules such as override-needs-note
+    and hierarchy levels; non-ASCII normalized, M/D/YYYY dates fixed),
+    mask people names (stable Person NNN pseudonyms shared across
+    entities; mask map copyable, never shipped), export with the
+    version date stamped. Also: empty-history file generation (single
+    or all eight), re-import of converted .js for resumed sittings,
+    MCR tail rows auto-written lean, 3 MB size warning, built-in
+    self-test (parser, folding, validation, masking, wrapper).
+  No kernel or module changes; index.html untouched (the tool is
+  standalone).
+Data: regenerated same seed, rows and version stamps unchanged
+  (2026-08-23); release.js R10 2026-08-24. data-staging\templates\
+  regenerated with full schema columns: raus.csv adds locations,
+  priorLosses12m, lastRcsaDate; riskevents.csv adds errClass, sevClass,
+  enfFlag, visClass; mcrs.csv adds head, summary, recCtl and a lean tail
+  example; challenges.csv adds controlId and the responded/resolved
+  fields; affirmations.csv now flattens snapshot/prior into columns
+  (was emitting [object Object] - template bug fixed); NEW requests.csv
+  and metaquestions.csv. Generator 1.0.0 -> 1.1.0 (template writer only;
+  data output byte-identical).
+Kit: SCHEMA.md v2.0 (invariant now names DataForge as the only real-data
+  door), MODULES.md 1.0 -> 1.1 (TOOLS section), WORKSHEET.md rewritten
+  v1 -> v2 (was stale pre-build content), TASK-REAL-DATA v2
+  (DataForge-first, Copilot fallback), KIT-README/KIT-STATUS touched.
+  CONTRACT.md, ENGINE.md, PROMPTS.md unchanged.
+Verification: 44-check headless browser suite (outside): shipped demo
+  boots R10 with zero console errors across nine routes; every template
+  CSV converts with zero errors; 850-RAU and 8,000-MCR full-scale
+  round-trips reproduce shipped rows byte-identically (masking off);
+  the app boots clean on DataForge-made files; tool self-test green.
+Version matrix: unchanged from R9 except release R10 and the new tool
+  (see Preflight in the app).
+
 == R9 - 2026-08-24 - Kit v2 and runbook v2 ==
 Feedback closed: FB-024 (the R8 release note's kit regeneration decision)
 No app code changes; release.js R9 only.

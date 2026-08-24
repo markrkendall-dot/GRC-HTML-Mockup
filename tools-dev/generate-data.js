@@ -1,4 +1,4 @@
-/* GRC tools-dev/generate-data.js v1.0.0 2026-08-23
+/* GRC tools-dev/generate-data.js v1.1.0 2026-08-24
    Outside-the-firewall synthetic data generator (Node). Deterministic
    (seeded). Writes workspace/demo/data/*.js and
    workspace/data-staging/templates/*.csv.
@@ -1063,7 +1063,7 @@ sizes.affirmations = writeData("affirmations", affirmations);
 sizes.challenges = writeData("challenges", challenges);
 fs.writeFileSync(path.join(OUT, "release.js"),
   "window.GRC_DATA = window.GRC_DATA || {};\n" +
-  "window.GRC_DATA.release = {number:\"R9\", date:\"" + TODAY + "\", label:\"Kit v2 and runbook v2: the as-built operating manual\"};\n");
+  "window.GRC_DATA.release = {number:\"R10\", date:\"2026-08-24\", label:\"DataForge: the real-data pipeline, CSV to data files inside the firewall\"};\n");
 
 /* ==SECTION:csv-templates== */
 function csv(name, headers, rows) {
@@ -1078,21 +1078,30 @@ function csv(name, headers, rows) {
   });
   fs.writeFileSync(path.join(TPL, name + ".csv"), lines.join("\r\n") + "\r\n");
 }
-csv("raus", ["id", "name", "subLobId", "category", "description", "serviceIds", "owner", "delegate", "bcmContact", "orbo", "baco", "fte", "annualVolume", "changeLevel", "tags", "excl"],
+csv("raus", ["id", "name", "subLobId", "category", "description", "serviceIds", "owner", "delegate", "bcmContact", "orbo", "baco", "fte", "locations", "annualVolume", "priorLosses12m", "changeLevel", "tags", "excl", "lastRcsaDate"],
   raus.slice(0, 3).map(function (r) {
-    return { id: r.id, name: r.name, subLobId: r.subLobId, category: r.category, description: r.description, serviceIds: r.serviceIds, owner: r.roles.owner, delegate: r.roles.delegate, bcmContact: r.roles.bcmContact, orbo: r.roles.orbo, baco: r.roles.baco, fte: r.fte, annualVolume: r.annualVolume, changeLevel: r.changeLevel, tags: r.meta.tags, excl: r.meta.excl };
+    return { id: r.id, name: r.name, subLobId: r.subLobId, category: r.category, description: r.description, serviceIds: r.serviceIds, owner: r.roles.owner, delegate: r.roles.delegate, bcmContact: r.roles.bcmContact, orbo: r.roles.orbo, baco: r.roles.baco, fte: r.fte, locations: r.locations, annualVolume: r.annualVolume, priorLosses12m: r.priorLosses12m, changeLevel: r.changeLevel, tags: r.meta.tags, excl: r.meta.excl, lastRcsaDate: r.lastRcsaDate };
   }));
 csv("orgnodes", ["id", "level", "parentId", "name"], orgNodes.slice(0, 4));
 csv("services", ["id", "parentId", "level", "name"], services.slice(0, 5));
-csv("riskevents", ["id", "side", "name", "description", "qualification", "keywords", "tags", "excludedBy"], riskEvents.slice(0, 3));
-csv("mcrs", ["id", "name", "parentEventId", "regFamily", "citation", "regulator", "publishedDate", "tags", "obligations", "prohibitions"], mcrs.slice(0, 3));
+csv("riskevents", ["id", "side", "name", "description", "qualification", "keywords", "tags", "excludedBy", "errClass", "sevClass", "enfFlag", "visClass"], riskEvents.slice(0, 3));
+csv("mcrs", ["id", "name", "parentEventId", "regFamily", "citation", "regulator", "head", "publishedDate", "tags", "summary", "obligations", "prohibitions", "recCtl"],
+  mcrs.slice(0, 2).concat([mcrs[2000]]).map(function (m) {
+    return { id: m.id, name: m.name, parentEventId: m.parentEventId, regFamily: m.regFamily, citation: m.citation, regulator: m.regulator, head: m.head ? true : false, publishedDate: m.publishedDate, tags: m.tags, summary: m.summary, obligations: m.obligations, prohibitions: m.prohibitions, recCtl: m.recCtl };
+  }));
 csv("register", ["rauId", "eventId", "status", "score", "mcrIds", "by", "date", "rationale"], register.slice(0, 3));
 csv("ratings", ["rauId", "eventId", "s", "f", "ov", "note", "by", "date"], ratings.slice(0, 3));
 csv("controls", ["id", "name", "desc", "owningRauId", "shared", "type", "automation", "frequency", "owner", "declaredKey", "design", "perf", "status", "created"], controls.slice(0, 3));
 csv("controllinks", ["c", "r", "e"], controlLinks.slice(0, 3));
 csv("expectedcontrols", ["id", "eventId", "controlId", "note"], expRules.slice(0, 2));
-csv("affirmations", ["rauId", "date", "by", "snapshot", "prior", "pending"], affirmations.slice(0, 3));
-csv("challenges", ["id", "rauId", "kind", "eventId", "what", "should", "by", "byName", "date", "state", "response"], challenges.slice(0, 3));
+csv("affirmations", ["rauId", "date", "by", "snapHigh", "snapModerate", "snapLow", "snapLines", "priorHigh", "priorModerate", "priorLow", "priorLines"],
+  affirmations.slice(0, 3).map(function (a) {
+    return { rauId: a.rauId, date: a.date, by: a.by, snapHigh: a.snapshot.high, snapModerate: a.snapshot.moderate, snapLow: a.snapshot.low, snapLines: a.snapshot.lines, priorHigh: a.prior ? a.prior.high : "", priorModerate: a.prior ? a.prior.moderate : "", priorLow: a.prior ? a.prior.low : "", priorLines: a.prior ? a.prior.lines : "" };
+  }));
+csv("challenges", ["id", "rauId", "kind", "eventId", "controlId", "what", "should", "by", "byName", "date", "state", "response", "respondedBy", "respondedDate", "resolvedDate"],
+  challenges.slice(0, 2).concat([challenges.filter(function (c) { return c.controlId; })[0] || challenges[2]]));
+csv("requests", ["id", "type", "stage", "proposedName", "subLobId", "category", "requester", "submitted", "serviceIds", "description", "bullets", "note"], requests.slice(0, 2));
+csv("metaquestions", ["id", "section", "text", "excl", "tag"], META_QS.slice(0, 4));
 
 /* ==SECTION:stats== */
 console.log("orgNodes", orgNodes.length, "| services", services.length, "| raus", raus.length,

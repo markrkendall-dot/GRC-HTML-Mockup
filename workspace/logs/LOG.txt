@@ -2,3 +2,4 @@ SESSION LOG - one line per completed build session (runbook Part 4, step 12)
 Format: date | file | version | OK or note
 Example: 2026-09-04 | kernel/core.js | 1.0.0 | OK
 ----------------------------------------------------------------------
+2026-08-24 | tools/dataforge.html | 1.0.0 | OK - built outside; 44-check browser verification incl. 850-RAU / 8000-MCR round-trip and swap boot

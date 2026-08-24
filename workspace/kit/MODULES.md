@@ -1,4 +1,4 @@
-# GRC MOCKUP - MODULE INVENTORY v1.0 (MODULES.md), as of release R9
+# GRC MOCKUP - MODULE INVENTORY v1.1 (MODULES.md), as of release R10
 
 Every file carries its version in its first line; the in-app Preflight
 panel shows the live matrix. Sizes are the working ceiling check: keep a
@@ -75,6 +75,18 @@ Cross-cutting
                          demos. Scenes find records at runtime.
   skeletons.js   v1.3.0   4KB  redirects only (cap3/cap4/cap5 to the real
                          modules). All skeletons have graduated.
+
+## TOOLS (standalone pages; not loaded by index.html)
+  dataforge.html v1.0.0  64KB  demo\tools\ - the real-data pipeline:
+                         CSV to data\*.js entirely in the browser (load,
+                         map, validate, mask, export), empty-history
+                         generation, .js re-import for resumed sittings,
+                         built-in self-test. Ceiling 90 KB (not the
+                         55 KB module default). Reads ..\data\*.js as
+                         its cross-check reference at open. EDIT it like
+                         any file (mirror to CURRENT-dataforge-html.md);
+                         attach SCHEMA.md - its entity specs must track
+                         SCHEMA exactly.
 
 ## RAIL ORDER MAP (RCSA tab)
 10 RAUs / 20 Risk identification / 22 Inherent ratings / 24 Controls /

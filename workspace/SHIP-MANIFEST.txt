@@ -1,0 +1,109 @@
+GRC MOCKUP - SHIP MANIFEST
+==========================
+Release:  R10 (2026-08-24) - DataForge: the real-data pipeline, CSV to data files inside the firewall
+Packed:   76 files, 7.31 MB unpacked
+Payload:  the complete self-contained workspace: the app (demo\),
+          the Copilot kit (kit\), CSV templates (data-staging\),
+          logs, the runbook, and DataForge (demo\tools\).
+          Nothing else is needed to run, extend, or maintain it.
+
+ARRIVAL CHECKLIST (do these five, in order, on the inside machine)
+1. UNPACK the zip at C:\ so this file sits at C:\GRC\SHIP-MANIFEST.txt
+   (Documents works too if C:\ is locked down; keep the layout).
+2. VERIFY the crossing. Whole-zip check (hash arrives by separate
+   channel):   certutil -hashfile GRC-Workspace-R10.zip SHA256
+   Per-file spot checks against the list below:
+      certutil -hashfile C:\GRC\demo\index.html SHA256
+   or all at once in PowerShell:  Get-FileHash -Algorithm SHA256 <file>
+   Check at minimum: demo\index.html, demo\tools\dataforge.html,
+   kernel\core.js, kernel\engine.js, and one data file.
+3. BOOT: double-click demo\index.html (Edge). The red banner must say
+   R10. Click Preflight: zero trapped errors, every entity loaded.
+4. TOOL: open demo\tools\dataforge.html, click Run self-test:
+   all checks green means the data pipeline survived intact.
+5. READ: README-FIRST.txt (one page), then the runbook
+   (GRC-Mockup-Runbook.docx) Part 0. Everything else is reference.
+
+If step 3 or 4 fails, the crossing corrupted a file: find it with the
+hash list below and re-transfer that file (or the whole zip). Do not
+hand-patch. This manifest lists every shipped file; the manifest
+itself is covered by the whole-zip hash.
+
+FILE HASHES (SHA-256)
+2e17adf081bdb0bd784e63687420926dba42480269bb1c5fdda490983d669361      20083  GRC-Mockup-Runbook.docx
+0fffb5312bf166676c6e4b457075ce7fde87ad1a82e23b08596b0b11973b3ba8       2708  README-FIRST.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855          0  backup\.keep
+027f65dd4857684724ad5de6bc32f9ff42124f15bd9c50b63e6c0cf6f4fcec82       1528  data-staging\README.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855          0  data-staging\templates\.keep
+72d5670ff28ebaca0208089bcbc6642c29ed02e7a42fa72fe4b1caa27e9c527e        240  data-staging\templates\affirmations.csv
+250ff7f6f4b63e809f4a932f5d892b66cfff633e8b606816e9797d42ec84900c       1108  data-staging\templates\challenges.csv
+95bb5f94950a236283357a642c21546c68ea6454dbf31ed63c7a036eb8a8bb4c         88  data-staging\templates\controllinks.csv
+0723c3777cf35f36933424b1b5bd71db05e819c2078c24da172a7d2afd967246        951  data-staging\templates\controls.csv
+3436caa1ffbf9fe860fbc39d339f32d526dd1ba9f2652735db799a3d63eab3e8        209  data-staging\templates\expectedcontrols.csv
+46a9e3fdee6fd3615ab9389ddef011e7e3a31c8970a1ec17069b88168d7b4ab6       1171  data-staging\templates\mcrs.csv
+3b3c11008d74fbe959bd0630ca5191c18a418acae179cf051b5910ecb232e8a9        409  data-staging\templates\metaquestions.csv
+d927d5db61f9e872abe3ba414a8b969200ffce7ae994532c63b94c89e3bb6dec        199  data-staging\templates\orgnodes.csv
+eb03bb1349336d2828143ae05ea065ea4317fa3881cd9235e5e4c743b695d290        228  data-staging\templates\ratings.csv
+00ce72c99d350b51e1b195a4e9319dd39a5f3920074deb4788d8a9bde358498a       1539  data-staging\templates\raus.csv
+dfeb294159f1a5025f1f21d963f32235cf54cbb42ac167996ce789bb76c97d4e        327  data-staging\templates\register.csv
+aacb9c5bc3a3ca34978b1152583babd396628882d00b0738c371900bd4692e7a        784  data-staging\templates\requests.csv
+73318c57c873eef296176440b6c339dc26bc3d84aa98728ca5de5852c2346894       1178  data-staging\templates\riskevents.csv
+f668158d67c19c18ea2d8eb3972d9cb4f93107162edc2076b87dbfa7920833ac        221  data-staging\templates\services.csv
+26c96d9b29f60be29bf7db79552601471cd8bedb097bf974fbad16534dd564be       1082  demo\data\README.txt
+62e41dec74f10921f5f169694623bc30d1402cebd9dc2dd31a3c221e0406ef4b      64483  demo\data\affirmations.js
+07e2184d95c0eeeffd1ff0a1de43c97bbbe0b31f1c8be58de4654c58e9aa5e1d      11104  demo\data\challenges.js
+751218a748f8da369a5c3174b86a050800846aef88316b9675b988b0fa08ab0d     292943  demo\data\controllinks.js
+8fd2b84cbed3757dbc9a3e67f086e1c7d02c81c3b8b859044bfd20cc26945e6c    2292793  demo\data\controls.js
+c5279dacdc4bc61bfc4f82692345b2f2303b386b324b934751d79fa8979284c2       1729  demo\data\expectedcontrols.js
+229f1f1f5e15cb434b4a7abe6a8d10704158bacc90add56e934fb763874aab48    2313712  demo\data\mcrs.js
+420762fc8b0a238bb1e5badeacf65de0bc4e804fe019272edce276eed914249b       1840  demo\data\metaquestions.js
+a20cabec2877b244c03e2706072f4ef167e8a0e455acc0318a9fb93226888838       4387  demo\data\orgnodes.js
+1aafa00ba10efb6fce42e5b377427ae5dd917b92dfaa3c9a5da7035821bc63f8     337832  demo\data\ratings.js
+e757bb2402d9edddc1125b4cd3c64d904bb1ec9cccd42a11b5b4b1ebe3467e60     878808  demo\data\raus.js
+514966d6c3cc05b912517380912b24d2415fdd12a0ba1d07d94ddec124b1b295     837405  demo\data\register.js
+737afc7516ced47c6cc8be9ee9ccb73155df5620517be449672e4a0394326a9f        184  demo\data\release.js
+ba52c35e75d6b0c2e64a0bce08fb4fabc9aab811276c1fff3638a75c2aba55ac       6528  demo\data\requests.js
+c1517b9dd8573d2fa2ad1931847985749989a516ae235d28b78b15466bd9f32a      47065  demo\data\riskevents.js
+4a0632522c2f3f895f23d5bee5649651f9e408c5df8e7203d47b4a3efebd8130       1633  demo\data\rubric.js
+5db8dc139b4f857479c9d42ee8f12f20339bf7f7c75881236e460cbeff898f18       6749  demo\data\services.js
+4385dff3f261a276ecc5571937ab714c8a6565fa45664db77abd349653a642e2      20224  demo\index.html
+0d99e2069f6bf30d5a2e3e207acf7dc1fe4102a32b318d74c28e109d4cc19712       6512  demo\kernel\charts.js
+8d0e8bf454d3544ef3133d786a4005aeee2308f3ec4027e7286b33eccb3bf7c2      46709  demo\kernel\core.js
+cd339d529e7c6ed04d239ad819ea7b332cd5d3cf79b0ec4e9052147367a2eab7      27627  demo\kernel\engine.js
+7fbd15e0282100bed6f3f1daf4b517c5ee3f279b888bdeb8187a6e3e54c22e1e       8259  demo\kernel\ui.js
+f3ad9af8ea757f73709a9ac24f4d5df4dc2889a12dcc6f1ea0b151bc5e811556      33432  demo\modules\controls.js
+10322f35a8e40812dfa07928f5308e7ff901b7ae393fbe45a19e36cac71991fc      35187  demo\modules\demo.js
+493a915db8d25df941e87e50b222f26e7fb603f1fe3367f0a1a8e34dd9d4594a      15092  demo\modules\gallery.js
+6e6c01a3d034bba8ef816a70878a1827cf78aad0af9465db039ba92f8c33e572      10137  demo\modules\home.js
+8db07c2d4d19cba2fb09102492c20a6d3a4f9f1c714470fde16a8a49e3464a96      28423  demo\modules\inherent.js
+7654c1811940e4e4032d8685fb9dc9c2b117b26f1e8712f358b5950a9178fde3      24615  demo\modules\intake.js
+47d247d79ad13cdbc83ff4922067c4019c495a4a9406e68796dbc6e166560277      18448  demo\modules\libraries.js
+3fe930eead960728cc2f65caa99dc6bec4651b6ffc818ed35e50b8ea08680286      15076  demo\modules\mapbuilder.js
+ee1db30ba49fc3cd5cded440c80dd4347be7b2b5ec270aa70674c0ee4bce8eb4      11628  demo\modules\mywork.js
+c20b3b625fe48428a670e4614743e2b5b17d91e2ee9a6ccac93b8c33e66af3ea      25327  demo\modules\rau-profile.js
+525fdc67b4e5a6082017f96969b46842add4dca6c85eab5a2898cb4cb4c1909c      11777  demo\modules\rau.js
+6b076b827ef5fe85ddb843937e37c77d68bd926766fbfa09768773ed2ba675b4      29019  demo\modules\rcsa.js
+1125290384bd98da3808231d941b29c19e25812e391041d710af30f9302aaab1      19995  demo\modules\riskid.js
+970cbbf1ba17b7450a102e2bf1d61cefe4e9799bc44b77408bcf0e46fa62754b        561  demo\modules\skeletons.js
+81c204aa995cc032416e099e2ca48ee330cd9966824ea7878c0cb564f72ed169      64915  demo\tools\dataforge.html
+584e8eaf3185c44550c506cab4b3c062073ea1a80299e12114b6c4cf2ba8405b       7743  kit\CONTRACT.md
+4a937aaa9c045f8cd6cb1bd1194fba53b0a403092aa4735f1f8b85d010e58fa5       5537  kit\ENGINE.md
+9bfc9179d9903663aa9adeff86fd25fa1b1159694dc20c8263c2784625a4d5b5       3232  kit\KIT-README.md
+b47264fdc99a7cf6dd13d75790e8d3ef0031655662fbe2551be2a83ff2787e01       1570  kit\KIT-STATUS.md
+76e91987e3c25929f7fe12a50221123de623397c414a3ba303abc926880fe1ad       6007  kit\MODULES.md
+9c7ab9b29a6aa9bec97d2c215875e3c2ba6b008b1ea7fc631eed6e90c7c81370       1753  kit\PROMPTS.md
+b82ab4cc17519bf16ce0e162b5966c4c7b7466f940e36201c02545d18eab385e       6420  kit\SCHEMA.md
+068ffb934a79ffcee9e2b2cba027faa477e30f661be426a721aff57645e9883a       5038  kit\WORKSHEET.md
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855          0  kit\cards\.keep
+3775976377d6d3f040159447f47b1d61c6702cbb10f2049ec30a2818416678e1       1900  kit\cards\TASK-EDIT-MODULE.md
+b9e97d384ab0ba9bef901c9fb814f557ddf26b91a8a52ab530cb3ffb59744db3       1068  kit\cards\TASK-FB-TEMPLATE.md
+dbe2d0de35436d2bc4d48370c59eb34a64e19f847ee024982bbdbab8d8989bb5       2178  kit\cards\TASK-FEEDBACK-ROUND.md
+f68efff900d19e74e52fc22974ffbf590ac141e2e373781d121eebccee34cf6f       1995  kit\cards\TASK-NEW-MODULE.md
+7ae0be248143f75ae85279e4aef8f3f462235d2b1f085c616a139787992d357d       3738  kit\cards\TASK-REAL-DATA.md
+f86e699bad6f84b4dc9fd4a07ead3fedca360556f738d5be5e67661c019643af      21887  logs\CHANGELOG.md
+e5741022863a03453632a4b7414065bf18da0f0e441fe98c1cb88113e1d9b3fd       9948  logs\FEEDBACK.md
+89a4639b1c81f4eb6049d2e2deed4653a4cca49474d5631c8f85442323c03bd4        385  logs\LOG.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855          0  mirror\.keep
+c160879a02ca82bb976886983400564f798dc8496cc23b200de183debb74aed0        486  releases\README.txt
+39c22c0c48ac03588250c02e305d8faacafb2da800d76e994ac649ebfa362363        677  releases\RELEASE-NOTES-TEMPLATE.txt
+
